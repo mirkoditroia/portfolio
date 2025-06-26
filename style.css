@@ -12,7 +12,7 @@ body {
   background: rgba(20, 30, 48, 0.95);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 0 32px;
   height: 64px;
   position: fixed;
@@ -28,6 +28,8 @@ body {
   font-weight: 700;
   font-size: 1.2rem;
   color: #fff;
+  position: absolute;
+  left: 32px;
 }
 .logo img {
   height: 36px;
@@ -37,6 +39,8 @@ body {
 .menu {
   display: flex;
   gap: 24px;
+  justify-content: center;
+  align-items: center;
 }
 .menu a {
   color: #fff;
@@ -83,29 +87,31 @@ main {
   font-weight: 600;
   letter-spacing: 1px;
 }
-.container {
-  background: rgba(20, 30, 48, 0.85);
-  border-radius: 24px;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-  padding: 48px 32px;
-  max-width: 480px;
-  margin: 40px auto;
+.section {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto 64px auto;
+  padding: 48px 16px 0 16px;
   text-align: center;
 }
-.container h1 {
+.section h2 {
   font-size: 2.2rem;
-  margin-bottom: 0.5em;
+  font-weight: 900;
   letter-spacing: 2px;
-  background: linear-gradient(90deg, #ff8c00, #ff0080, #40e0d0);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  margin-bottom: 24px;
+  color: #fff;
+  text-transform: uppercase;
 }
-.container h2 {
-  font-size: 1.1rem;
-  font-weight: 400;
-  margin-bottom: 1.5em;
+.about-text {
   color: #b2becd;
+  font-size: 1.15rem;
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+.about-img {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
 }
 .tags {
   margin-bottom: 2em;
@@ -142,18 +148,63 @@ main {
   transform: translateY(-2px) scale(1.04);
   box-shadow: 0 8px 32px rgba(255, 0, 128, 0.18);
 }
-@media (max-width: 600px) {
+@media (max-width: 900px) {
   .banner {
     flex-direction: column;
     height: auto;
     padding: 8px 8px;
     gap: 8px;
   }
+  .logo {
+    position: static;
+    margin-bottom: 8px;
+    justify-content: center;
+    width: 100%;
+  }
+  .menu {
+    width: 100%;
+    justify-content: center;
+    gap: 16px;
+  }
+  .section {
+    padding: 32px 8px 0 8px;
+    margin-bottom: 40px;
+  }
+  .section h2 {
+    font-size: 1.4rem;
+  }
+}
+@media (max-width: 600px) {
   .container {
     padding: 32px 8px;
     max-width: 98vw;
   }
   .hero h1 {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
   }
+  .banner {
+    flex-direction: column;
+    height: auto;
+    padding: 8px 4px;
+    gap: 4px;
+  }
+  .logo {
+    font-size: 1rem;
+    gap: 8px;
+  }
+  .menu {
+    gap: 8px;
+    font-size: 0.95rem;
+  }
+  .section {
+    padding: 24px 4px 0 4px;
+    margin-bottom: 24px;
+  }
+  .about-img img {
+    border-radius: 8px;
+  }
+}
+
+.vfx, .art3d, .interactive, .ai, .about, .contact {
+  /* eredita da .section, ma puoi aggiungere personalizzazioni qui */
 } 
