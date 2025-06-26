@@ -5,100 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portfolio | Creative Coder 3D, VFX & Interactive Art</title>
   <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Montserrat', Arial, sans-serif;
-      background: linear-gradient(135deg, #0f2027, #2c5364 80%);
-      color: #fff;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-    .container {
-      background: rgba(20, 30, 48, 0.85);
-      border-radius: 24px;
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-      padding: 48px 32px;
-      max-width: 480px;
-      text-align: center;
-    }
-    h1 {
-      font-size: 2.8rem;
-      margin-bottom: 0.5em;
-      letter-spacing: 2px;
-      background: linear-gradient(90deg, #ff8c00, #ff0080, #40e0d0);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    h2 {
-      font-size: 1.3rem;
-      font-weight: 400;
-      margin-bottom: 1.5em;
-      color: #b2becd;
-    }
-    .tags {
-      margin-bottom: 2em;
-    }
-    .tag {
-      display: inline-block;
-      background: #222b3a;
-      color: #40e0d0;
-      border-radius: 16px;
-      padding: 0.4em 1.2em;
-      margin: 0 0.3em;
-      font-size: 1em;
-      font-weight: 700;
-      letter-spacing: 1px;
-      box-shadow: 0 2px 8px rgba(64,224,208,0.08);
-    }
-    .cta {
-      display: inline-block;
-      margin-top: 1.5em;
-      padding: 0.8em 2.2em;
-      background: linear-gradient(90deg, #ff8c00, #ff0080, #40e0d0);
-      color: #fff;
-      border: none;
-      border-radius: 32px;
-      font-size: 1.1em;
-      font-weight: 700;
-      letter-spacing: 1px;
-      cursor: pointer;
-      text-decoration: none;
-      transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 4px 16px rgba(255, 140, 0, 0.15);
-    }
-    .cta:hover {
-      transform: translateY(-2px) scale(1.04);
-      box-shadow: 0 8px 32px rgba(255, 0, 128, 0.18);
-    }
-    @media (max-width: 600px) {
-      .container {
-        padding: 32px 8px;
-        max-width: 98vw;
-      }
-      h1 {
-        font-size: 2rem;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Creative Coder</h1>
-    <h2>Arte 3D · VFX · Installazioni Interattive</h2>
-    <div class="tags">
-      <span class="tag">3D Art</span>
-      <span class="tag">VFX</span>
-      <span class="tag">Interactive Installations</span>
-      <span class="tag">Generative Design</span>
+  <header class="banner">
+    <div class="logo">
+      <img src="logo.png" alt="FA3IO Studio Logo">
+      <span>FA3IO STUDIO</span>
     </div>
-    <p>Ciao! Sono un creative coder appassionato di arte digitale, effetti visivi e installazioni che fondono tecnologia e creatività. Esplora i miei progetti e lasciati ispirare!</p>
-    <a class="cta" href="#progetti">Scopri i miei lavori</a>
-  </div>
+    <nav class="menu">
+      <a href="#about">About</a>
+      <a href="#exhibitions">Exhibitions</a>
+      <a href="#videos">Videos</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+  <main>
+    <section class="hero">
+      <h1>THIS WORLD IS BUT A CANVAS<br>TO OUR IMAGINATIONS</h1>
+      <div class="center-logo">
+        <img src="logo.png" alt="fa3.io" style="width: 60px;">
+        <div class="fa3io-text">fa3.io</div>
+      </div>
+    </section>
+    <section class="container">
+      <h1>Creative Coder</h1>
+      <h2>Arte 3D · VFX · Installazioni Interattive</h2>
+      <div class="tags">
+        <span class="tag">3D Art</span>
+        <span class="tag">VFX</span>
+        <span class="tag">Interactive Installations</span>
+        <span class="tag">Generative Design</span>
+      </div>
+      <p>Ciao! Sono un creative coder appassionato di arte digitale, effetti visivi e installazioni che fondono tecnologia e creatività. Esplora i miei progetti e lasciati ispirare!</p>
+      <a class="cta" href="#progetti">Scopri i miei lavori</a>
+    </section>
+  </main>
+  <script src="script.js"></script>
 </body>
 </html> 
