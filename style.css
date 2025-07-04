@@ -402,7 +402,6 @@ main {
   max-width: 90vw;
   max-height: 90vh;
   overflow: auto;
-  box-sizing: border-box; /* Include padding in width calculation */
 }
 
 .modal-close {
@@ -415,6 +414,96 @@ main {
   font-size: 2.2rem;
   cursor: pointer;
   z-index: 2;
+}
+
+/* Modal Gallery Styles */
+.modal-gallery-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  overflow: hidden;
+  touch-action: pan-x; /* Allow horizontal panning */
+}
+
+.modal-gallery-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.3s ease;
+  touch-action: pan-x; /* Allow horizontal panning */
+}
+
+.modal-gallery-img {
+  flex: 0 0 100%;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+  touch-action: pan-x; /* Allow horizontal panning */
+}
+
+.modal-gallery-btn {
+  width: 36px;
+  height: 36px;
+  font-size: 1.2rem;
+  border-radius: 50%;
+  background: rgba(32,40,56,0.85);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  margin: 0 8px;
+  transition: background 0.2s, transform 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  pointer-events: auto;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+}
+
+.modal-gallery-btn.prev {
+  left: 8px;
+}
+
+.modal-gallery-btn.next {
+  right: 8px;
+}
+
+.modal-gallery-btn:hover {
+  background: #40e0d0;
+  color: #222b3a;
+  transform: translateY(-50%) scale(1.08);
+}
+
+/* Legacy support for existing modal gallery */
+.modal-gallery .carousel-btn {
+  width: 36px;
+  height: 36px;
+  font-size: 1.2rem;
+  border-radius: 50%;
+  background: rgba(32,40,56,0.85);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  margin: 0 8px;
+  transition: background 0.2s, transform 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  pointer-events: auto;
+}
+.modal-gallery .carousel-btn:hover {
+  background: #40e0d0;
+  color: #222b3a;
+  transform: scale(1.08);
 }
 
 /* TABLET RESPONSIVE */
@@ -492,6 +581,31 @@ main {
   .gallery-canvas {
     height: 180px;
     touch-action: manipulation; /* Optimize for touch */
+  }
+  
+  /* Modal Gallery Tablet */
+  .modal-gallery-container {
+    gap: 8px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .modal-gallery-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    transition: none; /* Disable transform animation on tablet */
+  }
+  
+  .modal-gallery-img {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+  
+  .modal-gallery-btn {
+    display: none !important; /* Hide buttons on tablet */
   }
   
   /* Modal Gallery Tablet */
@@ -632,6 +746,7 @@ main {
   .gallery-item {
     scroll-snap-align: start;
     cursor: pointer; /* Rende visibile che l'intero elemento è cliccabile */
+    touch-action: manipulation; /* Optimize for touch */
   }
   .carousel-btn {
     display: none !important;
@@ -766,7 +881,6 @@ main {
     box-sizing: border-box; /* Include padding in width calculation */
   }
   
-  
   .carousel-video {
     max-width: 240px;
     max-height: 160px;
@@ -793,7 +907,6 @@ main {
     touch-action: manipulation; /* Optimize for touch */
     padding: 4px; /* Add padding for larger touch area */
   }
-  
   
   .gallery-img {
     height: 140px;
@@ -872,8 +985,58 @@ main {
     display: none !important; /* Hide buttons on mobile */
   }
   
+  /* Modal Gallery Mobile */
+  .modal-gallery-container {
+    gap: 0;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .modal-gallery-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    transition: none; /* Disable transform animation on mobile */
+  }
+  
+  .modal-gallery-img {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+  
+  .modal-gallery-btn {
+    display: none !important; /* Hide buttons on mobile */
+  }
+  
   .carousel-btn.prev { left: 2px; }
   .carousel-btn.next { right: 2px; }
+  
+  /* Modal Gallery Mobile */
+  .modal-gallery-container {
+    gap: 0;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .modal-gallery-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    transition: none; /* Disable transform animation on mobile */
+  }
+  
+  .modal-gallery-img {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+  
+  .modal-gallery-btn {
+    display: none !important; /* Hide buttons on mobile */
+  }
 }
 
 /* EXTRA SMALL MOBILE */
@@ -910,7 +1073,6 @@ main {
   gap: 16px;
   width: 100%;
   overflow: hidden;
-  touch-action: pan-x; /* Allow horizontal panning */
 }
 
 .modal-gallery-track {
@@ -918,7 +1080,6 @@ main {
   width: 100%;
   height: 100%;
   transition: transform 0.3s ease;
-  touch-action: pan-x; /* Allow horizontal panning */
 }
 
 .modal-gallery-img {
@@ -928,7 +1089,6 @@ main {
   object-fit: contain;
   display: block;
   margin: 0 auto;
-  touch-action: pan-x; /* Allow horizontal panning */
 }
 
 .modal-gallery-btn {
