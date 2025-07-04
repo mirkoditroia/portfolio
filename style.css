@@ -267,7 +267,7 @@ main {
 /* --- CAROSELLO 3D ART --- */
 .gallery-carousel {
   width: 100%;
-  max-width: 100vw; /* Ensure it doesn't exceed viewport width */
+  max-width: 1020px; /* Adjusted to show exactly 3 items (3*300px + 2*40px gap + 80px padding) */
   margin: 32px auto;
   position: relative;
   display: flex;
@@ -281,7 +281,7 @@ main {
   gap: 40px;
   width: fit-content;
   min-width: 0;
-  max-width: 100vw; /* Ensure it doesn't exceed viewport width */
+  max-width: none; /* Remove max-width constraint for desktop */
   transition: transform 0.5s cubic-bezier(.4,2,.6,1);
   overflow: visible;
 }
@@ -562,16 +562,42 @@ main {
     max-height: 180px;
   }
   
+  .gallery-carousel {
+    margin: 24px 0;
+    overflow-x: hidden;
+    height: 350px;
+    width: 100%;
+    max-width: 100vw;
+  }
+  
   .gallery-track {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     gap: 20px;
+    height: 100%;
+    padding: 0;
+  }
+  
+  /* Hide scrollbar on webkit browsers */
+  .gallery-track::-webkit-scrollbar {
+    display: none;
   }
   
   .gallery-item {
     flex: 0 0 280px;
     height: 320px;
+    scroll-snap-align: start;
     cursor: pointer;
-    touch-action: manipulation; /* Optimize for touch */
-    padding: 4px; /* Add padding for larger touch area */
+    touch-action: manipulation;
+    padding: 4px;
+  }
+  
+  .carousel-btn {
+    display: none !important;
   }
   
   .gallery-img {
@@ -652,22 +678,23 @@ main {
   }
   
   .menu {
-    gap: 12px;
+    gap: 10px;
     font-size: 0.9rem;
   }
   
   main {
-    margin-top: 100px;
+    margin-top: 95px;
   }
   
   .hero {
-    padding: 40px 12px 30px 12px;
+    padding: 35px 10px 25px 10px;
     min-height: 40vh;
   }
   
   .hero h1 {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     margin-bottom: 20px;
+    letter-spacing: 1px;
   }
   
   .fa3io-text {
@@ -675,18 +702,18 @@ main {
   }
   
   .section {
-    padding: 24px 12px 0 12px;
-    margin-bottom: 32px;
+    padding: 25px 10px 0 10px;
+    margin-bottom: 30px;
   }
   
   .section h2 {
-    font-size: 1.5rem;
-    margin-bottom: 16px;
+    font-size: 1.4rem;
+    margin-bottom: 15px;
   }
   
   .about-text {
-    font-size: 1rem;
-    margin-bottom: 24px;
+    font-size: 0.95rem;
+    margin-bottom: 25px;
   }
   
   .tags {
@@ -694,74 +721,75 @@ main {
   }
   
   .tag {
-    font-size: 0.9em;
-    padding: 0.3em 0.8em;
+    font-size: 0.8em;
+    padding: 0.3em 0.7em;
   }
   
   .cta {
-    padding: 0.7em 1.5em;
-    font-size: 1rem;
+    padding: 0.7em 1.4em;
+    font-size: 0.95rem;
   }
   
   .video-carousel {
-    flex-direction: column;
     gap: 12px;
-    margin: 24px 0;
+    margin: 20px 0;
   }
   
   .carousel-btn {
-    width: 44px;
-    height: 44px;
-    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    font-size: 1.4rem;
   }
   
   .carousel-track {
-    width: 95vw;
-    max-width: 95vw;
-    min-height: 200px;
+    width: 98vw;
+    max-width: 98vw;
+    min-height: 180px;
     gap: 12px;
-    box-sizing: border-box; /* Include padding in width calculation */
+    box-sizing: border-box;
   }
   
   .carousel-video {
     max-width: 280px;
-    max-height: 200px;
+    max-height: 180px;
   }
   
   .gallery-carousel {
     margin: 24px 0;
     overflow-x: hidden;
-    height: 280px; /* Altezza fissa per contenere l'intero elemento */
+    height: 280px;
     width: 100%;
-    max-width: 100vw; /* Ensure it doesn't exceed viewport width */
+    max-width: 100vw;
   }
+  
   .gallery-track {
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-x; /* Allow only horizontal panning for better swipe experience */
+    scrollbar-width: none; /* Hide scrollbar on Firefox */
+    -ms-overflow-style: none; /* Hide scrollbar on IE/Edge */
     gap: 16px;
-    height: 100%; /* Occupa tutta l'altezza del contenitore */
-    padding: 0; /* Rimuove padding che può limitare l'area scrollabile */
-  }
-  .gallery-item {
-    scroll-snap-align: start;
-    cursor: pointer; /* Rende visibile che l'intero elemento è cliccabile */
-    touch-action: manipulation; /* Optimize for touch */
-  }
-  .carousel-btn {
-    display: none !important;
+    height: 100%;
+    padding: 0;
   }
   
-  .gallery-track {
-    gap: 16px;
+  /* Hide scrollbar on webkit browsers */
+  .gallery-track::-webkit-scrollbar {
+    display: none;
   }
   
   .gallery-item {
     flex: 0 0 260px;
     height: 280px;
+    scroll-snap-align: start;
     cursor: pointer;
-    touch-action: manipulation; /* Optimize for touch */
-    padding: 4px; /* Add padding for larger touch area */
+    touch-action: manipulation;
+    padding: 4px;
+  }
+  
+  .carousel-btn {
+    display: none !important;
   }
   
   .gallery-img {
@@ -772,7 +800,7 @@ main {
   .gallery-canvas {
     height: 160px;
     margin-top: 12px;
-    touch-action: manipulation; /* Optimize for touch */
+    touch-action: manipulation;
   }
   
   .gallery-title {
@@ -782,6 +810,45 @@ main {
   
   .carousel-btn.prev { left: 5px; }
   .carousel-btn.next { right: 5px; }
+  
+  .modal-gallery-container {
+    /* Mobile modal gallery scrolling */
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .modal-gallery-container::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .modal-gallery-track {
+    display: flex;
+    width: fit-content;
+    height: auto;
+    touch-action: pan-x;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .modal-gallery-track::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .modal-gallery-img {
+    flex: 0 0 90vw;
+    width: 90vw;
+    height: auto;
+    scroll-snap-align: start;
+    touch-action: pan-x;
+  }
+  
+  .modal-gallery-btn {
+    display: none !important;
+  }
 }
 
 /* SMALL MOBILE RESPONSIVE */
@@ -888,24 +955,40 @@ main {
   
   .gallery-carousel {
     margin: 16px 0;
-    height: 240px; /* Altezza fissa per contenere l'intero elemento */
+    height: 240px;
     width: 100%;
-    max-width: 100vw; /* Ensure it doesn't exceed viewport width */
+    max-width: 100vw;
   }
   
   .gallery-track {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     gap: 12px;
-    height: 100%; /* Occupa tutta l'altezza del contenitore */
-    padding: 0; /* Rimuove padding che può limitare l'area scrollabile */
+    height: 100%;
+    padding: 0;
+  }
+  
+  /* Hide scrollbar on webkit browsers */
+  .gallery-track::-webkit-scrollbar {
+    display: none;
   }
   
   .gallery-item {
     flex: 0 0 240px;
     height: 240px;
     border-radius: 16px;
-    cursor: pointer; /* Rende visibile che l'intero elemento è cliccabile */
-    touch-action: manipulation; /* Optimize for touch */
-    padding: 4px; /* Add padding for larger touch area */
+    scroll-snap-align: start;
+    cursor: pointer;
+    touch-action: manipulation;
+    padding: 4px;
+  }
+  
+  .carousel-btn {
+    display: none !important;
   }
   
   .gallery-img {
@@ -941,48 +1024,48 @@ main {
   
   /* Modal Gallery Mobile */
   .modal-gallery-container {
-    gap: 0;
+    width: 95vw;
+    max-width: 95vw;
+    height: 60vh;
+    max-height: 60vh;
+    margin: 0 auto;
+    box-sizing: border-box;
     overflow-x: auto;
-    overflow-y: hidden;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-x; /* Allow horizontal panning */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
-    min-height: 300px; /* Minimum height for touch area */
+    touch-action: pan-x;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
   
   .modal-gallery-container::-webkit-scrollbar {
-    display: none; /* Chrome/Safari */
+    display: none;
   }
   
   .modal-gallery-track {
     display: flex;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    transition: none; /* Disable transform animation on mobile */
-    touch-action: pan-x; /* Allow horizontal panning */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
-    min-height: 300px; /* Minimum height for touch area */
+    width: fit-content;
+    height: auto;
+    touch-action: pan-x;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
   
   .modal-gallery-track::-webkit-scrollbar {
-    display: none; /* Chrome/Safari */
+    display: none;
   }
   
   .modal-gallery-img {
-    scroll-snap-align: center;
-    flex-shrink: 0;
-    touch-action: pan-x; /* Allow horizontal panning */
-    min-width: 100%;
-    padding: 20px 0; /* Add padding for easier touch */
+    flex: 0 0 88vw;
+    width: 88vw;
+    height: auto;
+    object-fit: contain;
+    scroll-snap-align: start;
+    touch-action: pan-x;
   }
   
   .modal-gallery-btn {
-    display: none !important; /* Hide buttons on mobile */
+    display: none !important;
   }
   
   /* Modal Gallery Mobile */
