@@ -343,6 +343,9 @@ main {
   overflow: hidden;
   cursor: pointer;
   touch-action: manipulation; /* Optimize for touch */
+  /* Smooth scrolling optimization */
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .gallery-img {
@@ -426,6 +429,11 @@ main {
   width: 100%;
   overflow: hidden;
   touch-action: pan-x; /* Allow horizontal panning */
+  /* Enhanced scroll performance */
+  scroll-behavior: smooth;
+  will-change: scroll-position;
+  transform: translateZ(0);
+  overscroll-behavior-x: none;
 }
 
 .modal-gallery-track {
@@ -577,6 +585,11 @@ main {
     touch-action: pan-x;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    /* Enhanced scroll performance */
+    scroll-behavior: smooth;
+    will-change: scroll-position;
+    transform: translateZ(0);
+    overscroll-behavior-x: none;
     gap: 20px;
     height: 100%;
     padding: 0;
@@ -594,6 +607,9 @@ main {
     cursor: pointer;
     touch-action: manipulation;
     padding: 4px;
+    /* Smooth scrolling optimization */
+    will-change: transform;
+    transform: translateZ(0);
   }
   
   .carousel-btn {
@@ -769,6 +785,11 @@ main {
     touch-action: pan-x; /* Allow only horizontal panning for better swipe experience */
     scrollbar-width: none; /* Hide scrollbar on Firefox */
     -ms-overflow-style: none; /* Hide scrollbar on IE/Edge */
+    /* Enhanced scroll performance */
+    scroll-behavior: smooth;
+    will-change: scroll-position;
+    transform: translateZ(0);
+    overscroll-behavior-x: none;
     gap: 16px;
     height: 100%;
     padding: 0;
@@ -786,6 +807,9 @@ main {
     cursor: pointer;
     touch-action: manipulation;
     padding: 4px;
+    /* Smooth scrolling optimization */
+    will-change: transform;
+    transform: translateZ(0);
   }
   
   .carousel-btn {
@@ -967,6 +991,11 @@ main {
     touch-action: pan-x;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    /* Enhanced scroll performance */
+    scroll-behavior: smooth;
+    will-change: scroll-position;
+    transform: translateZ(0);
+    overscroll-behavior-x: none;
     gap: 12px;
     height: 100%;
     padding: 0;
@@ -985,6 +1014,9 @@ main {
     cursor: pointer;
     touch-action: manipulation;
     padding: 4px;
+    /* Smooth scrolling optimization */
+    will-change: transform;
+    transform: translateZ(0);
   }
   
   .carousel-btn {

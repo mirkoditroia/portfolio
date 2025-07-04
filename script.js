@@ -150,17 +150,18 @@ document.addEventListener('DOMContentLoaded', function() {
         touchStartY = e.touches[0].clientY;
         moved = false;
       }
-    });
+    }, { passive: true });
     element.addEventListener('touchmove', function(e) {
       if (e.touches.length === 1) {
         const dx = Math.abs(e.touches[0].clientX - touchStartX);
         const dy = Math.abs(e.touches[0].clientY - touchStartY);
-        if (dx > 10 || dy > 10) moved = true;
+        // More sensitive to horizontal movement (scrolling intent)
+        if (dx > 5 || dy > 15) moved = true;
       }
-    });
+    }, { passive: true });
     element.addEventListener('touchend', function(e) {
       if (!moved) handler(e);
-    });
+    }, { passive: true });
     element.addEventListener('click', handler);
   }
   items.forEach(item => {
@@ -176,8 +177,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (modal) {
       item.style.cursor = 'pointer';
       addTapOrClickListener(item, e => {
-        e.preventDefault();
-        e.stopPropagation();
         
         // Gestione dei canvas con comportamenti speciali
         if (canvas && data) {
@@ -298,35 +297,5 @@ document.addEventListener('DOMContentLoaded', function() {
       modalPlayer.src = '';
       if (modalDescription) modalDescription.textContent = '';
     }
-  });
-});
-
-document.querySelectorAll('.gallery-item').forEach(item => {
-  const popup = item.querySelector('.gallery-popup');
-  item.addEventListener('mouseleave', () => {
-    popup.style.opacity = '';
-    popup.style.pointerEvents = '';
-    popup.style.transform = '';
-  });
-  // Touch support: tap per aprire/chiudere
-  item.addEventListener('touchstart', (e) => {
-    e.stopPropagation();
-    document.querySelectorAll('.gallery-popup').forEach(p => {
-      if (p !== popup) {
-        p.style.opacity = '';
-        p.style.pointerEvents = '';
-        p.style.transform = '';
-      }
-    });
-    popup.style.opacity = 1;
-    popup.style.pointerEvents = 'auto';
-    popup.style.transform = 'translate(-50%, 0) scale(1)';
-  });
-});
-document.body.addEventListener('touchstart', () => {
-  document.querySelectorAll('.gallery-popup').forEach(p => {
-    p.style.opacity = '';
-    p.style.pointerEvents = '';
-    p.style.transform = '';
   });
 }); 
