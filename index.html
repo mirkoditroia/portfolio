@@ -4,76 +4,93 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portfolio | Creative Coder 3D, VFX & Interactive Art</title>
+  <meta name="description" content="Portfolio di arte digitale, VFX, 3D e programmazione creativa. Esplora opere interattive e innovazioni tecnologiche.">
   <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="banner">
+  <header class="banner" role="banner">
     <div class="logo">
-      <img src="logo.png" alt="VFXulo Logo">
+      <img src="logo.png" alt="VFXulo Logo" onerror="this.style.display='none'">
       <span>VFXULO STUDIO</span>
     </div>
-    <nav class="menu">
-      <a href="#vfx">VFX</a>
-      <a href="#art3d">3D Art</a>
-      <a href="#interactive">Interactive Art</a>
-      <a href="#creativecoding">Creative Coding</a>
-      <a href="#ai">AI</a>
-      <a href="#about">About Me</a>
-      <a href="#contact">Contact</a>
+    <nav class="menu" role="navigation" aria-label="Menu principale">
+      <a href="#vfx" aria-label="Vai alla sezione VFX">VFX</a>
+      <a href="#art3d" aria-label="Vai alla sezione Arte 3D">3D Art</a>
+      <a href="#interactive" aria-label="Vai alla sezione Arte Interattiva">Interactive Art</a>
+      <a href="#creativecoding" aria-label="Vai alla sezione Programmazione Creativa">Creative Coding</a>
+      <a href="#ai" aria-label="Vai alla sezione AI">AI</a>
+      <a href="#about" aria-label="Vai alla sezione Chi Sono">About Me</a>
+      <a href="#contact" aria-label="Vai alla sezione Contatti">Contact</a>
     </nav>
   </header>
-  <main>
-    <section class="hero">
+  <main role="main">
+    <section class="hero" role="banner">
       <h1>THIS WORLD IS BUT A CANVAS<br>TO OUR IMAGINATIONS</h1>
       <div class="center-logo">
-        <img src="logo.png" alt="vfxulo" style="width: 60px;">
+        <img src="logo.png" alt="vfxulo" style="width: 60px;" onerror="this.style.display='none'">
         <div class="fa3io-text">vfxulo</div>
       </div>
     </section>
-    <section id="vfx" class="section vfx">
-      <h2>VFX</h2>
-      <p>Coming soon: Visual Effects portfolio and projects.</p>
-    </section>
-    <section id="art3d" class="section art3d">
-      <h2>3D ART</h2>
-      <div class="gallery-carousel">
-        <button class="carousel-btn prev" aria-label="Previous">&#8592;</button>
-        <div class="gallery-track"></div>
-        <button class="carousel-btn next" aria-label="Next">&#8594;</button>
+    <section id="vfx" class="section vfx art3d" role="region" aria-labelledby="vfx-heading">
+      <h2 id="vfx-heading">VFX</h2>
+      <div class="gallery-carousel" role="region" aria-label="Gallery VFX">
+        <button class="carousel-btn prev" aria-label="Elemento precedente" tabindex="0">&#8592;</button>
+        <div class="gallery-track" id="vfx-track" role="list"></div>
+        <button class="carousel-btn next" aria-label="Elemento successivo" tabindex="0">&#8594;</button>
       </div>
-      <div class="modal-video" id="modalVideo" style="display:none;">
+    </section>
+    <section id="art3d" class="section art3d" role="region" aria-labelledby="art3d-heading">
+      <h2 id="art3d-heading">3D ART</h2>
+      <div class="gallery-carousel" role="region" aria-label="Gallery Arte 3D">
+        <button class="carousel-btn prev" aria-label="Elemento precedente" tabindex="0">&#8592;</button>
+        <div class="gallery-track" id="art3d-track" role="list"></div>
+        <button class="carousel-btn next" aria-label="Elemento successivo" tabindex="0">&#8594;</button>
+      </div>
+      <div class="modal-video" id="modalVideo" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-video-content">
-          <button class="modal-close" id="closeModal">&times;</button>
-          <video id="modalVideoPlayer" controls style="width:100%;max-width:800px;"></video>
-          <img id="modalImage" style="display:none;max-width:100%;margin:0 auto;" />
-          <div id="modalGallery" class="modal-gallery" style="display:none;text-align:center;"></div>
-          <div id="modalDescription" style="color:#fff; margin-top:18px; font-size:1.1em; text-align:center;"></div>
+          <button class="modal-close" id="closeModal" aria-label="Chiudi modal">&times;</button>
+          <video id="modalVideoPlayer" controls style="width:100%;max-width:800px;" aria-label="Video player"></video>
+          <img id="modalImage" style="display:none;max-width:100%;margin:0 auto;" alt="Immagine ingrandita" />
+          <div id="modalGallery" class="modal-gallery" style="display:none;text-align:center;" role="region" aria-label="Gallery modal"></div>
+          <div id="modalDescription" style="color:#fff; margin-top:18px; font-size:1.1em; text-align:center;" role="text"></div>
         </div>
       </div>
     </section>
-    <section id="interactive" class="section interactive">
-      <h2>INTERACTIVE ART</h2>
-      <p>Coming soon: Interactive installations and generative art projects.</p>
-    </section>
-    <section id="interactive" class="section interactive">
-      <h2>Creative Coding</h2>
-      <p>Coming soon: Interactive installations and generative art projects.</p>
-    </section>
-    <section id="ai" class="section ai">
-      <h2>AI</h2>
-      <p>Coming soon: AI-driven art and experiments.</p>
-    </section>
-    <section id="about" class="section about">
-      <h2>ABOUT ME</h2>
-      <p class="about-text">Passionate about music, art and technology, I explore the intersection of creativity and innovation — blending visual design, sound, and narrative across both physical and digital spaces. With 50+ exhibitions across Europe, Asia, and Latin America, and deep experience in video production for Web3 communities and events, I bring a multidisciplinary mindset to every project — always aiming to craft meaningful visual experiences that inspire connection and curiosity.</p>
-      <div class="about-img">
-        <img src="about.jpg" alt="About VFXulo" style="max-width:100%;border-radius:16px;box-shadow:0 2px 16px #000;">
+    <section id="interactive" class="section interactive art3d" role="region" aria-labelledby="interactive-heading">
+      <h2 id="interactive-heading">INTERACTIVE ART</h2>
+      <div class="gallery-carousel" role="region" aria-label="Gallery Arte Interattiva">
+        <button class="carousel-btn prev" aria-label="Elemento precedente" tabindex="0">&#8592;</button>
+        <div class="gallery-track" id="interactive-track" role="list"></div>
+        <button class="carousel-btn next" aria-label="Elemento successivo" tabindex="0">&#8594;</button>
       </div>
     </section>
-    <section id="contact" class="section contact">
-      <h2>CONTACT</h2>
-      <p>Get in touch: <a href="mailto:info@vfxulo.com">info@vfxulo.com</a></p>
+    <section id="creativecoding" class="section creativecoding art3d" role="region" aria-labelledby="creativecoding-heading">
+      <h2 id="creativecoding-heading">Creative Coding</h2>
+      <div class="gallery-carousel" role="region" aria-label="Gallery Programmazione Creativa">
+        <button class="carousel-btn prev" aria-label="Elemento precedente" tabindex="0">&#8592;</button>
+        <div class="gallery-track" id="creativecoding-track" role="list"></div>
+        <button class="carousel-btn next" aria-label="Elemento successivo" tabindex="0">&#8594;</button>
+      </div>
+    </section>
+    <section id="ai" class="section ai art3d" role="region" aria-labelledby="ai-heading">
+      <h2 id="ai-heading">AI</h2>
+      <div class="gallery-carousel" role="region" aria-label="Gallery AI">
+        <button class="carousel-btn prev" aria-label="Elemento precedente" tabindex="0">&#8592;</button>
+        <div class="gallery-track" id="ai-track" role="list"></div>
+        <button class="carousel-btn next" aria-label="Elemento successivo" tabindex="0">&#8594;</button>
+      </div>
+    </section>
+    <section id="about" class="section about" role="region" aria-labelledby="about-heading">
+      <h2 id="about-heading">ABOUT ME</h2>
+      <p class="about-text">Passionate about music, art and technology, I explore the intersection of creativity and innovation — blending visual design, sound, and narrative across both physical and digital spaces. With 50+ exhibitions across Europe, Asia, and Latin America, and deep experience in video production for Web3 communities and events, I bring a multidisciplinary mindset to every project — always aiming to craft meaningful visual experiences that inspire connection and curiosity.</p>
+      <div class="about-img">
+        <img src="about.jpg" alt="Foto di VFXulo al lavoro nel suo studio" style="max-width:100%;border-radius:16px;box-shadow:0 2px 16px #000;" onerror="this.style.display='none'">
+      </div>
+    </section>
+    <section id="contact" class="section contact" role="region" aria-labelledby="contact-heading">
+      <h2 id="contact-heading">CONTACT</h2>
+      <p>Get in touch: <a href="mailto:info@vfxulo.com" aria-label="Invia email a info@vfxulo.com">info@vfxulo.com</a></p>
     </section>
   </main>
   <script src="script.js"></script>

@@ -6,6 +6,7 @@
 html {
   overflow-x: hidden; /* Prevent horizontal scroll on html */
   touch-action: pan-y; /* Allow only vertical scrolling */
+  scroll-behavior: smooth; /* Smooth scrolling */
 }
 
 body {
@@ -73,6 +74,34 @@ body {
 
 .menu a:hover {
   color: #40e0d0;
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+}
+
+.menu a.active {
+  color: #40e0d0;
+  border-bottom: 2px solid #40e0d0;
+  padding-bottom: 2px;
+}
+
+.menu a {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.menu a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #40e0d0;
+  transition: width 0.3s ease;
+}
+
+.menu a:hover::after {
+  width: 100%;
 }
 
 main {
@@ -81,15 +110,33 @@ main {
 
 .hero {
   width: 100%;
-  min-height: 60vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: url('hero-bg.jpg') center/cover no-repeat;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
   position: relative;
   text-align: center;
   padding: 80px 16px 40px 16px;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(64, 224, 208, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 70% 80%, rgba(255, 0, 128, 0.1) 0%, transparent 50%);
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
 }
 
 .hero h1 {
@@ -99,6 +146,20 @@ main {
   color: #fff;
   text-shadow: 2px 2px 16px #000, 0 0 8px #40e0d0;
   margin-bottom: 32px;
+  position: relative;
+  z-index: 10;
+  animation: fadeInUp 1s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .center-logo {
@@ -106,6 +167,9 @@ main {
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  position: relative;
+  z-index: 10;
+  animation: fadeInUp 1s ease-out 0.3s both;
 }
 
 .fa3io-text {
@@ -122,6 +186,22 @@ main {
   padding: 48px 16px 0 16px;
   text-align: center;
   box-sizing: border-box; /* Include padding in width calculation */
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* Color coding per sezioni */
+.section.vfx { --accent-color: #ff0080; }
+.section.art3d { --accent-color: #40e0d0; }
+.section.interactive { --accent-color: #ff4500; }
+.section.creativecoding { --accent-color: #2e8b57; }
+.section.ai { --accent-color: #8a2be2; }
+
+.section:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 16px;
+  padding: 64px 16px;
+  margin-bottom: 80px;
 }
 
 .section h2 {
@@ -131,6 +211,24 @@ main {
   margin-bottom: 24px;
   color: #fff;
   text-transform: uppercase;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.section h2::before {
+  content: "";
+  width: 4px;
+  height: 40px;
+  background: var(--accent-color, #40e0d0);
+  border-radius: 2px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 .about-text {
@@ -291,18 +389,30 @@ main {
   top: 50%;
   transform: translateY(-50%);
   z-index: 2;
-  background: rgba(32,40,56,0.85);
-  border: none;
-  color: #fff;
-  font-size: 2.2rem;
+  background: rgba(64, 224, 208, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 2rem;
   border-radius: 50%;
-  width: 54px;
-  height: 54px;
+  width: 56px;
+  height: 56px;
   cursor: pointer;
-  transition: background 0.2s, transform 0.2s, opacity 0.4s;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   margin: 0;
   opacity: 0;
   pointer-events: none;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 32px rgba(64, 224, 208, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.carousel-btn:hover {
+  background: rgba(64, 224, 208, 1);
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 12px 48px rgba(64, 224, 208, 0.6);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .carousel-btn.prev { left: 10px; }
@@ -339,13 +449,46 @@ main {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  transition: box-shadow 0.2s;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   overflow: hidden;
   cursor: pointer;
-  touch-action: manipulation; /* Optimize for touch */
+  touch-action: pan-y manipulation; /* Allow vertical scroll + tap */
   /* Smooth scrolling optimization */
   will-change: transform;
   transform: translateZ(0);
+  position: relative;
+}
+
+.gallery-item:hover {
+  transform: translateY(-12px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(64, 224, 208, 0.3);
+  background: rgba(40, 52, 65, 0.95);
+}
+
+.gallery-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.6s ease;
+}
+
+.gallery-item:hover::before {
+  left: 100%;
+}
+
+.gallery-item.loading {
+  background: linear-gradient(90deg, #2c5364 25%, #40e0d0 50%, #2c5364 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .gallery-img {
@@ -367,7 +510,7 @@ main {
   box-shadow: 0 4px 24px rgba(0,0,0,0.10);
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  touch-action: manipulation; /* Optimize for touch */
+  touch-action: manipulation; /* Simple touch handling */
 }
 
 .gallery-title {
@@ -514,6 +657,78 @@ main {
   transform: scale(1.08);
 }
 
+/* Focus ring personalizzato per accessibilità */
+*:focus {
+  outline: 2px solid #40e0d0;
+  outline-offset: 2px;
+}
+
+.menu a:focus {
+  outline: 2px solid #40e0d0;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.carousel-btn:focus {
+  outline: 3px solid #40e0d0;
+  outline-offset: 2px;
+}
+
+.gallery-item:focus {
+  outline: 2px solid #40e0d0;
+  outline-offset: 4px;
+  border-radius: 24px;
+}
+
+/* Miglioramenti per animazioni fluide */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Miglioramenti touch per mobile */
+@media (max-width: 768px) {
+  .gallery-canvas {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .gallery-item {
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: rgba(64, 224, 208, 0.3);
+  }
+  
+  .gallery-item:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Indicatore di scroll */
+.scroll-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: rgba(64, 224, 208, 0.3);
+  z-index: 9999;
+}
+
+.scroll-indicator::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #40e0d0, #ff0080);
+  transition: width 0.3s ease;
+}
+
 /* TABLET RESPONSIVE */
 @media (max-width: 900px) {
   .banner {
@@ -605,7 +820,7 @@ main {
     height: 320px;
     scroll-snap-align: start;
     cursor: pointer;
-    touch-action: manipulation;
+    touch-action: pan-y manipulation;
     padding: 4px;
     /* Smooth scrolling optimization */
     will-change: transform;
@@ -622,7 +837,7 @@ main {
   
   .gallery-canvas {
     height: 180px;
-    touch-action: manipulation; /* Optimize for touch */
+    touch-action: manipulation; /* Simple touch handling */
   }
   
   /* Modal Gallery Tablet */
@@ -793,6 +1008,14 @@ main {
     gap: 16px;
     height: 100%;
     padding: 0;
+  }
+  
+  /* Aumenta l'area di touch per i canvas su mobile */
+  .gallery-canvas {
+    margin: 8px;
+    padding: 8px;
+    min-height: 44px; /* Minimo per touch target */
+    min-width: 44px;
   }
   
   /* Hide scrollbar on webkit browsers */
@@ -1001,6 +1224,14 @@ main {
     padding: 0;
   }
   
+  /* Aumenta l'area di touch per i canvas su mobile piccolo */
+  .gallery-canvas {
+    margin: 6px;
+    padding: 6px;
+    min-height: 44px; /* Minimo per touch target */
+    min-width: 44px;
+  }
+  
   /* Hide scrollbar on webkit browsers */
   .gallery-track::-webkit-scrollbar {
     display: none;
@@ -1033,7 +1264,7 @@ main {
     height: 140px;
     margin-top: 10px;
     border-radius: 12px;
-    touch-action: manipulation; /* Optimize for touch */
+    touch-action: manipulation; /* Simple touch handling */
   }
   
   .gallery-title {
