@@ -30,6 +30,9 @@
     <section id="galleries"></section>
     <section id="site-config" class="site-config">
       <h2>Bio &amp; Contatti</h2>
+      <label class="block-label">Hero Text
+        <input id="hero-text-input" type="text" style="width:100%" placeholder="Titolo landing (es. vfxulo)">
+      </label>
       <label class="block-label">Bio
         <textarea id="bio-input" rows="4" style="width:100%"></textarea>
       </label>
@@ -49,9 +52,9 @@
       <h2>Sezioni</h2>
       <table id="sections-table" class="slides-table">
         <thead>
-          <tr><th>Stato</th><th>Key</th><th>Label</th><th>Azioni</th></tr>
+          <tr><th></th><th>Stato</th><th>Key</th><th>Label</th><th>Azioni</th></tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="sections-tbody"></tbody>
       </table>
       <button id="add-section-btn" class="secondary">+ Aggiungi sezione</button>
 
@@ -72,6 +75,7 @@
         <table class="slides-table">
           <thead>
             <tr>
+              <th></th>
               <th>#</th>
               <th>Titolo</th>
               <th>Tipo</th>
@@ -88,10 +92,13 @@
 
   <template id="slide-row-template">
     <tr>
+      <td class="drag-handle">☰</td>
       <td class="slide-index"></td>
       <td class="slide-title"></td>
       <td class="slide-type"></td>
       <td>
+        <button class="move-btn up-btn">↑</button>
+        <button class="move-btn down-btn">↓</button>
         <button class="edit-btn">Modifica</button>
         <button class="delete-btn delete">Elimina</button>
       </td>
@@ -99,6 +106,7 @@
   </template>
 
   <!-- JS arriverà nel task admin-logic -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="script.js" defer></script>
 
   <!-- Slide editor overlay -->

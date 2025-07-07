@@ -82,12 +82,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
           tr.querySelector('.delete-btn').addEventListener('click',()=>{
             if(confirm('Eliminare questa slide?')){ tr.remove(); refreshIndexes(tbody);}
           });
+          // move up/down
+          tr.querySelector('.up-btn').addEventListener('click',()=>{ const prev=tr.previousElementSibling; if(prev){ tbody.insertBefore(tr,prev); refreshIndexes(tbody);} });
+          tr.querySelector('.down-btn').addEventListener('click',()=>{ const next=tr.nextElementSibling?.nextElementSibling; tbody.insertBefore(tr,next); refreshIndexes(tbody);} );
           tbody.appendChild(frag);
       }
 
       // initialize existing
       tbody.innerHTML = '';
       slides.forEach(addSlideRow);
+      // enable drag reorder slides
+      if(window.Sortable){ new Sortable(tbody,{animation:120,handle:'.slide-index',onEnd:()=>refreshIndexes(tbody)}); }
     });
   }
 
@@ -122,6 +127,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // api base
     const apiInput=document.getElementById('api-base-input');
     if(apiInput) apiInput.value = site.apiBase || '';
+    const heroInput=document.getElementById('hero-text-input');
+    if(heroInput) heroInput.value = site.heroText || '';
     // bio
     document.getElementById('bio-input').value = site.bio || '';
 
@@ -152,14 +159,25 @@ document.addEventListener('DOMContentLoaded', ()=>{
     site.sections?.forEach((s,i)=>{
       const tr=document.createElement('tr');
       const status = s.status || (s.visible===false? 'hide':'show');
-      tr.innerHTML=`<td><select class="status-select"><option value="show">Mostra</option><option value="soon">Coming Soon</option><option value="hide">Nascondi</option></select></td><td><input type="text" class="sec-key" value="${s.key}" style="width:90px"></td><td><input type="text" class="sec-label" value="${s.label}" style="width:120px"></td><td><button class="delete sec-del">Elimina</button></td>`;
+      tr.innerHTML=`<td class="drag-handle">☰</td><td><select class="status-select"><option value="show">Mostra</option><option value="soon">Coming Soon</option><option value="hide">Nascondi</option></select></td><td><input type="text" class="sec-key" value="${s.key}" style="width:90px"></td><td><input type="text" class="sec-label" value="${s.label}" style="width:120px"></td><td><button class="delete sec-del">Elimina</button></td>`;
       tr.querySelector('.status-select').value = status;
       tr.querySelector('.sec-del').addEventListener('click',()=>tr.remove());
+      // move buttons for sections
+      tr.querySelector('.drag-handle'); // already exists
+      const up=document.createElement('button');up.textContent='↑';up.className='move-btn up-btn';
+      const down=document.createElement('button');down.textContent='↓';down.className='move-btn down-btn';
+      const actionCell=tr.querySelector('td:last-child');
+      actionCell.prepend(down); actionCell.prepend(up);
+      up.addEventListener('click',()=>{const prev=tr.previousElementSibling; if(prev){secBody.insertBefore(tr,prev);}});
+      down.addEventListener('click',()=>{const next=tr.nextElementSibling?.nextElementSibling; secBody.insertBefore(tr,next);} );
       secBody.appendChild(tr);
     });
+    // enable drag reorder of sections
+    if(window.Sortable){ new Sortable(document.getElementById('sections-tbody'),{animation:150}); }
+
     document.getElementById('add-section-btn').addEventListener('click',()=>{
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td><select class="status-select"><option value="show" selected>Mostra</option><option value="soon">Coming Soon</option><option value="hide">Nascondi</option></select></td><td><input type="text" class="sec-key" placeholder="chiave" style="width:90px"></td><td><input type="text" class="sec-label" placeholder="label" style="width:120px"></td><td><button class="delete sec-del">Elimina</button></td>`;
+      tr.innerHTML=`<td class="drag-handle">☰</td><td><select class="status-select"><option value="show" selected>Mostra</option><option value="soon">Coming Soon</option><option value="hide">Nascondi</option></select></td><td><input type="text" class="sec-key" placeholder="chiave" style="width:90px"></td><td><input type="text" class="sec-label" placeholder="label" style="width:120px"></td><td><button class="delete sec-del">Elimina</button></td>`;
       tr.querySelector('.sec-del').addEventListener('click',()=>tr.remove());
       document.querySelector('#sections-table tbody').appendChild(tr);
     });
@@ -167,6 +185,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // save btn
     document.getElementById('save-site-btn').addEventListener('click',()=>{
       const bioVal = document.getElementById('bio-input').value;
+      const heroVal = document.getElementById('hero-text-input').value;
       // collect contacts
       const contacts = Array.from(document.querySelectorAll('.contact-row')).map(r=>({
         label: r.querySelector('.contact-label').value,
@@ -181,7 +200,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
       const apiBaseVal = document.getElementById('api-base-input').value.trim();
       const shaderVal = document.getElementById('shader-url-input').value.trim();
-      const payload = { bio: bioVal, contacts, sections, apiBase: apiBaseVal, shaderUrl: shaderVal };
+      const payload = { bio: bioVal, heroText: heroVal, contacts, sections, apiBase: apiBaseVal, shaderUrl: shaderVal };
       const token = prompt('Inserisci il token amministratore per salvare:');
       if(!token) return;
       fetch(`/api/site?token=${encodeURIComponent(token)}`,{
