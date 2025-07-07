@@ -1467,3 +1467,10 @@ main { margin-top: 80px; }
     display: none;
   }
 }
+
+/* Disable heavy GLSL shader on mobile to improve performance */
+@media (max-width: 900px) {
+  .shader-banner {
+    display: none !important;
+  }
+}
