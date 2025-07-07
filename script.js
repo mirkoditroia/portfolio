@@ -148,6 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initScrollSpy();
   initAccessibility();
   initSmoothScroll();
+  manageFocus();
 
   // Array per ogni sezione
   const galleries = {
@@ -280,16 +281,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     const section = track.closest('.section');
-    const prevBtn = section.querySelector('.carousel-btn.prev');
-    const nextBtn = section.querySelector('.carousel-btn.next');
-    const visible = 3;
 
-    // Genera dinamicamente gli item
-    images.forEach(img => {
+    // 1. Calcola slidesPerView reale in base alla larghezza corrente
+    let realSPV;
+    const w = window.innerWidth;
+    if (w <= 320)      realSPV = 1;
+    else if (w <= 480) realSPV = 1;
+    else if (w <= 600) realSPV = 1.5;
+    else if (w <= 900) realSPV = 2;
+    else if (w <= 1200) realSPV = 2.5;
+    else                realSPV = 3;
+
+    // 2. Crea copia dell'array immagini e aggiungi placeholder se necessario
+    const slidesData = [...images];
+    const remainder = slidesData.length % Math.ceil(realSPV);
+    const fillersNeeded = remainder === 0 ? 0 : Math.ceil(realSPV) - remainder;
+    for (let i = 0; i < fillersNeeded; i++) {
+      slidesData.push({ placeholder: true, title: `placeholder-${i}` });
+    }
+
+    console.log(`📊 [${sectionId}] SPV=${realSPV}, Slide reali=${images.length}, placeholder=${fillersNeeded}, totali=${slidesData.length}`);
+ 
+    // Genera dinamicamente gli item con Swiper slide
+    slidesData.forEach(img => {
       const item = document.createElement('div');
-      item.className = 'gallery-item';
+      item.className = 'gallery-item swiper-slide';
       item.setAttribute('role', 'listitem');
       item.setAttribute('tabindex', '0');
+      if (img.placeholder) {
+        item.classList.add('placeholder-slide');
+        track.appendChild(item);
+        return;
+      }
       if (img.video) item.setAttribute('data-video', img.video);
       if (img.description) item.setAttribute('data-description', img.description);
 
@@ -353,47 +376,116 @@ document.addEventListener('DOMContentLoaded', function() {
       track.appendChild(item);
     });
 
-    const items = Array.from(section.querySelectorAll('.gallery-item'));
-    let currentIndex = 0;
+    // Inizializza Swiper per questa gallery
+    const swiperContainer = section.querySelector('.gallery-carousel');
+    const totalSlides = slidesData.length;
 
-    function getItemWidth() {
-      if (!items[0]) return 0;
-      return items[0].getBoundingClientRect().width;
-    }
+    // Funzione di blocco preventiva: evita di superare l'ultima slide (mobile: una prima)
+    const dynamicBlock = (sw) => {
+      const realSPV = (typeof sw.params.slidesPerView === 'number') ? sw.params.slidesPerView : sw.slidesPerViewDynamic();
+      const baseLimit = totalSlides - Math.ceil(realSPV);
+      // Se visualizzi solo 1 slide (spv ~1) blocca una slide prima per evitare ultima singola
+      const extraOffset = realSPV <= 1.05 ? 1 : 0;
+      const maxAllowedIndex = Math.max(0, baseLimit - extraOffset);
+        
+      if (sw.activeIndex >= maxAllowedIndex) {
+        sw.allowSlideNext = false;
+      } else {
+        sw.allowSlideNext = true;
+      }
+        
+      if (sw.activeIndex <= 0) {
+        sw.allowSlidePrev = false;
+      } else {
+        sw.allowSlidePrev = true;
+      }
+    };
+
+    console.log(`🔍 [${sectionId}] Inizializzo Swiper - BLOCCO MANUALE`);
     
-    function getGap() {
-      if (items.length < 2) return 0;
-      const first = items[0].getBoundingClientRect();
-      const second = items[1].getBoundingClientRect();
-      return Math.round(second.left - first.right);
-    }
-    
-    function updateCarousel() {
-      if (currentIndex > items.length - visible) currentIndex = Math.max(0, items.length - visible);
-      const itemWidth = getItemWidth();
-      const gap = getGap();
-      const offset = currentIndex * (itemWidth + gap);
-      track.style.transform = `translateX(-${offset}px)`;
-      if (prevBtn) prevBtn.disabled = (currentIndex === 0);
-      if (nextBtn) nextBtn.disabled = (currentIndex >= items.length - visible);
-    }
-    
-    if (prevBtn && nextBtn) {
-      prevBtn.addEventListener('click', () => {
-        if (currentIndex > 0) {
-          currentIndex--;
-          updateCarousel();
+    // -------------------- CLAMP BASED ON TRANSFORM --------------------
+    // Funzione che calcola la translate massima consentita e la salva su swiper
+    const updateClamp = (sw) => {
+      const perView = (typeof sw.params.slidesPerView === 'number') ? sw.params.slidesPerView : sw.slidesPerViewDynamic();
+      const space = sw.params.spaceBetween || 0;
+      const slideW = sw.slides[0] ? sw.slides[0].offsetWidth + space : 0;
+      const maxIndex = Math.max(0, sw.slides.length - Math.ceil(perView));
+      sw.__maxTranslate = -slideW * maxIndex; // valore negativo
+    };
+
+    // Funzione che forza il transform a non superare il limite
+    const clampTranslate = (sw) => {
+      if (typeof sw.__maxTranslate === 'undefined') updateClamp(sw);
+      const tx = sw.getTranslate(); // valore negativo attuale
+      if (tx < sw.__maxTranslate) {
+        sw.setTranslate(sw.__maxTranslate);
+        sw.allowSlideNext = false;
+      } else {
+        sw.allowSlideNext = true;
+      }
+      // prev
+      if (sw.getTranslate() === 0) {
+        sw.allowSlidePrev = false;
+      } else {
+        sw.allowSlidePrev = true;
+      }
+    };
+
+    const swiper = new Swiper(swiperContainer, {
+      slidesPerView: 3,
+      spaceBetween: 40,
+      grabCursor: true,
+      navigation: {
+        nextEl: '.swiper-button-next',
+        prevEl: '.swiper-button-prev',
+      },
+      breakpoints: {
+        320: {
+          slidesPerView: 1,
+          spaceBetween: 16
+        },
+        480: {
+          slidesPerView: 1.5,
+          spaceBetween: 16
+        },
+        600: {
+          slidesPerView: 2,
+          spaceBetween: 20
+        },
+        900: {
+          slidesPerView: 2.5,
+          spaceBetween: 30
+        },
+        1200: {
+          slidesPerView: 3,
+          spaceBetween: 40
         }
-      });
-      nextBtn.addEventListener('click', () => {
-        if (currentIndex < items.length - visible) {
-          currentIndex++;
-          updateCarousel();
+      },
+      speed: 300,
+      on: {
+        init() {
+          updateClamp(this);
+        },
+        resize() {
+          updateClamp(this);
+          clampTranslate(this);
+        },
+        slideChange() {
+          clampTranslate(this);
+        },
+        setTranslate(sw, translate) {
+          clampTranslate(sw);
         }
-      });
-    }
+      }
+    });
+
+    // Aggiorna clamp su resize esterno (backup)
+    window.addEventListener('resize', () => setTimeout(() => {
+      updateClamp(swiper);
+      clampTranslate(swiper);
+    }, 120));
     
-    updateCarousel();
+    return swiper;
   }
 
   // Modal functionality
@@ -444,6 +536,40 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ Click fuori modal handler aggiunto');
   }
 
+  // Gestione focus per rimuovere focus dai canvas quando necessario
+  function manageFocus() {
+    // Rimuovi focus dai canvas quando si clicca altrove
+    document.addEventListener('click', function(e) {
+      const focusedElement = document.activeElement;
+      const clickedElement = e.target;
+      
+      // Se c'è un canvas focalizzato e si clicca fuori da esso
+      if (focusedElement && focusedElement.closest('.gallery-item') && 
+          !clickedElement.closest('.gallery-item')) {
+        focusedElement.blur();
+      }
+    });
+    
+    // Rimuovi focus dai canvas quando si fa swipe o scroll
+    document.addEventListener('touchstart', function(e) {
+      const focusedElement = document.activeElement;
+      if (focusedElement && focusedElement.closest('.gallery-item') && 
+          !e.target.closest('.gallery-item')) {
+        focusedElement.blur();
+      }
+    });
+    
+    // Gestione Escape per rimuovere focus
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const focusedElement = document.activeElement;
+        if (focusedElement && focusedElement.closest('.gallery-item')) {
+          focusedElement.blur();
+        }
+      }
+    });
+  }
+  
   // Gestione click semplificata per mobile
   function addClickHandler(element, handler) {
     let touchStartTime = 0;
@@ -468,6 +594,10 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!touchMoved && touchDuration < 300) {
         e.preventDefault();
         e.stopPropagation();
+        // Rimuovi focus prima di eseguire il handler
+        if (document.activeElement && document.activeElement !== element) {
+          document.activeElement.blur();
+        }
         setTimeout(() => handler(e), 50); // Piccolo delay per evitare conflitti
       }
     }, { passive: false });

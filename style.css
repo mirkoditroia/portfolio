@@ -362,84 +362,25 @@ main {
   display: none;
 }
 
-/* --- CAROSELLO 3D ART --- */
+/* --- CAROSELLO CON SWIPER --- */
 .gallery-carousel {
   width: 100%;
-  max-width: 1020px; /* Adjusted to show exactly 3 items (3*300px + 2*40px gap + 80px padding) */
+  max-width: 1200px;
   margin: 32px auto;
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 0 60px;
   overflow: hidden;
 }
 
 .gallery-track {
   display: flex;
-  gap: 40px;
-  width: fit-content;
-  min-width: 0;
-  max-width: none; /* Remove max-width constraint for desktop */
-  transition: transform 0.5s cubic-bezier(.4,2,.6,1);
-  overflow: visible;
-}
-
-.carousel-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 2;
-  background: rgba(64, 224, 208, 0.9);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  font-size: 2rem;
-  border-radius: 50%;
-  width: 56px;
-  height: 56px;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  margin: 0;
-  opacity: 0;
-  pointer-events: none;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 8px 32px rgba(64, 224, 208, 0.4);
-  display: flex;
   align-items: center;
-  justify-content: center;
-}
-
-.carousel-btn:hover {
-  background: rgba(64, 224, 208, 1);
-  transform: translateY(-50%) scale(1.1);
-  box-shadow: 0 12px 48px rgba(64, 224, 208, 0.6);
-  border-color: rgba(255, 255, 255, 0.4);
-}
-
-.carousel-btn.prev { left: 10px; }
-.carousel-btn.next { right: 10px; }
-
-.gallery-carousel::before,
-.gallery-carousel::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  width: 120px;
-  height: 100%;
-  z-index: 1;
-}
-
-.gallery-carousel::before { left: 0; }
-.gallery-carousel::after { right: 0; }
-
-.gallery-carousel:hover .carousel-btn,
-.gallery-carousel:focus-within .carousel-btn {
-  opacity: 1;
-  pointer-events: auto;
 }
 
 .gallery-item {
-  flex: 0 0 300px;
-  max-width: 500px;
+  flex: 0 0 333px;
+  width: 333px !important;
+  max-width: 333px;
   height: 350px;
   text-align: center;
   background: rgba(20,30,48,0.92);
@@ -452,7 +393,7 @@ main {
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   overflow: hidden;
   cursor: pointer;
-  touch-action: pan-y manipulation; /* Allow vertical scroll + tap */
+  touch-action: manipulation; /* Allow both vertical and horizontal gestures */
   /* Smooth scrolling optimization */
   will-change: transform;
   transform: translateZ(0);
@@ -521,6 +462,50 @@ main {
   letter-spacing: 1px;
   padding: 0 10px;
   word-wrap: break-word;
+}
+
+/* Stili personalizzati per Swiper */
+.swiper-button-next,
+.swiper-button-prev {
+  color: #40e0d0 !important;
+  width: 56px !important;
+  height: 56px !important;
+  margin-top: -28px !important;
+  background: rgba(64, 224, 208, 0.9) !important;
+  border: 2px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 50% !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 32px rgba(64, 224, 208, 0.4) !important;
+}
+
+.swiper-button-next:after,
+.swiper-button-prev:after {
+  font-size: 20px !important;
+  font-weight: 900 !important;
+  color: white !important;
+}
+
+.gallery-carousel:hover .swiper-button-next,
+.gallery-carousel:hover .swiper-button-prev {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.swiper-button-next:hover,
+.swiper-button-prev:hover {
+  background: rgba(64, 224, 208, 1) !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 12px 48px rgba(64, 224, 208, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.swiper-button-next.swiper-button-disabled,
+.swiper-button-prev.swiper-button-disabled {
+  opacity: 0.3 !important;
+  pointer-events: none !important;
 }
 
 .modal-video {
@@ -680,6 +665,19 @@ main {
   border-radius: 24px;
 }
 
+.gallery-item:focus-visible {
+  outline: 2px solid #40e0d0;
+  outline-offset: 4px;
+  border-radius: 24px;
+}
+
+/* Rimuovi focus outline su touch devices per evitare focus permanente */
+@media (hover: none) and (pointer: coarse) {
+  .gallery-item:focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
 /* Miglioramenti per animazioni fluide */
 @media (prefers-reduced-motion: reduce) {
   * {
@@ -786,48 +784,30 @@ main {
   }
   
   .gallery-carousel {
-    margin: 24px 0;
-    overflow-x: hidden;
-    height: 350px;
-    width: 100%;
+    margin: 24px auto;
+    padding: 0 20px;
     max-width: 100vw;
+    width: 100%;
+    height: 350px;
+    overflow: hidden;
   }
   
   .gallery-track {
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    /* Enhanced scroll performance */
-    scroll-behavior: smooth;
-    will-change: scroll-position;
-    transform: translateZ(0);
-    overscroll-behavior-x: none;
-    gap: 20px;
-    height: 100%;
-    padding: 0;
-  }
-  
-  /* Hide scrollbar on webkit browsers */
-  .gallery-track::-webkit-scrollbar {
-    display: none;
+    display: flex;
+    align-items: center;
   }
   
   .gallery-item {
     flex: 0 0 280px;
+    width: 280px !important;
     height: 320px;
-    scroll-snap-align: start;
     cursor: pointer;
-    touch-action: pan-y manipulation;
+    touch-action: manipulation;
     padding: 4px;
-    /* Smooth scrolling optimization */
-    will-change: transform;
-    transform: translateZ(0);
   }
   
-  .carousel-btn {
+  .swiper-button-next,
+  .swiper-button-prev {
     display: none !important;
   }
   
@@ -986,28 +966,17 @@ main {
   }
   
   .gallery-carousel {
-    margin: 24px 0;
-    overflow-x: hidden;
+    margin: 24px auto;
+    padding: 0 15px;
     height: 280px;
     width: 100%;
     max-width: 100vw;
+    overflow: hidden;
   }
   
   .gallery-track {
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x; /* Allow only horizontal panning for better swipe experience */
-    scrollbar-width: none; /* Hide scrollbar on Firefox */
-    -ms-overflow-style: none; /* Hide scrollbar on IE/Edge */
-    /* Enhanced scroll performance */
-    scroll-behavior: smooth;
-    will-change: scroll-position;
-    transform: translateZ(0);
-    overscroll-behavior-x: none;
-    gap: 16px;
-    height: 100%;
-    padding: 0;
+    display: flex;
+    align-items: center;
   }
   
   /* Aumenta l'area di touch per i canvas su mobile */
@@ -1018,24 +987,28 @@ main {
     min-width: 44px;
   }
   
-  /* Hide scrollbar on webkit browsers */
-  .gallery-track::-webkit-scrollbar {
-    display: none;
-  }
-  
   .gallery-item {
     flex: 0 0 260px;
+    width: 260px !important;
     height: 280px;
-    scroll-snap-align: start;
     cursor: pointer;
     touch-action: manipulation;
     padding: 4px;
-    /* Smooth scrolling optimization */
-    will-change: transform;
-    transform: translateZ(0);
+    text-align: center;
+    background: rgba(20,30,48,0.92);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgba(31,38,135,0.10);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: hidden;
+    position: relative;
   }
   
-  .carousel-btn {
+  .swiper-button-next,
+  .swiper-button-prev {
     display: none !important;
   }
   
@@ -1059,38 +1032,27 @@ main {
   .carousel-btn.next { right: 5px; }
   
   .modal-gallery-container {
-    /* Mobile modal gallery scrolling */
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  
-  .modal-gallery-container::-webkit-scrollbar {
-    display: none;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+    overflow: hidden;
+    touch-action: pan-x pan-y;
   }
   
   .modal-gallery-track {
     display: flex;
     width: fit-content;
     height: auto;
-    touch-action: pan-x;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  
-  .modal-gallery-track::-webkit-scrollbar {
-    display: none;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .modal-gallery-img {
     flex: 0 0 90vw;
     width: 90vw;
     height: auto;
-    scroll-snap-align: start;
-    touch-action: pan-x;
   }
   
   .modal-gallery-btn {
@@ -1201,27 +1163,17 @@ main {
   }
   
   .gallery-carousel {
-    margin: 16px 0;
+    margin: 16px auto;
+    padding: 0 10px;
     height: 240px;
     width: 100%;
     max-width: 100vw;
+    overflow: hidden;
   }
   
   .gallery-track {
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    /* Enhanced scroll performance */
-    scroll-behavior: smooth;
-    will-change: scroll-position;
-    transform: translateZ(0);
-    overscroll-behavior-x: none;
-    gap: 12px;
-    height: 100%;
-    padding: 0;
+    display: flex;
+    align-items: center;
   }
   
   /* Aumenta l'area di touch per i canvas su mobile piccolo */
@@ -1232,25 +1184,28 @@ main {
     min-width: 44px;
   }
   
-  /* Hide scrollbar on webkit browsers */
-  .gallery-track::-webkit-scrollbar {
-    display: none;
-  }
-  
   .gallery-item {
     flex: 0 0 240px;
+    width: 240px !important;
     height: 240px;
     border-radius: 16px;
-    scroll-snap-align: start;
     cursor: pointer;
     touch-action: manipulation;
     padding: 4px;
-    /* Smooth scrolling optimization */
-    will-change: transform;
-    transform: translateZ(0);
+    text-align: center;
+    background: rgba(20,30,48,0.92);
+    box-shadow: 0 8px 32px rgba(31,38,135,0.10);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: hidden;
+    position: relative;
   }
   
-  .carousel-btn {
+  .swiper-button-next,
+  .swiper-button-prev {
     display: none !important;
   }
   
@@ -1287,102 +1242,41 @@ main {
   
   /* Modal Gallery Mobile */
   .modal-gallery-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     width: 95vw;
     max-width: 95vw;
     height: 60vh;
     max-height: 60vh;
     margin: 0 auto;
     box-sizing: border-box;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  
-  .modal-gallery-container::-webkit-scrollbar {
-    display: none;
+    overflow: hidden;
+    touch-action: pan-x pan-y;
   }
   
   .modal-gallery-track {
     display: flex;
     width: fit-content;
     height: auto;
-    touch-action: pan-x;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  
-  .modal-gallery-track::-webkit-scrollbar {
-    display: none;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .modal-gallery-img {
-    flex: 0 0 88vw;
+    flex: 0 0 95vw;
     width: 88vw;
     height: auto;
     object-fit: contain;
-    scroll-snap-align: start;
-    touch-action: pan-x;
   }
   
   .modal-gallery-btn {
     display: none !important;
   }
   
-  /* Modal Gallery Mobile */
-  .modal-gallery-container {
-    gap: 0;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  .modal-gallery-track {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    transition: none; /* Disable transform animation on mobile */
-  }
-  
-  .modal-gallery-img {
-    scroll-snap-align: start;
-    flex-shrink: 0;
-  }
-  
-  .modal-gallery-btn {
-    display: none !important; /* Hide buttons on mobile */
-  }
-  
   .carousel-btn.prev { left: 2px; }
   .carousel-btn.next { right: 2px; }
-  
-  /* Modal Gallery Mobile */
-  .modal-gallery-container {
-    gap: 0;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  .modal-gallery-track {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    transition: none; /* Disable transform animation on mobile */
-  }
-  
-  .modal-gallery-img {
-    scroll-snap-align: start;
-    flex-shrink: 0;
-  }
-  
-  .modal-gallery-btn {
-    display: none !important; /* Hide buttons on mobile */
-  }
 }
 
 /* EXTRA SMALL MOBILE */

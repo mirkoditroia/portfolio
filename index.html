@@ -6,6 +6,7 @@
   <title>Portfolio | Creative Coder 3D, VFX & Interactive Art</title>
   <meta name="description" content="Portfolio di arte digitale, VFX, 3D e programmazione creativa. Esplora opere interattive e innovazioni tecnologiche.">
   <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -34,18 +35,18 @@
     </section>
     <section id="vfx" class="section vfx art3d" role="region" aria-labelledby="vfx-heading">
       <h2 id="vfx-heading">VFX</h2>
-      <div class="gallery-carousel" role="region" aria-label="Gallery VFX">
-        <button class="carousel-btn prev" aria-label="Elemento precedente" tabindex="0">&#8592;</button>
-        <div class="gallery-track" id="vfx-track" role="list"></div>
-        <button class="carousel-btn next" aria-label="Elemento successivo" tabindex="0">&#8594;</button>
+      <div class="gallery-carousel swiper" role="region" aria-label="Gallery VFX">
+        <div class="gallery-track swiper-wrapper" id="vfx-track" role="list"></div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
       </div>
     </section>
     <section id="art3d" class="section art3d" role="region" aria-labelledby="art3d-heading">
       <h2 id="art3d-heading">3D ART</h2>
-      <div class="gallery-carousel" role="region" aria-label="Gallery Arte 3D">
-        <button class="carousel-btn prev" aria-label="Elemento precedente" tabindex="0">&#8592;</button>
-        <div class="gallery-track" id="art3d-track" role="list"></div>
-        <button class="carousel-btn next" aria-label="Elemento successivo" tabindex="0">&#8594;</button>
+      <div class="gallery-carousel swiper" role="region" aria-label="Gallery Arte 3D">
+        <div class="gallery-track swiper-wrapper" id="art3d-track" role="list"></div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
       </div>
       <div class="modal-video" id="modalVideo" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-video-content">
@@ -59,26 +60,26 @@
     </section>
     <section id="interactive" class="section interactive art3d" role="region" aria-labelledby="interactive-heading">
       <h2 id="interactive-heading">INTERACTIVE ART</h2>
-      <div class="gallery-carousel" role="region" aria-label="Gallery Arte Interattiva">
-        <button class="carousel-btn prev" aria-label="Elemento precedente" tabindex="0">&#8592;</button>
-        <div class="gallery-track" id="interactive-track" role="list"></div>
-        <button class="carousel-btn next" aria-label="Elemento successivo" tabindex="0">&#8594;</button>
+      <div class="gallery-carousel swiper" role="region" aria-label="Gallery Arte Interattiva">
+        <div class="gallery-track swiper-wrapper" id="interactive-track" role="list"></div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
       </div>
     </section>
     <section id="creativecoding" class="section creativecoding art3d" role="region" aria-labelledby="creativecoding-heading">
       <h2 id="creativecoding-heading">Creative Coding</h2>
-      <div class="gallery-carousel" role="region" aria-label="Gallery Programmazione Creativa">
-        <button class="carousel-btn prev" aria-label="Elemento precedente" tabindex="0">&#8592;</button>
-        <div class="gallery-track" id="creativecoding-track" role="list"></div>
-        <button class="carousel-btn next" aria-label="Elemento successivo" tabindex="0">&#8594;</button>
+      <div class="gallery-carousel swiper" role="region" aria-label="Gallery Programmazione Creativa">
+        <div class="gallery-track swiper-wrapper" id="creativecoding-track" role="list"></div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
       </div>
     </section>
     <section id="ai" class="section ai art3d" role="region" aria-labelledby="ai-heading">
       <h2 id="ai-heading">AI</h2>
-      <div class="gallery-carousel" role="region" aria-label="Gallery AI">
-        <button class="carousel-btn prev" aria-label="Elemento precedente" tabindex="0">&#8592;</button>
-        <div class="gallery-track" id="ai-track" role="list"></div>
-        <button class="carousel-btn next" aria-label="Elemento successivo" tabindex="0">&#8594;</button>
+      <div class="gallery-carousel swiper" role="region" aria-label="Gallery AI">
+        <div class="gallery-track swiper-wrapper" id="ai-track" role="list"></div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
       </div>
     </section>
     <section id="about" class="section about" role="region" aria-labelledby="about-heading">
@@ -93,6 +94,7 @@
       <p>Get in touch: <a href="mailto:info@vfxulo.com" aria-label="Invia email a info@vfxulo.com">info@vfxulo.com</a></p>
     </section>
   </main>
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html> 
