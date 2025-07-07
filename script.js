@@ -1,3 +1,11 @@
+// ---------------- Global helper to load JSON with fallback ----------------
+function fetchJson(primaryUrl, fallbackUrl){
+  return fetch(primaryUrl).then(res=>{
+    if(res.ok) return res.json();
+    return fetch(fallbackUrl).then(r=>r.json());
+  }).catch(()=> fetch(fallbackUrl).then(r=>r.json()));
+}
+
 // JS per multiple gallery sections
 document.addEventListener('DOMContentLoaded', function() {
   
@@ -597,17 +605,6 @@ document.addEventListener('DOMContentLoaded', function() {
         handler(e);
       }
     });
-  }
-
-  /* Helper to fetch JSON, falling back to static file when /api/* is unavailable */
-  function fetchJson(primaryUrl, fallbackUrl){
-    return fetch(primaryUrl)
-      .then(res=>{
-        if(res.ok) return res.json();
-        // if 404 or other error, fallback
-        return fetch(fallbackUrl).then(r=>r.json());
-      })
-      .catch(()=> fetch(fallbackUrl).then(r=>r.json()));
   }
 
   // Carica dati dinamici e inizializza
