@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   fetchJson('/api/galleries','../data/galleries.json')
-    .then(r=>r.json())
     .then(data=>renderGalleries(data))
     .catch(err=>{
       console.error(err);
@@ -116,7 +115,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // Additionally load site config (bio, contacts, sections)
   fetchJson('/api/site','../data/site.json')
-    .then(r=>r.json())
     .then(site=>renderSiteConfig(site))
     .catch(err=>console.error(err));
 

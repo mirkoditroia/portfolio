@@ -37,6 +37,6 @@
       "label": "AI"
     }
   ],
-   "apiBase": "https://mirkoditroia.github.io/portfolio",
+  "apiBase": "https://mirkoditroia.github.io/portfolio",
   "shaderUrl": "https://www.shadertoy.com/embed/XstGWn?gui=false&t=10&paused=false&muted=true"
 }

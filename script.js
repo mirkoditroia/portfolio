@@ -599,24 +599,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  /* Helper to fetch JSON, falling back to static file when /api/* is unavailable */
+  function fetchJson(primaryUrl, fallbackUrl){
+    return fetch(primaryUrl)
+      .then(res=>{
+        if(res.ok) return res.json();
+        // if 404 or other error, fallback
+        return fetch(fallbackUrl).then(r=>r.json());
+      })
+      .catch(()=> fetch(fallbackUrl).then(r=>r.json()));
+  }
+
   // Carica dati dinamici e inizializza
-  fetch('/api/galleries')
-    .then(res => res.json())
-    .then(json => {
-      galleries = json;
-      console.log('🎨 Inizializzazione gallery (fetch)...');
-      Object.entries(galleries).forEach(([sectionId, imgs]) => {
-        try {
-          console.log(`🔧 Inizializzando gallery: ${sectionId}`);
-          initGallery(sectionId, imgs);
-          console.log(`✅ Gallery ${sectionId} inizializzata`);
-        } catch (err) {
-          console.error(`❌ Errore init ${sectionId}`, err);
-        }
-      });
-      afterGalleryInit();
-    })
-    .catch(err => console.error('❌ Errore fetch galleries.json', err));
+  fetchJson('/api/galleries','data/galleries.json')
+    .then(data=>{ galleries=data; Object.entries(data).forEach(([k,v])=>initGallery(k,v)); afterGalleryInit(); })
+    .catch(err=>console.error('❌ Errore fetch galleries.json', err));
 
   function afterGalleryInit() {
     // Aggiungi click handlers dopo che tutte le gallery sono pronte
@@ -756,8 +753,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }); 
 
   // ---------------- sito meta (bio, contatti, visibilità sezioni) ----------------
-  fetch('/api/site')
-    .then(r=>r.json())
+  fetchJson('/api/site','data/site.json')
     .then(site=>{
       try{
         // Bio
