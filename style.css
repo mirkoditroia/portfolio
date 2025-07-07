@@ -1514,6 +1514,11 @@ main { margin-top: 80px; }
   .center-logo   { animation: fadeInUp 1.2s ease-out .3s both; }
 }
 
+@media (min-width: 901px){
+  main{ margin-top:0 !important; }
+  .hero{ padding-top:0 !important; margin-top:0 !important; }
+}
+
 @media (max-width: 900px) {
   /* hide aura layers when shader is present */
   .shader-banner + .center-logo {
@@ -1530,5 +1535,43 @@ main { margin-top: 80px; }
 
 @media(max-width:900px){
   .shader-banner{display:none !important;}
-  .particle-canvas{display:block;}
+  .particle-canvas{display:none !important;}
 }
+
+.model-canvas{display:none !important;}
+
+/* Disattiva gradienti bordo carosello */
+.gallery-carousel::before,
+.gallery-carousel::after,
+.gallery-carousel.edge-hidden::before,
+.gallery-carousel.edge-hidden::after{display:none !important;}
+
+/* Arrow scroll hint */
+.scroll-hint{position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:2rem;color:rgba(255,255,255,0.7);pointer-events:none;z-index:3;animation:hintShift 1.2s ease-in-out infinite;}
+@keyframes hintShift{0%,100%{transform:translateY(-50%) translateX(0);}50%{transform:translateY(-50%) translateX(6px);}}
+
+/* Pulse animation for unopened cards */
+@keyframes cardPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);} }
+.gallery-item.pulse{animation:cardPulse 1.6s ease-in-out 0s 3 forwards;}
+.shader-banner canvas{position:absolute;top:-30px;left:0;width:100%;height:calc(100% + 60px);display:block;pointer-events:none;}
+
+/* Fade-in shader iframe */
+.shader-banner iframe{opacity:0;transition:opacity 2.9s ease-in-out;}
+.shader-banner iframe.loaded{opacity:1;}
+
+/* Fade-in overlay logo/text */
+.center-logo{opacity:0;transition:opacity 2.9s ease-in-out;}
+.center-logo.loaded{opacity:1;}
+
+/* Hide previous aura effect and add mobile shader canvas */
+@media(max-width:900px){
+  .hero::before{display:none !important;}
+  .mobile-shader{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2;}
+}
+@media(min-width:901px){
+  .mobile-shader{display:none !important;}
+}
+
+/* --- OVERRIDES: eliminate gap between banner and hero --- */
+main{margin-top:0 !important;}
+.hero{margin-top:0 !important;padding-top:0 !important;}

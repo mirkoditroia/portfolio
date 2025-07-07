@@ -771,6 +771,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (found) imgData = found;
       });
 
+      // RIMOSSO hint overlay "TAP"
+      // const hint=document.createElement('div');
+      // hint.className='overlay-hint';
+      // hint.textContent='TAP';
+      // item.appendChild(hint);
+
       if (modal) {
         item.style.cursor = 'pointer';
         console.log(`🖱️ Aggiungendo click handler per item ${index + 1}`);
@@ -877,6 +883,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }
           
           if (modalDescription) modalDescription.textContent = description;
+          item.classList.add('opened');
         });
       }
     });
@@ -945,3 +952,89 @@ document.addEventListener('DOMContentLoaded', function() {
       }catch(err){ console.error('Errore applicazione site meta',err); }
     })
     .catch(err=>console.error('Errore fetch site meta',err)); 
+
+document.addEventListener('DOMContentLoaded',()=>{
+  // Apply pulse animation to gallery cards until first interaction
+  const galleryItems=document.querySelectorAll('.gallery-item');
+  galleryItems.forEach(item=>{
+    item.classList.add('pulse');
+    const clearPulse=()=>{item.classList.remove('pulse');item.removeEventListener('pointerdown',clearPulse);};
+    item.addEventListener('pointerdown',clearPulse,{once:true});
+  });
+
+  // Arrow scroll hint for horizontal carousels
+  const carousels=document.querySelectorAll('.gallery-carousel');
+  carousels.forEach(carousel=>{
+    if(carousel.scrollWidth<=carousel.clientWidth) return; // no overflow
+    const hint=document.createElement('div');
+    hint.className='scroll-hint';
+    hint.textContent='›';
+    carousel.style.position='relative';
+    carousel.appendChild(hint);
+    let removed=false;
+    function removeHint(){
+      if(removed) return; removed=true; hint.remove();
+      carousel.removeEventListener('scroll',onScroll);
+    }
+    function onScroll(){ if(Math.abs(carousel.scrollLeft)>8){ removeHint(); } }
+    carousel.addEventListener('scroll',onScroll);
+    // Fallback: rimuovi comunque dopo 4s
+    setTimeout(removeHint,4000);
+  });
+
+  // Fade-in shader iframe after load
+  const shader=document.getElementById('shader-iframe');
+  const logoEl=document.querySelector('.center-logo');
+  if(shader){ shader.addEventListener('load',()=>{
+      shader.classList.add('loaded');
+      if(logoEl) logoEl.classList.add('loaded');
+    });
+  }else{
+    if(logoEl) logoEl.classList.add('loaded');
+  }
+
+  /* Mobile lightweight GLSL shader */
+  (function(){
+    if(window.innerWidth>900) return; // only mobile
+    const canvas=document.getElementById('mobile-shader');
+    if(!canvas){console.warn('[MobileShader] canvas not found'); return;}
+    const hasGL= typeof GlslCanvas!=='undefined';
+    if(hasGL){
+      const sandbox=new GlslCanvas(canvas);
+      console.log('[MobileShader] GLSL initialized');
+      const frag=document.getElementById('mobile-shader-code');
+      if(!frag) return;
+      sandbox.load(frag.textContent);
+      function resize(){
+        const ratio=window.devicePixelRatio||1;
+        const scale=0.5; // render at half res for perf
+        canvas.width = canvas.clientWidth*scale*ratio;
+        canvas.height= canvas.clientHeight*scale*ratio;
+      }
+      resize();
+      window.addEventListener('resize',resize);
+    }else{
+      console.warn('[MobileShader] GlslCanvas undefined – trying dynamic import');
+      import('https://cdn.skypack.dev/glslCanvas').then(mod=>{
+        const Glsl=mod.default||mod.GlslCanvas||window.GlslCanvas;
+        if(!Glsl){throw new Error('glslCanvas not resolved');}
+        const sandbox=new Glsl(canvas);
+        console.log('[MobileShader] GLSL initialized (dynamic)');
+        const frag=document.getElementById('mobile-shader-code');
+        if(!frag) return;
+        sandbox.load(frag.textContent);
+        function resize(){const ratio=window.devicePixelRatio||1;const scale=0.5;canvas.width=canvas.clientWidth*scale*ratio;canvas.height=canvas.clientHeight*scale*ratio;}
+        resize();window.addEventListener('resize',resize);
+      }).catch(err=>{
+        console.error('glslCanvas dynamic import failed',err);
+        // Fallback 2D gradient
+        const ctx=canvas.getContext('2d');
+        function resize2d(){canvas.width=canvas.clientWidth;canvas.height=canvas.clientHeight;}
+        resize2d();window.addEventListener('resize',resize2d);
+        function draw(t){requestAnimationFrame(draw);const w=canvas.width,h=canvas.height;const time=t*0.0004;const grd=ctx.createRadialGradient(w*0.5+Math.sin(time)*w*0.2,h*0.4+Math.cos(time*1.3)*h*0.2,0,w/2,h/2,Math.max(w,h)*0.7);const hue=(time*40)%360;grd.addColorStop(0,`hsl(${hue},70%,55%)`);grd.addColorStop(1,'#001820');ctx.fillStyle=grd;ctx.fillRect(0,0,w,h);}draw();
+      });
+    }
+  })();
+
+  /* Mobile 3D model removed: fallback to lightweight CSS aura */
+}); 
