@@ -899,6 +899,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Bio
         const aboutTextEl = document.querySelector('.about-text');
         if(aboutTextEl && site.bio) aboutTextEl.textContent = site.bio;
+        if(site.heroText){
+          const textEls=document.querySelectorAll('.fa3io-text');
+          textEls.forEach(el=>el.textContent = site.heroText);
+        }
 
         // Contatti
         const contactSection = document.getElementById('contact');
@@ -944,7 +948,16 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         });
         // aggiorna apiBase per fetch futuri
-        if(site.apiBase){ window.__API_BASE = site.apiBase; }
+        if(site.apiBase){
+          window.__API_BASE = site.apiBase;
+          if(!location.origin.includes(site.apiBase)){
+            fetch(`${site.apiBase}/api/site`).then(r=>r.ok?r.json():null).then(remote=>{
+              if(remote){ Object.assign(site,remote);
+                if(remote.heroText){ document.querySelectorAll('.fa3io-text').forEach(el=>el.textContent=remote.heroText); }
+              }
+            }).catch(()=>{});
+          }
+        }
         if(site.shaderUrl){
           const sh=document.getElementById('shader-iframe');
           if(sh) sh.src = site.shaderUrl;
