@@ -896,13 +896,11 @@ document.addEventListener('DOMContentLoaded', function() {
   fetchJson('/api/site','data/site.json')
     .then(site=>{
       try{
+        const applyHero=text=>{ document.querySelectorAll('.fa3io-text').forEach(el=>el.textContent=text); };
         // Bio
         const aboutTextEl = document.querySelector('.about-text');
         if(aboutTextEl && site.bio) aboutTextEl.textContent = site.bio;
-        if(site.heroText){
-          const textEls=document.querySelectorAll('.fa3io-text');
-          textEls.forEach(el=>el.textContent = site.heroText);
-        }
+        if(site.heroText){ applyHero(site.heroText); }
 
         // Contatti
         const contactSection = document.getElementById('contact');
@@ -953,7 +951,7 @@ document.addEventListener('DOMContentLoaded', function() {
           if(!location.origin.includes(site.apiBase)){
             fetch(`${site.apiBase}/api/site`).then(r=>r.ok?r.json():null).then(remote=>{
               if(remote){ Object.assign(site,remote);
-                if(remote.heroText){ document.querySelectorAll('.fa3io-text').forEach(el=>el.textContent=remote.heroText); }
+                if(remote.heroText){ applyHero(remote.heroText); }
               }
             }).catch(()=>{});
           }
