@@ -1,0 +1,174 @@
+{
+  "vfx": [
+    {
+      "src": "images/TDMovieOut0-1751897136468.jpg",
+      "canvas": true,
+      "title": "meirkssss",
+      "description": "Effetti visivi e compositing.",
+      "modalImage": "images/PXL_20250609_132751594MP-1751897112432.jpg"
+    },
+    {
+      "canvas": true,
+      "title": "Motion Graphics",
+      "modalGallery": [
+        "images/frame_1040.jpg",
+        "images/art_2k_end.png",
+        "images/rhythm_v004.karmarendersettings.1052.png"
+      ],
+      "description": "Grafica animata e motion design."
+    },
+    {
+      "canvas": true,
+      "title": "VFX Demo",
+      "modalImage": "images/art_2k2.png",
+      "description": "Demo effetti visivi avanzati."
+    },
+    {
+      "canvas": true,
+      "title": "Compositing",
+      "modalGallery": [
+        "images/boccioni.png",
+        "images/art_2k_end.png"
+      ],
+      "description": "Tecniche di compositing digitale."
+    }
+  ],
+  "art3d": [
+    {
+      "src": "images/boccioni.png",
+      "title": "boccioni",
+      "video": "video/1.mp4",
+      "description": "Lorem ipsum dolor sit amet, Frame 1040."
+    },
+    {
+      "src": "images/rhythm_v004.karmarendersettings.1052.png",
+      "video": "video/3.mp4",
+      "title": "Rhythm Render",
+      "description": "Lorem ipsum dolor sit amet, Rhythm Render."
+    },
+    {
+      "src": "images/art_2k2.png",
+      "title": "Art 2K2",
+      "video": "video/ART.mp4",
+      "description": "Lorem ipsum dolor sit amet, Art 2K2."
+    },
+    {
+      "src": "images/frame_1040.jpg",
+      "video": "video/2.mp4",
+      "title": "aaaaa",
+      "description": "Lorem ipsum dolor sit amet, aaaaa."
+    },
+    {
+      "canvas": true,
+      "title": "Canvas -> Immagine",
+      "modalImage": "images/frame_1040.jpg",
+      "description": "Questo canvas apre un'immagine."
+    },
+    {
+      "canvas": true,
+      "title": "Canvas -> Carosello",
+      "modalGallery": [
+        "images/art_2k2.png",
+        "images/frame_1040.jpg",
+        "images/boccioni.png"
+      ],
+      "description": "Questo canvas apre un carosello di immagini."
+    }
+  ],
+  "interactive": [
+    {
+      "canvas": true,
+      "title": "Interactive Canvas",
+      "modalGallery": [
+        "images/boccioni.png",
+        "images/art_2k2.png"
+      ],
+      "description": "Canvas interattivo con animazioni."
+    },
+    {
+      "canvas": true,
+      "title": "Generative Art",
+      "modalImage": "images/art_2k_end.png",
+      "description": "Arte generativa creata con algoritmi."
+    },
+    {
+      "canvas": true,
+      "title": "Particle System",
+      "modalGallery": [
+        "images/frame_1040.jpg",
+        "images/art_2k_end.png"
+      ],
+      "description": "Sistema di particelle interattivo."
+    },
+    {
+      "canvas": true,
+      "title": "Interactive Demo",
+      "modalImage": "images/boccioni.png",
+      "description": "Demo installazione interattiva."
+    }
+  ],
+  "creativecoding": [
+    {
+      "canvas": true,
+      "title": "Creative Coding",
+      "modalImage": "images/boccioni.png",
+      "description": "Programmazione creativa e arte digitale."
+    },
+    {
+      "canvas": true,
+      "title": "Algoritmic Art",
+      "modalGallery": [
+        "images/art_2k2.png",
+        "images/art_2k_end.png"
+      ],
+      "description": "Arte algoritmica e procedurale."
+    },
+    {
+      "canvas": true,
+      "title": "Code Art",
+      "modalImage": "images/rhythm_v004.karmarendersettings.1052.png",
+      "description": "Arte generata tramite codice."
+    },
+    {
+      "canvas": true,
+      "title": "Procedural Demo",
+      "modalGallery": [
+        "images/frame_1040.jpg",
+        "images/boccioni.png"
+      ],
+      "description": "Demo arte procedurale."
+    }
+  ],
+  "ai": [
+    {
+      "canvas": true,
+      "title": "AI Art",
+      "modalImage": "images/art_2k_end.png",
+      "description": "Arte generata con intelligenza artificiale."
+    },
+    {
+      "canvas": true,
+      "title": "Neural Networks",
+      "modalGallery": [
+        "images/frame_1040.jpg",
+        "images/boccioni.png"
+      ],
+      "description": "Opere create con reti neurali."
+    },
+    {
+      "canvas": true,
+      "title": "AI Demo",
+      "modalImage": "images/art_2k2.png",
+      "description": "Demo intelligenza artificiale creativa."
+    },
+    {
+      "canvas": true,
+      "title": "Machine Learning",
+      "modalGallery": [
+        "images/rhythm_v004.karmarendersettings.1052.png",
+        "images/art_2k_end.png"
+      ],
+      "description": "Arte generata con machine learning."
+    }
+  ]
+}

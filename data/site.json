@@ -1,0 +1,42 @@
+{
+  "bio": "ola ola",
+  "contacts": [
+    {
+      "label": "Email",
+      "value": "mierkos@gmail.com"
+    },
+    {
+      "label": "LinkedIn",
+      "value": "https://linkedin.com/in/username"
+    }
+  ],
+  "sections": [
+    {
+      "status": "show",
+      "key": "vfx",
+      "label": "VFX"
+    },
+    {
+      "status": "show",
+      "key": "art3d",
+      "label": "3D Art"
+    },
+    {
+      "status": "show",
+      "key": "interactive",
+      "label": "Interactive"
+    },
+    {
+      "status": "show",
+      "key": "creativecoding",
+      "label": "Creative Coding"
+    },
+    {
+      "status": "soon",
+      "key": "ai",
+      "label": "AI"
+    }
+  ],
+  "apiBase": "",
+  "shaderUrl": "https://www.shadertoy.com/embed/XstGWn?gui=false&t=10&paused=false&muted=true"
+}

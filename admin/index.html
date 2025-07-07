@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Admin Dashboard – Portfolio</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="banner" role="banner" style="position:relative; overflow:hidden;">
+    <div class="shader-banner">
+      <iframe id="shader-iframe" src="..." ...></iframe>
+    </div>
+    <div class="shader-vignette"></div>
+
+    <div class="logo">
+      <img src="logo.png" alt="VFXulo Logo" />
+      <span>VFXULO STUDIO</span>
+    </div>
+
+    <nav class="menu">
+      <!-- link -->
+    </nav>
+
+    <div class="right-space"></div>  <!-- bilancia il flex -->
+  </header>
+
+  <main>
+    <!-- Lista dinamica delle gallery. Verrà popolata via JS in admin-logic -->
+    <section id="galleries"></section>
+    <section id="site-config" class="site-config">
+      <h2>Bio &amp; Contatti</h2>
+      <label class="block-label">Bio
+        <textarea id="bio-input" rows="4" style="width:100%"></textarea>
+      </label>
+      <h3>Contatti</h3>
+      <div id="contacts-list"></div>
+      <button id="add-contact-btn" class="secondary">+ Aggiungi contatto</button>
+
+      <h3>Impostazioni API</h3>
+      <label class="block-label">Base URL
+        <input id="api-base-input" type="text" placeholder="/api" style="width:100%" />
+      </label>
+      <label class="block-label">Shader URL (Shadertoy embed)
+        <input id="shader-url-input" type="text" placeholder="https://www.shadertoy.com/embed/XXXXX?..." style="width:100%" />
+      </label>
+      <p id="shader-current" style="font-size:0.85rem;color:#555;margin:4px 0 12px 0;word-break:break-all;"></p>
+
+      <h2>Sezioni</h2>
+      <table id="sections-table" class="slides-table">
+        <thead>
+          <tr><th>Stato</th><th>Key</th><th>Label</th><th>Azioni</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button id="add-section-btn" class="secondary">+ Aggiungi sezione</button>
+
+      <div style="margin-top:1rem">
+        <button id="save-site-btn" class="add-slide-btn">Salva dettagli</button>
+      </div>
+    </section>
+  </main>
+
+  <template id="gallery-template">
+    <details class="gallery-panel">
+      <summary class="gallery-title"></summary>
+      <div class="slides-wrapper">
+        <table class="slides-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Titolo</th>
+              <th>Tipo</th>
+              <th>Azioni</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <button class="add-slide-btn">+ Aggiungi Slide</button>
+        <button class="save-gallery-btn secondary" style="margin-left:0.5rem">Salva gallery</button>
+      </div>
+    </details>
+  </template>
+
+  <template id="slide-row-template">
+    <tr>
+      <td class="slide-index"></td>
+      <td class="slide-title"></td>
+      <td class="slide-type"></td>
+      <td>
+        <button class="edit-btn">Modifica</button>
+        <button class="delete-btn delete">Elimina</button>
+      </td>
+    </tr>
+  </template>
+
+  <!-- JS arriverà nel task admin-logic -->
+  <script src="script.js" defer></script>
+
+  <!-- Slide editor overlay -->
+  <div id="slide-editor-overlay" class="overlay hidden">
+    <div class="editor">
+      <h2 id="se-heading">Nuova Slide</h2>
+      <label class="block-label">Titolo
+        <input id="se-title" type="text" style="width:100%" />
+      </label>
+      <label class="block-label">Immagine Canvas / Thumbnail
+        <input id="se-src" type="text" style="width:80%" />
+        <button class="upload-btn" data-target="se-src">Upload</button>
+      </label>
+      <label class="block-label">Canvas <input id="se-canvas" type="checkbox" /></label>
+      <label class="block-label">Tipo
+        <select id="se-type">
+          <option value="video">video</option>
+          <option value="image">image</option>
+          <option value="gallery">gallery</option>
+        </select>
+      </label>
+
+      <div id="field-video" class="type-field">
+        <label class="block-label">Video path
+          <input id="se-video" type="text" style="width:80%" />
+          <button class="upload-btn" data-target="se-video" data-accept="video/*">Upload</button>
+        </label>
+      </div>
+
+      <div id="field-image" class="type-field">
+        <label class="block-label">Modal image path
+          <input id="se-image" type="text" style="width:80%" />
+          <button class="upload-btn" data-target="se-image">Upload</button>
+        </label>
+      </div>
+
+      <div id="field-gallery" class="type-field">
+        <h4>Immagini della gallery</h4>
+        <ul id="se-gallery-list" class="gallery-list"></ul>
+        <button class="upload-btn" data-target="se-gallery-list" data-multiple="true">Upload immagini</button>
+      </div>
+
+      <label class="block-label">Descrizione
+        <input id="se-description" type="text" style="width:100%" />
+      </label>
+
+      <div class="editor-actions" style="margin-top:1rem">
+        <button id="se-save" class="add-slide-btn">Salva</button>
+        <button id="se-cancel" class="secondary">Annulla</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- hidden file chooser -->
+  <input type="file" id="hidden-file-input" style="display:none" />
+</body>
+</html> 

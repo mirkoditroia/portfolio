@@ -134,6 +134,11 @@ document.addEventListener('DOMContentLoaded', function() {
               top: targetPosition,
               behavior: 'smooth'
             });
+            // Chiudi menu mobile dopo il click (UX mobile)
+            if (window.innerWidth <= 900) {
+              const menuEl = document.querySelector('.menu');
+              if (menuEl) menuEl.classList.remove('active');
+            }
           }
         });
       });
@@ -143,48 +148,30 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
+  // Mobile hamburger menu toggle
+  function initMobileMenu() {
+    try {
+      const toggleBtn = document.getElementById('menuToggle');
+      const menuEl = document.querySelector('.menu');
+      if (!toggleBtn || !menuEl) return;
+      toggleBtn.addEventListener('click', () => {
+        menuEl.classList.toggle('active');
+      });
+      console.log('✅ Mobile menu inizializzato');
+    } catch (error) {
+      console.error('❌ Errore mobile menu:', error);
+    }
+  }
+  
   // Inizializza tutti i miglioramenti
   initScrollIndicator();
   initScrollSpy();
   initAccessibility();
   initSmoothScroll();
+  initMobileMenu();
   manageFocus();
 
-  // Array per ogni sezione
-  const galleries = {
-    'vfx': [
-      { canvas: true, title: 'VFX Canvas', modalImage: 'images/rhythm_v004.karmarendersettings.1052.png', description: 'Effetti visivi e compositing.' },
-      { canvas: true, title: 'Motion Graphics', modalGallery: ['images/frame_1040.jpg','images/art_2k_end.png','images/rhythm_v004.karmarendersettings.1052.png'], description: 'Grafica animata e motion design.' },
-      { canvas: true, title: 'VFX Demo', modalImage: 'images/art_2k2.png', description: 'Demo effetti visivi avanzati.' },
-      { canvas: true, title: 'Compositing', modalGallery: ['images/boccioni.png','images/art_2k_end.png'], description: 'Tecniche di compositing digitale.' },
-    ],
-    'art3d': [
-      { src: 'images/boccioni.png', title: 'boccioni', video: 'video/1.mp4', description: 'Lorem ipsum dolor sit amet, Frame 1040.' },
-      { src: 'images/rhythm_v004.karmarendersettings.1052.png',video: 'video/3.mp4', title: 'Rhythm Render', description: 'Lorem ipsum dolor sit amet, Rhythm Render.' },
-      { src: 'images/art_2k2.png', title: 'Art 2K2', video: 'video/ART.mp4',description: 'Lorem ipsum dolor sit amet, Art 2K2.' },
-      { src: 'images/frame_1040.jpg',video: 'video/2.mp4', title: 'aaaaa', description: 'Lorem ipsum dolor sit amet, aaaaa.' },
-      { canvas: true, title: 'Canvas -> Immagine', modalImage: 'images/frame_1040.jpg', description: 'Questo canvas apre un\'immagine.' },
-      { canvas: true, title: 'Canvas -> Carosello', modalGallery: ['images/art_2k2.png','images/frame_1040.jpg','images/boccioni.png'], description: 'Questo canvas apre un carosello di immagini.' },
-    ],
-    'interactive': [
-      { canvas: true, title: 'Interactive Canvas', modalGallery: ['images/boccioni.png','images/art_2k2.png'], description: 'Canvas interattivo con animazioni.' },
-      { canvas: true, title: 'Generative Art', modalImage: 'images/art_2k_end.png', description: 'Arte generativa creata con algoritmi.' },
-      { canvas: true, title: 'Particle System', modalGallery: ['images/frame_1040.jpg','images/art_2k_end.png'], description: 'Sistema di particelle interattivo.' },
-      { canvas: true, title: 'Interactive Demo', modalImage: 'images/boccioni.png', description: 'Demo installazione interattiva.' },
-    ],
-    'creativecoding': [
-      { canvas: true, title: 'Creative Coding', modalImage: 'images/boccioni.png', description: 'Programmazione creativa e arte digitale.' },
-      { canvas: true, title: 'Algoritmic Art', modalGallery: ['images/art_2k2.png','images/art_2k_end.png'], description: 'Arte algoritmica e procedurale.' },
-      { canvas: true, title: 'Code Art', modalImage: 'images/rhythm_v004.karmarendersettings.1052.png', description: 'Arte generata tramite codice.' },
-      { canvas: true, title: 'Procedural Demo', modalGallery: ['images/frame_1040.jpg','images/boccioni.png'], description: 'Demo arte procedurale.' },
-    ],
-    'ai': [
-      { canvas: true, title: 'AI Art', modalImage: 'images/art_2k_end.png', description: 'Arte generata con intelligenza artificiale.' },
-      { canvas: true, title: 'Neural Networks', modalGallery: ['images/frame_1040.jpg','images/boccioni.png'], description: 'Opere create con reti neurali.' },
-      { canvas: true, title: 'AI Demo', modalImage: 'images/art_2k2.png', description: 'Demo intelligenza artificiale creativa.' },
-      { canvas: true, title: 'Machine Learning', modalGallery: ['images/rhythm_v004.karmarendersettings.1052.png','images/art_2k_end.png'], description: 'Arte generata con machine learning.' },
-    ]
-  };
+  let galleries = {};
 
   // Funzione per creare canvas con stili personalizzati
   function createCanvasContent(ctx, title, width, height) {
@@ -604,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Fallback per desktop
     element.addEventListener('click', function(e) {
-      if (e.isTrusted && !('ontouchstart' in window)) {
+      if (e.isTrusted) {
         e.preventDefault();
         e.stopPropagation();
         handler(e);
@@ -612,146 +599,220 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Inizializza tutte le gallery
-  console.log('🎨 Inizializzazione gallery...');
-  Object.keys(galleries).forEach(sectionId => {
-    try {
-      console.log(`🔧 Inizializzando gallery: ${sectionId}`);
-      initGallery(sectionId, galleries[sectionId]);
-      console.log(`✅ Gallery ${sectionId} inizializzata`);
-    } catch (error) {
-      console.error(`❌ Errore inizializzazione gallery ${sectionId}:`, error);
-    }
-  });
+  // Carica dati dinamici e inizializza
+  fetch('/api/galleries')
+    .then(res => res.json())
+    .then(json => {
+      galleries = json;
+      console.log('🎨 Inizializzazione gallery (fetch)...');
+      Object.entries(galleries).forEach(([sectionId, imgs]) => {
+        try {
+          console.log(`🔧 Inizializzando gallery: ${sectionId}`);
+          initGallery(sectionId, imgs);
+          console.log(`✅ Gallery ${sectionId} inizializzata`);
+        } catch (err) {
+          console.error(`❌ Errore init ${sectionId}`, err);
+        }
+      });
+      afterGalleryInit();
+    })
+    .catch(err => console.error('❌ Errore fetch galleries.json', err));
 
-  // Aggiungi click handlers dopo l'inizializzazione
-  console.log('🔗 Aggiunta click handlers...');
-  const galleryItems = document.querySelectorAll('.gallery-item');
-  console.log(`📱 Trovati ${galleryItems.length} gallery items`);
-  
-  galleryItems.forEach((item, index) => {
-    const videoSrc = item.getAttribute('data-video');
-    const description = item.getAttribute('data-description') || 'Lorem ipsum dolor sit amet.';
+  function afterGalleryInit() {
+    // Aggiungi click handlers dopo che tutte le gallery sono pronte
+    console.log('🔗 Aggiunta click handlers...');
+    const galleryItems = document.querySelectorAll('.gallery-item');
+    console.log(`📱 Trovati ${galleryItems.length} gallery items`);
     
-    // Trova l'immagine corrispondente nell'array
-    const title = item.querySelector('.gallery-title').textContent;
-    let imgData = null;
-    
-    // Cerca nei dati delle gallery
-    Object.values(galleries).forEach(gallery => {
-      const found = gallery.find(img => img.title === title);
-      if (found) imgData = found;
-    });
+    galleryItems.forEach((item, index) => {
+      if(item.classList.contains('placeholder-slide')) return; // skip filler slides
+      const videoSrc = item.getAttribute('data-video');
+      const description = item.getAttribute('data-description') || 'Lorem ipsum dolor sit amet.';
+      
+      // Trova l'immagine corrispondente nell'array
+      const titleEl = item.querySelector('.gallery-title');
+      if(!titleEl) return;
+      const title = titleEl.textContent;
+      let imgData = null;
+      
+      // Cerca nei dati delle gallery
+      Object.values(galleries).forEach(gallery => {
+        const found = gallery.find(img => img.title === title);
+        if (found) imgData = found;
+      });
 
-    if (modal) {
-      item.style.cursor = 'pointer';
-      console.log(`🖱️ Aggiungendo click handler per item ${index + 1}`);
-      addClickHandler(item, e => {
-        const canvas = item.querySelector('.gallery-canvas');
-        
-        // Gestione dei canvas con comportamenti speciali
-        if (canvas && imgData) {
-          if (imgData.modalImage) {
-            // Mostra immagine singola
-            modal.style.display = 'flex';
-            modalPlayer.style.display = 'none';
-            const modalGallery = document.getElementById('modalGallery');
-            if (modalGallery) modalGallery.style.display = 'none';
-            const modalImg = document.getElementById('modalImage');
-            if (modalImg) {
-              modalImg.src = imgData.modalImage;
-              modalImg.style.display = '';
-              modalImg.onload = function() {
-                if (modalImg.naturalHeight > modalImg.naturalWidth) {
-                  modalImg.style.maxWidth = '60vw';
-                  modalImg.style.maxHeight = '80vh';
-                } else {
-                  modalImg.style.maxWidth = '90vw';
-                  modalImg.style.maxHeight = '60vh';
+      if (modal) {
+        item.style.cursor = 'pointer';
+        console.log(`🖱️ Aggiungendo click handler per item ${index + 1}`);
+        addClickHandler(item, e => {
+          const canvas = item.querySelector('.gallery-canvas');
+          
+          // Gestione dei canvas con comportamenti speciali
+          if (canvas && imgData) {
+            if (imgData.modalImage) {
+              // Mostra immagine singola
+              modal.style.display = 'flex';
+              modalPlayer.style.display = 'none';
+              const modalGallery = document.getElementById('modalGallery');
+              if (modalGallery) modalGallery.style.display = 'none';
+              const modalImg = document.getElementById('modalImage');
+              if (modalImg) {
+                modalImg.src = imgData.modalImage;
+                modalImg.style.display = '';
+                modalImg.onload = function() {
+                  if (modalImg.naturalHeight > modalImg.naturalWidth) {
+                    modalImg.style.maxWidth = '60vw';
+                    modalImg.style.maxHeight = '80vh';
+                  } else {
+                    modalImg.style.maxWidth = '90vw';
+                    modalImg.style.maxHeight = '60vh';
+                  }
+                };
+              }
+            } else if (imgData.modalGallery) {
+              // Mostra carosello immagini
+              modal.style.display = 'flex';
+              modalPlayer.style.display = 'none';
+              const modalImg = document.getElementById('modalImage');
+              if (modalImg) modalImg.style.display = 'none';
+              const modalGallery = document.getElementById('modalGallery');
+              if (modalGallery) {
+                modalGallery.innerHTML = '';
+                modalGallery.style.display = '';
+                
+                const imgs = imgData.modalGallery;
+                let galleryIndex = 0;
+                
+                const galleryContainer = document.createElement('div');
+                galleryContainer.className = 'modal-gallery-container';
+                
+                const galleryTrack = document.createElement('div');
+                galleryTrack.className = 'modal-gallery-track';
+                
+                imgs.forEach((imgSrc, index) => {
+                  const imgEl = document.createElement('img');
+                  imgEl.src = imgSrc;
+                  imgEl.className = 'modal-gallery-img';
+                  imgEl.onload = function() {
+                    if (imgEl.naturalHeight > imgEl.naturalWidth) {
+                      imgEl.style.maxWidth = '60vw';
+                      imgEl.style.maxHeight = '80vh';
+                    } else {
+                      imgEl.style.maxWidth = '90vw';
+                      imgEl.style.maxHeight = '60vh';
+                    }
+                  };
+                  galleryTrack.appendChild(imgEl);
+                });
+                
+                galleryContainer.appendChild(galleryTrack);
+                
+                if (imgs.length > 1) {
+                  const prevButton = document.createElement('button');
+                  prevButton.className = 'modal-gallery-btn prev';
+                  prevButton.innerHTML = '&#8592;';
+                  prevButton.addEventListener('click', () => {
+                    galleryIndex = (galleryIndex - 1 + imgs.length) % imgs.length;
+                    galleryTrack.style.transform = `translateX(-${galleryIndex * 100}%)`;
+                  });
+                  
+                  const nextButton = document.createElement('button');
+                  nextButton.className = 'modal-gallery-btn next';
+                  nextButton.innerHTML = '&#8594;';
+                  nextButton.addEventListener('click', () => {
+                    galleryIndex = (galleryIndex + 1) % imgs.length;
+                    galleryTrack.style.transform = `translateX(-${galleryIndex * 100}%)`;
+                  });
+                  
+                  galleryContainer.appendChild(prevButton);
+                  galleryContainer.appendChild(nextButton);
                 }
-              };
+                
+                modalGallery.appendChild(galleryContainer);
+              }
             }
-          } else if (imgData.modalGallery) {
-            // Mostra carosello immagini
+          } else if (canvas && !imgData) {
+            // Canvas senza dati specifici - mostra messaggio di demo
+            console.log('Canvas clicked but no specific data found');
+          } else if (videoSrc && modalPlayer) {
+            // Default: video per immagini normali
             modal.style.display = 'flex';
-            modalPlayer.style.display = 'none';
+            modalPlayer.style.display = '';
             const modalImg = document.getElementById('modalImage');
             if (modalImg) modalImg.style.display = 'none';
             const modalGallery = document.getElementById('modalGallery');
-            if (modalGallery) {
-              modalGallery.innerHTML = '';
-              modalGallery.style.display = '';
-              
-              const imgs = imgData.modalGallery;
-              let galleryIndex = 0;
-              
-              const galleryContainer = document.createElement('div');
-              galleryContainer.className = 'modal-gallery-container';
-              
-              const galleryTrack = document.createElement('div');
-              galleryTrack.className = 'modal-gallery-track';
-              
-              imgs.forEach((imgSrc, index) => {
-                const imgEl = document.createElement('img');
-                imgEl.src = imgSrc;
-                imgEl.className = 'modal-gallery-img';
-                imgEl.onload = function() {
-                  if (imgEl.naturalHeight > imgEl.naturalWidth) {
-                    imgEl.style.maxWidth = '60vw';
-                    imgEl.style.maxHeight = '80vh';
-                  } else {
-                    imgEl.style.maxWidth = '90vw';
-                    imgEl.style.maxHeight = '60vh';
-                  }
-                };
-                galleryTrack.appendChild(imgEl);
-              });
-              
-              galleryContainer.appendChild(galleryTrack);
-              
-              if (imgs.length > 1) {
-                const prevButton = document.createElement('button');
-                prevButton.className = 'modal-gallery-btn prev';
-                prevButton.innerHTML = '&#8592;';
-                prevButton.addEventListener('click', () => {
-                  galleryIndex = (galleryIndex - 1 + imgs.length) % imgs.length;
-                  galleryTrack.style.transform = `translateX(-${galleryIndex * 100}%)`;
-                });
-                
-                const nextButton = document.createElement('button');
-                nextButton.className = 'modal-gallery-btn next';
-                nextButton.innerHTML = '&#8594;';
-                nextButton.addEventListener('click', () => {
-                  galleryIndex = (galleryIndex + 1) % imgs.length;
-                  galleryTrack.style.transform = `translateX(-${galleryIndex * 100}%)`;
-                });
-                
-                galleryContainer.appendChild(prevButton);
-                galleryContainer.appendChild(nextButton);
-              }
-              
-              modalGallery.appendChild(galleryContainer);
-            }
+            if (modalGallery) modalGallery.style.display = 'none';
+            modalPlayer.src = videoSrc;
+            modalPlayer.play();
           }
-        } else if (canvas && !imgData) {
-          // Canvas senza dati specifici - mostra messaggio di demo
-          console.log('Canvas clicked but no specific data found');
-        } else if (videoSrc && modalPlayer) {
-          // Default: video per immagini normali
-          modal.style.display = 'flex';
-          modalPlayer.style.display = '';
-          const modalImg = document.getElementById('modalImage');
-          if (modalImg) modalImg.style.display = 'none';
-          const modalGallery = document.getElementById('modalGallery');
-          if (modalGallery) modalGallery.style.display = 'none';
-          modalPlayer.src = videoSrc;
-          modalPlayer.play();
-        }
-        
-        if (modalDescription) modalDescription.textContent = description;
-      });
-    }
-  });
+          
+          if (modalDescription) modalDescription.textContent = description;
+        });
+      }
+    });
+  }
 
   console.log('🎉 Portfolio: Inizializzazione completata con successo!');
 }); 
+
+  // ---------------- sito meta (bio, contatti, visibilità sezioni) ----------------
+  fetch('/api/site')
+    .then(r=>r.json())
+    .then(site=>{
+      try{
+        // Bio
+        const aboutTextEl = document.querySelector('.about-text');
+        if(aboutTextEl && site.bio) aboutTextEl.textContent = site.bio;
+
+        // Contatti
+        const contactSection = document.getElementById('contact');
+        if(contactSection && Array.isArray(site.contacts)){
+          const list = document.createElement('ul');
+          site.contacts.forEach(c=>{
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${c.label}:</strong> <a href="${c.value.startsWith('http')?'': 'mailto:'}${c.value}" target="_blank" rel="noopener">${c.value}</a>`;
+            list.appendChild(li);
+          });
+          contactSection.innerHTML = '<h2 id="contact-heading">CONTACT</h2>';
+          contactSection.appendChild(list);
+        }
+
+        // Sezioni
+        site.sections?.forEach(sec=>{
+          const id = sec.key;
+          const sectionEl = document.getElementById(id);
+          const navLink   = document.querySelector(`.menu a[href="#${id}"]`);
+          const heading   = document.querySelector(`#${id}-heading`);
+          if(!sectionEl) return;
+          const status = sec.status || (sec.visible===false? 'hide':'show');
+          if(status==='hide'){
+            sectionEl.style.display='none';
+            if(navLink) navLink.style.display='none';
+          }else{
+            if(sec.label){
+              if(heading) heading.textContent = sec.label;
+              if(navLink) navLink.textContent = sec.label;
+            }
+            if(status==='soon'){
+              const galleryCarousel = sectionEl.querySelector('.gallery-carousel');
+              if(galleryCarousel) galleryCarousel.style.display='none';
+              const placeholder=document.createElement('p');
+              placeholder.className='coming-soon';
+              placeholder.textContent='Coming Soon';
+              placeholder.style.color='#fff';
+              placeholder.style.textAlign='center';
+              placeholder.style.fontSize='1.4rem';
+              placeholder.style.padding='40px 0';
+              sectionEl.appendChild(placeholder);
+            }
+          }
+        });
+        // aggiorna apiBase per fetch futuri
+        if(site.apiBase){ window.__API_BASE = site.apiBase; }
+        if(site.shaderUrl){
+          const sh=document.getElementById('shader-iframe');
+          if(sh) sh.src = site.shaderUrl;
+        }
+      }catch(err){ console.error('Errore applicazione site meta',err); }
+    })
+    .catch(err=>console.error('Errore fetch site meta',err)); 

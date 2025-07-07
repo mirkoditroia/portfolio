@@ -1,0 +1,37 @@
+/* Admin Dashboard basic layout */
+*{box-sizing:border-box;font-family:system-ui,"Segoe UI",Roboto,sans-serif;}
+body{margin:0;padding:0;background:#f7f7f7;color:#333;}
+header{background:#222;color:#fff;padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;}
+header h1{margin:0;font-size:1.5rem;}
+header .env-info{font-size:0.9rem;opacity:0.8;}
+main{padding:2rem;max-width:1000px;margin:0 auto;}
+
+.gallery-panel{margin-bottom:1rem;border:1px solid #ccc;border-radius:6px;background:#fff;}
+.gallery-panel[open]{box-shadow:0 2px 6px rgba(0,0,0,0.1);}  
+.gallery-title{font-weight:600;font-size:1.1rem;padding:0.8rem 1rem;cursor:pointer;display:block;}
+.slides-wrapper{padding:1rem;}
+
+.slides-table{width:100%;border-collapse:collapse;margin-bottom:0.5rem;}
+.slides-table th,.slides-table td{border:1px solid #ddd;padding:0.4rem 0.6rem;text-align:left;}
+.slides-table th{background:#f0f0f0;font-weight:600;}
+
+.add-slide-btn{display:inline-block;padding:0.4rem 0.8rem;background:#007acc;color:#fff;border:none;border-radius:4px;cursor:pointer;}
+.add-slide-btn:hover{background:#0061ab;}
+
+button.edit-btn{background:#ffc107;color:#212529;border:none;padding:0.3rem 0.6rem;border-radius:4px;cursor:pointer;}
+button.delete{background:#dc3545;color:#fff;}
+button:hover{opacity:0.9;} 
+.block-label{display:block;margin:0.6rem 0;font-weight:600;}
+.secondary{background:#6c757d;color:#fff;} 
+.slides-table tr:hover{background:#fafafa;} 
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;}
+.overlay.hidden{display:none;}
+.overlay .editor{background:#fff;padding:1.5rem;border-radius:8px;max-width:500px;width:90%;max-height:90%;overflow:auto;}
+.type-field{display:none;} 
+.upload-btn{margin-left:4px;padding:0.2rem 0.5rem;font-size:0.75rem;border:none;border-radius:4px;cursor:pointer;background:#17a2b8;color:#fff;}
+.upload-btn:hover{background:#138496;} 
+.gallery-list{list-style:none;padding:0;margin:0;}
+.gallery-list li{display:flex;align-items:center;margin-bottom:4px;font-size:0.85rem;}
+.gallery-list li span{flex:1;word-break:break-all;}
+.gallery-list li button{margin-left:4px;padding:0 6px;} 
+.status-select{padding:2px 4px;} 

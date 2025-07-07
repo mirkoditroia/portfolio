@@ -10,11 +10,12 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="banner" role="banner">
+  <header class="banner" role="banner" style="position:relative; overflow:hidden;">
     <div class="logo">
       <img src="logo.png" alt="VFXulo Logo" onerror="this.style.display='none'">
       <span>VFXULO STUDIO</span>
     </div>
+    <button class="menu-toggle" id="menuToggle" aria-label="Apri menu">&#9776;</button>
     <nav class="menu" role="navigation" aria-label="Menu principale">
       <a href="#vfx" aria-label="Vai alla sezione VFX">VFX</a>
       <a href="#art3d" aria-label="Vai alla sezione Arte 3D">3D Art</a>
@@ -26,8 +27,11 @@
     </nav>
   </header>
   <main role="main">
-    <section class="hero" role="banner">
-      <h1>THIS WORLD IS BUT A CANVAS<br>TO OUR IMAGINATIONS</h1>
+    <section class="hero" role="banner" style="position:relative; overflow:hidden;">
+      <div class="shader-banner">
+        <iframe id="shader-iframe" src="https://www.shadertoy.com/embed/XstGWn?gui=false&t=10&paused=false&muted=true" frameborder="0" allowfullscreen></iframe>
+      </div>
+      <div class="shader-vignette"></div>
       <div class="center-logo">
         <img src="logo.png" alt="vfxulo" style="width: 60px;" onerror="this.style.display='none'">
         <div class="fa3io-text">vfxulo</div>
@@ -96,5 +100,16 @@
   </main>
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script src="script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/glslCanvas@0.2.4/dist/glslCanvas.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded',()=>{
+      const canvas=document.getElementById('hero-canvas');
+      if(canvas){
+        const sandbox=new GlslCanvas(canvas);
+        const frag=document.getElementById('shader-code').textContent;
+        sandbox.load(frag);
+      }
+    });
+  </script>
 </body>
 </html> 
