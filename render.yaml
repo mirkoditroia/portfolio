@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: portfolio-backend
+    env: node
+    region: frankfurt
+    plan: free
+    branch: main
+    rootDir: .
+    buildCommand: "npm install"
+    startCommand: "node server.js"
+    healthCheckPath: "/api/site"
+    envVars:
+      - key: ADMIN_TOKEN
+        value: "CHANGE_ME"
+      - key: UPLOAD_DIR
+        value: "uploads" 
