@@ -5,7 +5,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if(!container) return;
 
   // Fetch galleries data
-  fetch('/api/galleries')
+  function fetchJson(primaryUrl, fallbackUrl){
+    return fetch(primaryUrl).then(res=>{
+      if(res.ok) return res.json();
+      return fetch(fallbackUrl).then(r=>r.json());
+    }).catch(()=>fetch(fallbackUrl).then(r=>r.json()));
+  }
+
+  fetchJson('/api/galleries','../data/galleries.json')
     .then(r=>r.json())
     .then(data=>renderGalleries(data))
     .catch(err=>{
@@ -108,7 +115,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   // Additionally load site config (bio, contacts, sections)
-  fetch('/api/site')
+  fetchJson('/api/site','../data/site.json')
     .then(r=>r.json())
     .then(site=>renderSiteConfig(site))
     .catch(err=>console.error(err));
