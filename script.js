@@ -179,6 +179,20 @@ document.addEventListener('DOMContentLoaded', function() {
   initMobileMenu();
   manageFocus();
 
+  /* ---------------- Shader resolution tweak for mobile ---------------- */
+  (function(){
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const shaderIframe = document.getElementById('shader-iframe');
+    if(shaderIframe && isMobile){
+      try{
+        const url = new URL(shaderIframe.src);
+        url.searchParams.set('res','0.5'); // render at 50% resolution
+        shaderIframe.src = url.toString();
+        console.log('📱 Shader resolution reduced for mobile');
+      }catch(err){ console.warn('Shader URL adjust error',err); }
+    }
+  })();
+
   let galleries = {};
 
   // Funzione per creare canvas con stili personalizzati
