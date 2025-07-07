@@ -179,6 +179,29 @@ document.addEventListener('DOMContentLoaded', function() {
   initMobileMenu();
   manageFocus();
 
+  // ---------- Mobile hero parallax (pointer follows aura) ----------
+  (function(){
+    if(window.innerWidth > 900) return; // only mobile/tablet
+    const hero = document.querySelector('.hero');
+    if(!hero) return;
+    let rafId = null;
+    function updateVars(xPct,yPct){
+      hero.style.setProperty('--x', xPct+'%');
+      hero.style.setProperty('--y', yPct+'%');
+    }
+    function handleMove(e){
+      const touch = e.touches ? e.touches[0] : e;
+      const xPct = (touch.clientX / window.innerWidth) * 100;
+      const yPct = (touch.clientY / window.innerHeight) * 100;
+      if(rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(()=>{
+        updateVars(xPct,yPct);
+      });
+    }
+    window.addEventListener('mousemove',handleMove,{passive:true});
+    window.addEventListener('touchmove',handleMove,{passive:true});
+  })();
+
   /* ---------------- Shader resolution tweak for mobile ---------------- */
   (function(){
     const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -191,6 +214,105 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('📱 Shader resolution reduced for mobile');
       }catch(err){ console.warn('Shader URL adjust error',err); }
     }
+  })();
+
+  /* -------------- Mobile long-press to play GLSL shader -------------- */
+  (function(){
+    const iframe = document.getElementById('shader-iframe');
+    if(!iframe) return;
+    // Ensure starts paused
+    try{
+      const u = new URL(iframe.src);
+      u.searchParams.set('paused','true');
+      iframe.src = u.toString();
+    }catch(err){ console.warn('shader url',err); }
+    let timer=null;
+    const hero = document.querySelector('.hero');
+    if(!hero) return;
+    function sendPlay(paused){
+      iframe.contentWindow.postMessage(paused? 'pause':'play','*');
+    }
+    function onStart(){ timer=setTimeout(()=>sendPlay(false),600); }
+    function onEnd(){ clearTimeout(timer); sendPlay(true); }
+    hero.addEventListener('mousedown',onStart);
+    hero.addEventListener('mouseup',onEnd);
+    hero.addEventListener('mouseleave',onEnd);
+    hero.addEventListener('touchstart',onStart,{passive:true});
+    hero.addEventListener('touchend',onEnd);
+    hero.addEventListener('touchcancel',onEnd);
+  })();
+
+  /* ---------------- Mobile particle effect ---------------- */
+  (function(){
+    if(window.innerWidth>900) return;
+    const canvas=document.getElementById('particle-canvas');
+    if(!canvas) return;
+    const ctx=canvas.getContext('2d');
+    let w,h,particles=[],pointer={x:null,y:null,active:false};
+    function resize(){w=canvas.width=canvas.clientWidth;h=canvas.height=canvas.clientHeight;}
+    resize();window.addEventListener('resize',()=>{resize();seedParticles();});
+
+    const density = 0.00025; // particles per pixel
+    function seedParticles(){
+      particles=[];
+      const count=Math.floor(w*h*density);
+      for(let i=0;i<count;i++){
+        particles.push({
+          x:Math.random()*w,
+          y:Math.random()*h,
+          vx:(Math.random()-0.5)*0.4,
+          vy:(Math.random()-0.5)*0.4,
+          r:1.2+Math.random()*2.2,
+          alpha:0.4+Math.random()*0.6,
+          hue:Math.random()*360
+        });
+      }
+    }
+    seedParticles();
+
+    function update(){
+      // trail effect
+      ctx.globalCompositeOperation='source-over';
+      ctx.fillStyle='rgba(15,32,39,0.08)';
+      ctx.fillRect(0,0,w,h);
+      ctx.globalCompositeOperation='lighter';
+      particles.forEach(p=>{
+        if(pointer.active){
+          const dx=pointer.x-p.x, dy=pointer.y-p.y, dist=Math.hypot(dx,dy)+0.1;
+          const pull= (1/dist)*2;
+          p.vx+=dx*pull*0.001;
+          p.vy+=dy*pull*0.001;
+        }
+        p.x+=p.vx;
+        p.y+=p.vy;
+        // wrap around
+        if(p.x<0) p.x+=w; if(p.x>w) p.x-=w; if(p.y<0) p.y+=h; if(p.y>h) p.y-=h;
+        ctx.globalAlpha=p.alpha;
+        const grd=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*2);
+        grd.addColorStop(0,`hsla(${p.hue},100%,60%,1)`);
+        grd.addColorStop(1,`hsla(${p.hue},100%,60%,0)`);
+        ctx.fillStyle=grd;
+        ctx.shadowColor=`hsla(${p.hue},100%,60%,0.6)`;
+        ctx.shadowBlur=8;
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+      });
+      requestAnimationFrame(update);
+    }
+    update();
+
+    function setPointer(x,y){pointer.x=x;pointer.y=y;pointer.active=true;}
+    function clearPointer(){pointer.active=false;}
+
+    window.addEventListener('mousemove',e=>setPointer(e.clientX,e.clientY));
+    window.addEventListener('mouseleave',clearPointer);
+    window.addEventListener('touchstart',e=>{
+      const t=e.touches[0];setPointer(t.clientX,t.clientY);
+    },{passive:true});
+    window.addEventListener('touchmove',e=>{
+      const t=e.touches[0];setPointer(t.clientX,t.clientY);
+    },{passive:true});
+    window.addEventListener('touchend',clearPointer);
+    window.addEventListener('touchcancel',clearPointer);
   })();
 
   let galleries = {};
