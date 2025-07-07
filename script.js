@@ -993,38 +993,41 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(logoEl) logoEl.classList.add('loaded');
   }
 
-  /* Mobile lightweight GLSL shader */
-  (function(){
+  /* Mobile GLSL shader fetched from API */
+  (async function(){
     if(window.innerWidth>900) return; // only mobile
     const canvas=document.getElementById('mobile-shader');
     if(!canvas){console.warn('[MobileShader] canvas not found'); return;}
     const hasGL= typeof GlslCanvas!=='undefined';
+    const loadShaderText = async ()=>{
+      try{
+        const res= await fetch('/api/mobileShader');
+        if(res.ok){ return await res.text(); }
+      }catch(e){ console.warn('fetch mobileShader failed',e); }
+      const fragEl=document.getElementById('mobile-shader-code');
+      return fragEl? fragEl.textContent : null;
+    };
+
     if(hasGL){
+      const shaderText = await loadShaderText();
+      if(!shaderText){console.error('No shader text available');return;}
       const sandbox=new GlslCanvas(canvas);
+      sandbox.load(shaderText);
       console.log('[MobileShader] GLSL initialized');
-      const frag=document.getElementById('mobile-shader-code');
-      if(!frag) return;
-      sandbox.load(frag.textContent);
-      function resize(){
-        const ratio=window.devicePixelRatio||1;
-        const scale=0.5; // render at half res for perf
-        canvas.width = canvas.clientWidth*scale*ratio;
-        canvas.height= canvas.clientHeight*scale*ratio;
-      }
-      resize();
-      window.addEventListener('resize',resize);
+      const resize=()=>{const ratio=window.devicePixelRatio||1;const scale=0.5;canvas.width=canvas.clientWidth*scale*ratio;canvas.height=canvas.clientHeight*scale*ratio;};
+      resize();window.addEventListener('resize',resize);
     }else{
       console.warn('[MobileShader] GlslCanvas undefined – trying dynamic import');
       import('https://cdn.skypack.dev/glslCanvas').then(mod=>{
         const Glsl=mod.default||mod.GlslCanvas||window.GlslCanvas;
         if(!Glsl){throw new Error('glslCanvas not resolved');}
-        const sandbox=new Glsl(canvas);
-        console.log('[MobileShader] GLSL initialized (dynamic)');
-        const frag=document.getElementById('mobile-shader-code');
-        if(!frag) return;
-        sandbox.load(frag.textContent);
-        function resize(){const ratio=window.devicePixelRatio||1;const scale=0.5;canvas.width=canvas.clientWidth*scale*ratio;canvas.height=canvas.clientHeight*scale*ratio;}
-        resize();window.addEventListener('resize',resize);
+        return loadShaderText().then(text=>{
+           const sandbox=new Glsl(canvas);
+           sandbox.load(text);
+           console.log('[MobileShader] GLSL initialized (dynamic)');
+           const resize=()=>{const ratio=window.devicePixelRatio||1;const scale=0.5;canvas.width=canvas.clientWidth*scale*ratio;canvas.height=canvas.clientHeight*scale*ratio;};
+           resize();window.addEventListener('resize',resize);
+        });
       }).catch(err=>{
         console.error('glslCanvas dynamic import failed',err);
         // Fallback 2D gradient

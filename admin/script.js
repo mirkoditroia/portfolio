@@ -348,4 +348,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
       alert('Errore upload'); console.error(err); hiddenInput.value='';
     });
   });
-}); 
+});
+
+  // Mobile shader editor
+  (function(){
+    const ta=document.getElementById('shader-text');
+    const btn=document.getElementById('save-shader-btn');
+    if(!ta||!btn) return;
+    fetch('/api/mobileShader').then(r=>r.ok?r.text():Promise.reject()).then(txt=>{ta.value=txt;}).catch(()=>{ta.value='// fetch failed';});
+    btn.addEventListener('click',()=>{
+      const token=prompt('Token amministratore per salvare shader:');
+      if(!token) return;
+      fetch(`/api/mobileShader?token=${encodeURIComponent(token)}`,{method:'PUT',headers:{'Content-Type':'text/plain'},body:ta.value})
+        .then(r=>{
+          if(r.ok) alert('Shader salvato!'); else alert('Errore salvataggio');
+        }).catch(()=>alert('Errore rete'));
+    });
+  })(); 
