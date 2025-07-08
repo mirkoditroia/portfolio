@@ -20,10 +20,14 @@
 
   // Override global fetchJson for specific endpoints in prod
   window.fetchJson = async function(primaryUrl, fallbackUrl){
-    if(ENV === 'prod' && primaryUrl.includes('/api/galleries')){
-      try{
-        return await listGalleriesFirestore();
-      }catch(err){ console.error('Firestore fallback error',err); }
+    if(ENV === 'prod'){
+      if(primaryUrl.includes('/api/galleries')){
+        try{ return await listGalleriesFirestore(); }catch(err){ console.error('Firestore fallback error',err); }
+      }
+      if(primaryUrl.includes('/api/site')){
+        // Temporarily load static JSON to avoid 404; can switch to Firestore later
+        try{ return await originalFetchJson('data/site.json','data/site.json'); }catch(e){ console.error('Site static load error',e); }
+      }
     }
     // default behaviour
     return originalFetchJson(primaryUrl, fallbackUrl);
