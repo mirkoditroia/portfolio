@@ -1,13 +1,6 @@
 {
   "vfx": [
     {
-      "src": "images/TDMovieOut0-1751897136468.jpg",
-      "canvas": true,
-      "title": "meirkssss",
-      "description": "Effetti visivi e compositing.",
-      "modalImage": "images/PXL_20250609_132751594MP-1751897112432.jpg"
-    },
-    {
       "canvas": true,
       "title": "Motion Graphics",
       "modalGallery": [
@@ -16,6 +9,13 @@
         "images/rhythm_v004.karmarendersettings.1052.png"
       ],
       "description": "Grafica animata e motion design."
+    },
+    {
+      "src": "images/TDMovieOut0-1751897136468.jpg",
+      "canvas": true,
+      "title": "meirkssss",
+      "description": "Effetti visivi e compositing.",
+      "modalImage": "images/PXL_20250609_132751594MP-1751897112432.jpg"
     },
     {
       "canvas": true,

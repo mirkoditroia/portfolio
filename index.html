@@ -101,7 +101,13 @@
     </section>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/glslCanvas@0.2.4/dist/glslCanvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/glslCanvas@0.12.3/dist/glslCanvas.min.js"></script>
+  <!-- Environment config: switch file per deploy (env.local.js | env.preprod.js | env.prod.js) -->
+  <script src="config/env.local.js"></script>
+  <!-- end env config -->
+  <!-- Firebase + Data provider (must load before main script) -->
+  <script src="js/firebase.js"></script>
+  <script src="js/dataProvider.js"></script>
   <script id="mobile-shader-code" type="x-shader/x-fragment">
 #ifdef GL_ES
 precision mediump float;

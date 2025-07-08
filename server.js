@@ -136,4 +136,9 @@ app.put('/api/mobileShader', async (req,res)=>{
   }
 });
 
-app.listen(PORT,()=>console.log(`🚀 Portfolio server on http://localhost:${PORT}`)); 
+// Only start a standalone server when not running inside Firebase Functions
+if (!process.env.FUNCTION_NAME && !process.env.K_SERVICE && !process.env.FIREBASE_CONFIG) {
+  app.listen(PORT, () => console.log(`🚀 Portfolio server on http://localhost:${PORT}`));
+}
+
+export default app; // allow importing the Express instance in Firebase Functions 

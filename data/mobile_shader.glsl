@@ -134,7 +134,10 @@ void main() {
     vec3 from = origin + move(dir);
     vec3 color = raymarch(from, dir);
 #ifdef BORDER
-    color = mix(vec3(0.), color, pow(max(0., .95 - length(oriuv * oriuv * oriuv * vec2(1.05, 1.1))), .3));
+vec3 borderColor = vec3(20.0 / 255.0, 30.0 / 255.0, 48.0 / 255.0);
+
+
+    color = mix(borderColor, color, pow(max(0., .95 - length(oriuv * oriuv * oriuv * vec2(1.05, 1.1))), .3));
 #endif
     gl_FragColor = vec4(color, 1.);
 }
