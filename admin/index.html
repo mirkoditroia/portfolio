@@ -26,46 +26,90 @@
   </header>
 
   <main>
-    <!-- Lista dinamica delle gallery. Verrà popolata via JS in admin-logic -->
-    <section id="galleries"></section>
-    <section id="site-config" class="site-config">
-      <h2>Bio &amp; Contatti</h2>
-      <label class="block-label">Hero Text
-        <input id="hero-text-input" type="text" style="width:100%" placeholder="Titolo landing (es. vfxulo)">
-      </label>
-      <label class="block-label">Bio
-        <textarea id="bio-input" rows="4" style="width:100%"></textarea>
-      </label>
-      <h3>Contatti</h3>
-      <div id="contacts-list"></div>
-      <button id="add-contact-btn" class="secondary">+ Aggiungi contatto</button>
-
-      <h3>Impostazioni API</h3>
-      <label class="block-label">Base URL
-        <input id="api-base-input" type="text" placeholder="/api" style="width:100%" />
-      </label>
-      <label class="block-label">Shader URL (Shadertoy embed)
-        <input id="shader-url-input" type="text" placeholder="https://www.shadertoy.com/embed/XXXXX?..." style="width:100%" />
-      </label>
-      <p id="shader-current" style="font-size:0.85rem;color:#555;margin:4px 0 12px 0;word-break:break-all;"></p>
-
-      <h2>Sezioni</h2>
-      <table id="sections-table" class="slides-table">
-        <thead>
-          <tr><th></th><th>Stato</th><th>Key</th><th>Label</th><th>Azioni</th></tr>
-        </thead>
-        <tbody id="sections-tbody"></tbody>
-      </table>
-      <button id="add-section-btn" class="secondary">+ Aggiungi sezione</button>
-
-      <h2>Mobile Shader</h2>
-      <textarea id="shader-text" rows="15" style="width:100%;font-family:monospace;font-size:0.8rem"></textarea>
-      <button id="save-shader-btn" class="add-slide-btn" style="margin-top:8px">Salva Shader</button>
-
-      <div style="margin-top:1rem">
-        <button id="save-site-btn" class="add-slide-btn">Salva dettagli</button>
+    <!-- Authentication Section -->
+    <div id="auth-section" style="margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0; color: #333;">Admin Access</h3>
+          <p id="auth-status" style="margin: 5px 0 0 0; color: #666; font-size: 14px;">Checking authentication...</p>
+        </div>
+        <button id="logout-btn" style="display: none; background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+          Logout
+        </button>
       </div>
-    </section>
+      
+      <!-- Login Form -->
+      <div id="login-form" style="display: none; margin-top: 20px;">
+        <div style="display: flex; gap: 10px; align-items: end;">
+          <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Email:</label>
+            <input type="email" id="login-email" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Password:</label>
+            <input type="password" id="login-password" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">
+          </div>
+          <button id="login-btn" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+            Login
+          </button>
+        </div>
+        <p style="margin-top: 10px; font-size: 12px; color: #666;">
+          🔐 In produzione: accesso sicuro senza token
+        </p>
+      </div>
+    </div>
+    
+    <!-- Admin Content (hidden until authenticated) -->
+    <div id="admin-content">
+      <!-- Upload progress indicator -->
+      <div id="upload-progress" class="upload-progress">
+        <div>Caricamento in corso...</div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+      </div>
+      
+      <!-- Lista dinamica delle gallery. Verrà popolata via JS in admin-logic -->
+      <section id="galleries"></section>
+      <section id="site-config" class="site-config">
+        <h2>Bio &amp; Contatti</h2>
+        <label class="block-label">Hero Text
+          <input id="hero-text-input" type="text" style="width:100%" placeholder="Titolo landing (es. vfxulo)">
+        </label>
+        <label class="block-label">Bio
+          <textarea id="bio-input" rows="4" style="width:100%"></textarea>
+        </label>
+        <h3>Contatti</h3>
+        <div id="contacts-list"></div>
+        <button id="add-contact-btn" class="secondary">+ Aggiungi contatto</button>
+
+        <h3>Impostazioni API</h3>
+        <label class="block-label">Base URL
+          <input id="api-base-input" type="text" placeholder="/api" style="width:100%" />
+        </label>
+        <label class="block-label">Shader URL (Shadertoy embed)
+          <input id="shader-url-input" type="text" placeholder="https://www.shadertoy.com/embed/XXXXX?..." style="width:100%" />
+        </label>
+        <p id="shader-current" style="font-size:0.85rem;color:#555;margin:4px 0 12px 0;word-break:break-all;"></p>
+
+        <h2>Sezioni</h2>
+        <table id="sections-table" class="slides-table">
+          <thead>
+            <tr><th></th><th>Stato</th><th>Key</th><th>Label</th><th>Azioni</th></tr>
+          </thead>
+          <tbody id="sections-tbody"></tbody>
+        </table>
+        <button id="add-section-btn" class="secondary">+ Aggiungi sezione</button>
+
+        <h2>Mobile Shader</h2>
+        <textarea id="shader-text" rows="15" style="width:100%;font-family:monospace;font-size:0.8rem"></textarea>
+        <button id="save-shader-btn" class="add-slide-btn" style="margin-top:8px">Salva Shader</button>
+
+        <div style="margin-top:1rem">
+          <button id="save-site-btn" class="add-slide-btn">Salva dettagli</button>
+        </div>
+      </section>
+    </div>
   </main>
 
   <template id="gallery-template">
@@ -108,6 +152,7 @@
   <!-- JS arriverà nel task admin-logic -->
   <script src="/config/env.local.js"></script>
   <script src="/js/firebase.js"></script>
+  <script src="/js/auth.js"></script>
   <script src="/js/dataProvider.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="script.js" defer></script>
@@ -165,5 +210,26 @@
 
   <!-- hidden file chooser -->
   <input type="file" id="hidden-file-input" style="display:none" />
+  
+  <!-- Footer with environment info and credits -->
+  <footer style="
+    margin-top: 50px;
+    padding: 20px 0;
+    border-top: 1px solid #ddd;
+    text-align: center;
+    color: #666;
+    font-size: 12px;
+  ">
+    <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
+      <div>
+        <span id="admin-environment">ENV: loading...</span> • 
+        <span>Admin Panel v1.0.0-alpha</span>
+      </div>
+      <div style="font-style: italic;">
+        Realizzato al 100% da <strong>vfxulo</strong> con l'indispensabile aiuto di Cursor e i suoi agenti galattici 🚀
+      </div>
+    </div>
+  </footer>
+  
 </body>
 </html> 

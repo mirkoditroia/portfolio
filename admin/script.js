@@ -4,6 +4,82 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const container = document.getElementById('galleries');
   if(!container) return;
 
+  // Update admin footer with environment info
+  const adminEnvSpan = document.getElementById('admin-environment');
+  if (adminEnvSpan) {
+    const env = window.APP_ENV || 'local';
+    const envColors = {
+      local: '#28a745',     // green
+      preprod: '#ffc107',   // yellow  
+      prod: '#dc3545'       // red
+    };
+    
+    const envNames = {
+      local: 'LOCAL',
+      preprod: 'PRE-PROD',
+      prod: 'PRODUCTION'
+    };
+    
+    adminEnvSpan.innerHTML = `ENV: <span style="color: ${envColors[env] || '#6c757d'}; font-weight: bold;">${envNames[env] || env.toUpperCase()}</span>`;
+  }
+
+  // Setup authentication event listeners
+  const loginBtn = document.getElementById('login-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+  const loginEmail = document.getElementById('login-email');
+  const loginPassword = document.getElementById('login-password');
+  
+  if (loginBtn) {
+    loginBtn.addEventListener('click', async () => {
+      const email = loginEmail.value.trim();
+      const password = loginPassword.value.trim();
+      
+      if (!email || !password) {
+        alert('Please enter both email and password');
+        return;
+      }
+      
+      try {
+        loginBtn.textContent = 'Logging in...';
+        loginBtn.disabled = true;
+        
+        if (window.adminLogin) {
+          await window.adminLogin(email, password);
+          loginEmail.value = '';
+          loginPassword.value = '';
+        } else {
+          throw new Error('Authentication not available');
+        }
+      } catch (error) {
+        alert('Login failed: ' + error.message);
+      } finally {
+        loginBtn.textContent = 'Login';
+        loginBtn.disabled = false;
+      }
+    });
+  }
+  
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      try {
+        if (window.adminLogout) {
+          await window.adminLogout();
+        }
+      } catch (error) {
+        alert('Logout failed: ' + error.message);
+      }
+    });
+  }
+  
+  // Enter key support for login
+  if (loginPassword) {
+    loginPassword.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        loginBtn.click();
+      }
+    });
+  }
+
   // Fetch galleries data
   function fetchJson(primaryUrl, fallbackUrl){
     return fetch(primaryUrl).then(res=>{
@@ -106,6 +182,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
 
     if(window.APP_ENV==='prod'){
+      // Check if user is authenticated
+      if (!window.isAuthenticated || !window.isAuthenticated()) {
+        alert('Please login first');
+        return;
+      }
+      
       window.saveGalleriesProd(galleriesData)
         .then(()=>alert('Gallerie salvate su Firestore!'))
         .catch(err=>{ console.error(err); alert('Errore salvataggio'); });
@@ -127,7 +209,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   // Additionally load site config (bio, contacts, sections)
-  fetchJson('/api/site','../data/site.json')
+  // Load site config - use Firestore in prod
+  const loadSiteConfigAdmin = async () => {
+    if(window.APP_ENV === 'prod' && window.getSiteProd) {
+      try {
+        return await window.getSiteProd();
+      } catch(err) {
+        console.error('Firestore site load error:', err);
+        return await fetchJson('/api/site','../data/site.json');
+      }
+    }
+    return await fetchJson('/api/site','../data/site.json');
+  };
+  
+  loadSiteConfigAdmin()
     .then(site=>renderSiteConfig(site))
     .catch(err=>console.error(err));
 
@@ -356,6 +451,47 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   hiddenInput.addEventListener('change',()=>{
     if(!hiddenInput.files || hiddenInput.files.length===0) return;
+    
+    if(window.APP_ENV === 'prod') {
+      // Check if user is authenticated
+      if (!window.isAuthenticated || !window.isAuthenticated()) {
+        alert('Please login first');
+        hiddenInput.value = '';
+        return;
+      }
+      
+      // Firebase Storage upload in production
+      const filesArr = Array.from(hiddenInput.files);
+      const uploadPromises = filesArr.map(async file => {
+        try {
+          const downloadURL = await uploadToFirebaseStorage(file);
+          return { path: downloadURL };
+        } catch (error) {
+          console.error('Firebase upload error:', error);
+          throw error;
+        }
+      });
+      
+      Promise.all(uploadPromises).then(results => {
+        const paths = results.map(r => r.path);
+        const targetEl = document.getElementById(uploadTargetInputId);
+        if(!targetEl) return;
+        if(targetEl.id === 'se-gallery-list') {
+          galleryArr.push(...paths);
+          renderGallery();
+        } else {
+          targetEl.value = paths[0];
+        }
+        hiddenInput.value = '';
+        alert('Upload completato!');
+      }).catch(err => {
+        alert('Errore upload: ' + err.message);
+        console.error(err);
+        hiddenInput.value = '';
+      });
+      return;
+    }
+    
     const token = prompt('Token amministratore per upload:');
     if(!token){ hiddenInput.value=''; return; }
 
@@ -390,13 +526,51 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const ta=document.getElementById('shader-text');
     const btn=document.getElementById('save-shader-btn');
     if(!ta||!btn) return;
-    fetch('/api/mobileShader').then(r=>r.ok?r.text():Promise.reject()).then(txt=>{ta.value=txt;}).catch(()=>{ta.value='// fetch failed';});
-    btn.addEventListener('click',()=>{
-      const token=prompt('Token amministratore per salvare shader:');
+    
+    // Load shader text
+    const loadShader = async () => {
+      if(window.APP_ENV === 'prod' && window.getSiteProd) {
+        try {
+          const site = await window.getSiteProd();
+          return site.mobileShader || '// No shader found in Firestore';
+        } catch(err) {
+          console.error('Firestore shader load error:', err);
+          return '// Firestore load failed';
+        }
+      } else {
+        try {
+          const res = await fetch('/api/mobileShader');
+          if(res.ok) return await res.text();
+          return '// API fetch failed';
+        } catch(err) {
+          return '// fetch failed';
+        }
+      }
+    };
+    
+    loadShader().then(txt => { ta.value = txt; });
+    
+    btn.addEventListener('click', async () => {
+      if(window.APP_ENV === 'prod') {
+        try {
+          await window.saveSiteProd({ mobileShader: ta.value });
+          alert('Shader salvato in Firestore!');
+        } catch(err) {
+          console.error(err);
+          alert('Errore salvataggio shader');
+        }
+        return;
+      }
+      
+      const token = prompt('Token amministratore per salvare shader:');
       if(!token) return;
-      fetch(`/api/mobileShader?token=${encodeURIComponent(token)}`,{method:'PUT',headers:{'Content-Type':'text/plain'},body:ta.value})
-        .then(r=>{
-          if(r.ok) alert('Shader salvato!'); else alert('Errore salvataggio');
-        }).catch(()=>alert('Errore rete'));
+      fetch(`/api/mobileShader?token=${encodeURIComponent(token)}`, {
+        method:'PUT',
+        headers:{'Content-Type':'text/plain'},
+        body:ta.value
+      }).then(r=>{
+        if(r.ok) alert('Shader salvato!'); 
+        else alert('Errore salvataggio');
+      }).catch(()=>alert('Errore rete'));
     });
   })(); 

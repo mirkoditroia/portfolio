@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Firebase Test - Portfolio</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>Firebase Connection Test</h1>
+    <div id="status">Testing Firebase connection...</div>
+    
+    <script>
+        window.APP_ENV = 'prod';
+        
+        async function testFirebase() {
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                const base = 'https://www.gstatic.com/firebasejs/10.12.0';
+                
+                // Load Firebase modules
+                const { initializeApp } = await import(`${base}/firebase-app.js`);
+                const { getFirestore, doc, setDoc, getDoc } = await import(`${base}/firebase-firestore.js`);
+                const { getStorage, ref, uploadBytes, getDownloadURL } = await import(`${base}/firebase-storage.js`);
+                
+                statusDiv.innerHTML = '<div class="info">Firebase modules loaded ✓</div>';
+                
+                // Initialize Firebase
+                const firebaseConfig = {
+                    apiKey: "AIzaSyAZyywhWm0Ju-N_YhIgUhWaqENfXrgZ8fY",
+                    authDomain: "portfolio-eb526.firebaseapp.com",
+                    projectId: "portfolio-eb526",
+                    storageBucket: "portfolio-eb526.firebasestorage.app",
+                    messagingSenderId: "92912043022",
+                    appId: "1:92912043022:web:c49dc167d9c84ead46a85f",
+                    measurementId: "G-TRZ856L9ZZ"
+                };
+                
+                const app = initializeApp(firebaseConfig);
+                statusDiv.innerHTML += '<div class="info">Firebase app initialized ✓</div>';
+                
+                // Test Firestore
+                const db = getFirestore(app);
+                const testDoc = doc(db, 'test', 'connection');
+                
+                await setDoc(testDoc, { 
+                    timestamp: new Date().toISOString(),
+                    test: 'Firebase connection test'
+                });
+                statusDiv.innerHTML += '<div class="success">Firestore write test ✓</div>';
+                
+                const docSnap = await getDoc(testDoc);
+                if (docSnap.exists()) {
+                    statusDiv.innerHTML += '<div class="success">Firestore read test ✓</div>';
+                } else {
+                    statusDiv.innerHTML += '<div class="error">Firestore read test ✗</div>';
+                }
+                
+                // Test Storage
+                const storage = getStorage(app);
+                const testContent = new Blob(['Hello Firebase Storage!'], { type: 'text/plain' });
+                const testFile = new File([testContent], 'test.txt', { type: 'text/plain' });
+                const storageRef = ref(storage, 'test/connection-test.txt');
+                
+                await uploadBytes(storageRef, testFile);
+                statusDiv.innerHTML += '<div class="success">Storage upload test ✓</div>';
+                
+                const downloadURL = await getDownloadURL(storageRef);
+                statusDiv.innerHTML += '<div class="success">Storage download URL obtained ✓</div>';
+                statusDiv.innerHTML += '<div class="info">Download URL: ' + downloadURL + '</div>';
+                
+                statusDiv.innerHTML += '<div class="success"><strong>🎉 All tests passed! Firebase is working correctly.</strong></div>';
+                
+            } catch (error) {
+                statusDiv.innerHTML += '<div class="error"><strong>❌ Test failed:</strong> ' + error.message + '</div>';
+                console.error('Firebase test error:', error);
+            }
+        }
+        
+        testFirebase();
+    </script>
+</body>
+</html> 

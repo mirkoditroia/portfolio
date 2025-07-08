@@ -44,36 +44,36 @@
     await Promise.all(writes);
   }
 
+  async function uploadToFirebaseStorage(file){
+    if(!window.st){ await new Promise(res=>{const iv=setInterval(()=>{if(window.st){clearInterval(iv);res();}},50);}); }
+    const base='https://www.gstatic.com/firebasejs/10.12.0';
+    const { ref, uploadBytes, getDownloadURL } = await import(`${base}/firebase-storage.js`);
+    
+    const timestamp = Date.now();
+    const extension = file.name.split('.').pop();
+    const fileName = `${timestamp}_${Math.random().toString(36).substr(2, 9)}.${extension}`;
+    const isVideo = file.type.startsWith('video');
+    const folder = isVideo ? 'videos' : 'images';
+    const path = `${folder}/${fileName}`;
+    
+    const storageRef = ref(window.st, path);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    return downloadURL;
+  }
+
+  // Expose Firebase Storage upload function globally
+  window.uploadToFirebaseStorage = uploadToFirebaseStorage;
+
   // Override global fetchJson for specific endpoints in prod
   window.fetchJson = async function(primaryUrl, fallbackUrl){
     if(ENV === 'prod'){
-      if(primaryUrl.includes('/api/galleries')){
-        try{ return await listGalleriesFirestore(); }catch(err){ console.error('Firestore fallback error',err); }
-      }
-      if(primaryUrl.includes('/api/site')){
-        // Temporarily load static JSON to avoid 404; can switch to Firestore later
-        try{ return await originalFetchJson('data/site.json','data/site.json'); }catch(e){ console.error('Site static load error',e); }
-      }
-    }
-    // default behaviour
-    return originalFetchJson(primaryUrl, fallbackUrl);
-  };
-
-  // Override fetchJson for /api/site as well
-  window.fetchJson = async function(primaryUrl, fallbackUrl){
-    if(ENV==='prod'){
       if(primaryUrl.includes('/api/galleries')){
         try{ return await listGalleriesFirestore(); }catch(err){ console.error('Firestore galleries error',err);} }
       if(primaryUrl.includes('/api/site')){
         try{ return await getSiteFirestore(); }catch(err){ console.error('Firestore site error',err);} }
     }
     return originalFetchJson(primaryUrl, fallbackUrl);
-  };
-
-  // Expose helper explicitly too
-  window.listGalleries = async function(){
-    if(ENV==='prod') return listGalleriesFirestore();
-    return originalFetchJson('/api/galleries','data/galleries.json');
   };
 
   // Expose helpers for admin

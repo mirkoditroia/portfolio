@@ -744,9 +744,33 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Carica dati dinamici e inizializza
-  fetchJson('/api/galleries','data/galleries.json')
-    .then(data=>{ galleries=data; Object.entries(data).forEach(([k,v])=>initGallery(k,v)); afterGalleryInit(); })
-    .catch(err=>console.error('❌ Errore fetch galleries.json', err));
+  if (window.APP_ENV === 'prod' && window.getSiteProd) {
+    window.listGalleries()
+      .then(site => {
+        if (site) {
+          galleries = site;
+          Object.entries(galleries).forEach(([k, v]) => initGallery(k, v));
+          afterGalleryInit();
+        } else {
+          console.warn('⚠️ Galleries non trovati nel sito prod, fallback a data/galleries.json');
+          fetchJson('/api/galleries','data/galleries.json')
+            .then(data=>{ galleries=data; Object.entries(data).forEach(([k,v])=>initGallery(k,v)); afterGalleryInit(); })
+            .catch(err=>console.error('❌ Errore fetch galleries.json', err));
+        }
+      })
+      .catch(err => {
+        console.error('❌ Errore fetch galleries da Firestore:', err);
+        console.warn('⚠️ Galleries non trovati nel sito prod, fallback a data/galleries.json');
+        fetchJson('/api/galleries','data/galleries.json')
+          .then(data=>{ galleries=data; Object.entries(data).forEach(([k,v])=>initGallery(k,v)); afterGalleryInit(); })
+          .catch(err=>console.error('❌ Errore fetch galleries.json', err));
+      });
+  } else {
+    console.warn('⚠️ Ambiente non prod, fallback a data/galleries.json per le gallerie');
+    fetchJson('/api/galleries','data/galleries.json')
+      .then(data=>{ galleries=data; Object.entries(data).forEach(([k,v])=>initGallery(k,v)); afterGalleryInit(); })
+      .catch(err=>console.error('❌ Errore fetch galleries.json', err));
+  }
 
   function afterGalleryInit() {
     // Aggiungi click handlers dopo che tutte le gallery sono pronte
@@ -893,7 +917,20 @@ document.addEventListener('DOMContentLoaded', function() {
 }); 
 
   // ---------------- sito meta (bio, contatti, visibilità sezioni) ----------------
-  fetchJson('/api/site','data/site.json')
+  // Force Firestore in production
+  const loadSiteConfig = async () => {
+    if(window.APP_ENV === 'prod' && window.getSiteProd) {
+      try {
+        return await window.getSiteProd();
+      } catch(err) {
+        console.error('Firestore site load error:', err);
+        return await fetchJson('/api/site','data/site.json');
+      }
+    }
+    return await fetchJson('/api/site','data/site.json');
+  };
+  
+  loadSiteConfig()
     .then(site=>{
       try{
         const applyHero=text=>{ document.querySelectorAll('.fa3io-text').forEach(el=>el.textContent=text); };
@@ -1011,10 +1048,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(!canvas){console.warn('[MobileShader] canvas not found'); return;}
     const hasGL= typeof GlslCanvas!=='undefined';
     const loadShaderText = async ()=>{
-      try{
-        const res= await fetch('/api/mobileShader');
-        if(res.ok){ return await res.text(); }
-      }catch(e){ console.warn('fetch mobileShader failed',e); }
+      if(window.APP_ENV === 'prod' && window.getSiteProd) {
+        try {
+          const site = await window.getSiteProd();
+          if(site.mobileShader) return site.mobileShader;
+        } catch(e) { 
+          console.warn('Firestore mobileShader failed',e); 
+        }
+      } else {
+        try{
+          const res= await fetch('/api/mobileShader');
+          if(res.ok){ return await res.text(); }
+        }catch(e){ console.warn('fetch mobileShader failed',e); }
+      }
       const fragEl=document.getElementById('mobile-shader-code');
       return fragEl? fragEl.textContent : null;
     };
@@ -1052,3 +1098,26 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   /* Mobile 3D model removed: fallback to lightweight CSS aura */
 }); 
+
+// Update footer with environment info
+document.addEventListener('DOMContentLoaded', () => {
+  const envSpan = document.getElementById('environment');
+  if (envSpan) {
+    const env = window.APP_ENV || 'local';
+    const envColors = {
+      local: '#28a745',     // green
+      preprod: '#ffc107',   // yellow
+      prod: '#dc3545'       // red
+    };
+    
+    const envNames = {
+      local: 'LOCAL',
+      preprod: 'PRE-PROD',
+      prod: 'PRODUCTION'
+    };
+    
+    envSpan.innerHTML = `ENV: <span style="color: ${envColors[env] || '#6c757d'}; font-weight: bold;">${envNames[env] || env.toUpperCase()}</span>`;
+  }
+});
+
+console.log('Portfolio script loaded'); 

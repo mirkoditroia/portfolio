@@ -100,14 +100,41 @@
       <p>Get in touch: <a href="mailto:info@vfxulo.com" aria-label="Invia email a info@vfxulo.com">info@vfxulo.com</a></p>
     </section>
   </main>
+
+  <!-- Footer with environment info and credits -->
+  <footer id="site-footer" style="
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+    padding: 8px 15px;
+    text-align: center;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  ">
+    <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
+      <div id="env-info">
+        <span id="environment">ENV: loading...</span> • 
+        <span id="version">v1.0.0-alpha</span>
+      </div>
+      <div id="credits" style="font-style: italic;">
+        Realizzato al 100% da <strong>vfxulo</strong> con l'indispensabile aiuto di Cursor e i suoi agenti galattici 🚀
+      </div>
+    </div>
+  </footer>
+
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/glslCanvas@0.12.3/dist/glslCanvas.min.js"></script>
   <!-- Environment config: switch file per deploy (env.local.js | env.preprod.js | env.prod.js) -->
   <script src="config/env.local.js"></script>
-  <!-- end env config -->
   <!-- Firebase + Data provider (must load before main script) -->
   <script src="js/firebase.js"></script>
   <script src="js/dataProvider.js"></script>
+  <!-- Mobile shader code -->
   <script id="mobile-shader-code" type="x-shader/x-fragment">
 #ifdef GL_ES
 precision mediump float;
