@@ -104,6 +104,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const slidesArr = Array.from(rows).map(r=>JSON.parse(r.dataset.slide));
       galleriesData[key] = slidesArr;
     });
+
+    if(window.APP_ENV==='prod'){
+      window.saveGalleriesProd(galleriesData)
+        .then(()=>alert('Gallerie salvate su Firestore!'))
+        .catch(err=>{ console.error(err); alert('Errore salvataggio'); });
+      return;
+    }
+
     const token = prompt('Token amministratore per salvare:');
     if(!token) return;
     fetch(`/api/galleries?token=${encodeURIComponent(token)}`,{
@@ -201,6 +209,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const apiBaseVal = document.getElementById('api-base-input').value.trim();
       const shaderVal = document.getElementById('shader-url-input').value.trim();
       const payload = { bio: bioVal, heroText: heroVal, contacts, sections, apiBase: apiBaseVal, shaderUrl: shaderVal };
+
+      if(window.APP_ENV==='prod'){
+        window.saveSiteProd(payload)
+          .then(()=>alert('Salvato in Firestore!'))
+          .catch(err=>{ console.error(err); alert('Errore salvataggio'); });
+        return;
+      }
+
       const token = prompt('Inserisci il token amministratore per salvare:');
       if(!token) return;
       fetch(`/api/site?token=${encodeURIComponent(token)}`,{
