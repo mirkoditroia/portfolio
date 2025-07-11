@@ -789,7 +789,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     video: document.getElementById('field-video'),
     image: document.getElementById('field-image'),
     gallery: document.getElementById('field-gallery'),
-    'canvas-video': document.getElementById('field-canvas-video')
+    'canvas-video': document.getElementById('field-canvas-video'),
+    canvas: document.getElementById('field-canvas-video') // reuse same container; video field will stay empty
   };
 
   function showTypeFields(t){
@@ -798,6 +799,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
   }
   F.type.addEventListener('change',()=>showTypeFields(F.type.value));
+
+  // Ensure select has 'canvas' option
+  (function(){
+    if(F.type && !Array.from(F.type.options).some(o=>o.value==='canvas')){
+      const opt=document.createElement('option');
+      opt.value='canvas';
+      opt.textContent='Canvas';
+      F.type.appendChild(opt);
+    }
+  })();
 
   // ----- Gallery list UI helpers -----
   const galleryListEl = document.getElementById('se-gallery-list');
@@ -850,6 +861,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
       slideData.canvas = true; // Force canvas mode
       slideData.canvasVideo = true; // Flag to distinguish from regular canvas+video
     }
+    else if(F.type.value==='canvas'){
+      slideData.src = F.canvasFallback.value || '';
+      slideData.canvas = true;
+    }
     editorCb(slideData);
     
     // Mark gallery as unsaved when slide is modified
@@ -877,6 +892,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
         F.type.value='image'; F.image.value=slide.modalImage;
       }else if(slide.modalGallery){
         F.type.value='gallery'; galleryArr=[...slide.modalGallery]; renderGallery();
+      }
+      else if(slide.canvas && !slide.canvasVideo){
+        F.type.value='canvas'; F.canvasFallback.value=slide.src||'';
       }
       F.desc.value = slide.description || '';
     }
@@ -1369,43 +1387,12 @@ if (location.hostname === 'localhost' || location.hostname.startsWith('127.') ||
 } 
 
 // Simple admin save function
-async function saveToFirebase(data) {
-  try {
-    if (window.APP_ENV === 'prod' && window.saveSiteData) {
-      // Save to Firebase
-      await window.saveSiteData(data);
-      console.log('✅ Data saved to Firebase');
-      
-      // Also update local file for development
-      try {
-        const response = await fetch('/api/site', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('adminToken') || 'admin'}`
-          },
-          body: JSON.stringify(data)
-        });
-        
-        if (response.ok) {
-          console.log('✅ Local file also updated');
-        } else {
-          console.log('⚠️ Local file update failed (normal in production)');
-        }
-      } catch (err) {
-        console.log('⚠️ Local file update not available (normal in production)');
-      }
-      
-      // Trigger update on public site
-      localStorage.setItem('site-updated', Date.now().toString());
-      
-      return true;
-    } else {
-      console.log('❌ Firebase not available in this environment');
-      return false;
-    }
-  } catch (error) {
-    console.error('❌ Error saving to Firebase:', error);
-    return false;
-  }
+async function saveToFirebase(data){
+  if(window.APP_ENV!=='prod' || !window.saveSiteData){return false;}
+  try{
+    await window.saveSiteData(data);
+    console.log('[Admin] Saved to Firestore');
+    localStorage.setItem('site-updated', Date.now().toString());
+    return true;
+  }catch(e){console.error('[Admin] Firestore save error',e);return false;}
 } 
