@@ -28,8 +28,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     adminEnvSpan.innerHTML = `ENV: <span style="color: ${envColors[env] || '#6c757d'}; font-weight: bold;">${envNames[env] || env.toUpperCase()}</span>`;
   }
 
-  // Disable login for non-prod (local & preprod)
-  if(env !== 'prod'){
+  // Disable login for LOCAL e PRE-PROD (token only)
+  if(env === 'preprod' || env === 'local'){
     const authSection = document.getElementById('auth-section');
     if(authSection) authSection.style.display='none';
     window.isAuthenticated = ()=>true; // stub
