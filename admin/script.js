@@ -5,11 +5,22 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if(!container) return;
 
   // Determine environment once
-  const isLocalhost = window.location.hostname === 'localhost' || 
-                      window.location.hostname === '127.0.0.1' || 
-                      window.location.hostname.includes('localhost');
+  const host = window.location.hostname;
+  const isLocalhost = host === 'localhost' || host === '127.0.0.1' || host.includes('localhost');
 
-  const env = isLocalhost ? 'local' : (window.APP_ENV || 'prod');
+  let env;
+  if (isLocalhost) {
+    env = 'local';
+  } else if (host.includes('preprod') || host.includes('pre-prod')) {
+    env = 'preprod';
+  } else {
+    env = window.APP_ENV || 'prod';
+  }
+
+  // Assicura che APP_ENV sia sempre valorizzato, anche se lo script env.* non è ancora stato caricato
+  if (!window.APP_ENV) {
+    window.APP_ENV = env;
+  }
 
   // Update admin footer with environment info
   const adminEnvSpan = document.getElementById('admin-environment');
