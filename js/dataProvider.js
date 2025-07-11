@@ -3,6 +3,23 @@
   const ENV = window.APP_ENV || 'local';
   const originalFetchJson = window.fetchJson;
 
+  // Fallback fetchJson implementation if not available
+  const fallbackFetchJson = function(primaryUrl, fallbackUrl) {
+    return fetch(primaryUrl).then(res => {
+      if (res.ok) return res.json();
+      if (fallbackUrl) return fetch(fallbackUrl).then(r => r.json());
+      throw new Error(`Failed to fetch ${primaryUrl}`);
+    }).catch(err => {
+      if (fallbackUrl) {
+        return fetch(fallbackUrl).then(r => r.json());
+      }
+      throw err;
+    });
+  };
+
+  // Use originalFetchJson if available, otherwise use fallback
+  const safeFetchJson = originalFetchJson || fallbackFetchJson;
+
   async function listGalleriesFirestore(){
     // Wait for Firebase init
     if(!window.db){
@@ -69,15 +86,27 @@
   window.fetchJson = async function(primaryUrl, fallbackUrl){
     if(ENV === 'prod'){
       if(primaryUrl.includes('/api/galleries')){
-        try{ return await listGalleriesFirestore(); }catch(err){ console.error('Firestore galleries error',err);} }
+        try{ return await listGalleriesFirestore(); }catch(err){ 
+          console.error('Firestore galleries error',err);
+          // Fallback to local JSON file
+          return safeFetchJson('data/galleries.json', fallbackUrl);
+        }
+      }
       if(primaryUrl.includes('/api/site')){
-        try{ return await getSiteFirestore(); }catch(err){ console.error('Firestore site error',err);} }
+        try{ return await getSiteFirestore(); }catch(err){ 
+          console.error('Firestore site error',err);
+          // Fallback to local JSON file
+          return safeFetchJson('data/site.json', fallbackUrl);
+        }
+      }
     }
-    return originalFetchJson(primaryUrl, fallbackUrl);
+    return safeFetchJson(primaryUrl, fallbackUrl);
   };
 
   // Expose helpers for admin
-  window.listGalleries = async function(){ return ENV==='prod'? listGalleriesFirestore() : originalFetchJson('/api/galleries','../data/galleries.json'); };
+  window.listGalleries = async function(){ 
+    return ENV==='prod'? listGalleriesFirestore().catch(()=>safeFetchJson('data/galleries.json')) : safeFetchJson('/api/galleries','data/galleries.json'); 
+  };
   window.saveGalleriesProd = saveGalleriesFirestore;
   window.getSiteProd       = getSiteFirestore;
   window.saveSiteProd      = saveSiteFirestore;
