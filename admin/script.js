@@ -583,3 +583,35 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }).catch(()=>alert('Errore rete'));
     });
   })(); 
+
+// ---------- UI HELPERS ----------
+function selectNav(targetId){
+  document.querySelectorAll('.nav-link').forEach(btn=>{
+    const active = btn.dataset.target === targetId;
+    btn.classList.toggle('active', active);
+  });
+  document.querySelectorAll('.main-content section').forEach(sec=>{
+    sec.classList.toggle('hidden-section', sec.id!==targetId);
+  });
+}
+
+function addLog(msg){
+  const out=document.getElementById('log-output');
+  if(!out) return;
+  const time = new Date().toLocaleTimeString();
+  out.textContent += `[${time}] ${msg}\n`;
+  out.scrollTop = out.scrollHeight;
+}
+
+// attach nav listeners
+document.querySelectorAll('.nav-link').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    selectNav(btn.dataset.target);
+  });
+});
+
+// default view
+selectNav('galleries');
+
+// expose addLog globally for other modules
+window.adminLog = addLog; 

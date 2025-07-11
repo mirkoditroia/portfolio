@@ -25,7 +25,19 @@
     <div class="right-space"></div>  <!-- bilancia il flex -->
   </header>
 
-  <main>
+  <!-- Sidebar + Main layout -->
+  <div class="admin-layout">
+
+    <aside class="sidebar">
+      <h2 class="sidebar-title">Dashboard</h2>
+      <nav class="sidebar-nav">
+        <button class="nav-link active" data-target="galleries">Gallerie</button>
+        <button class="nav-link" data-target="site-config">Configurazione Sito</button>
+        <button class="nav-link" data-target="logs-section">Log</button>
+      </nav>
+    </aside>
+
+    <main class="main-content">
     <!-- Authentication Section -->
     <div id="auth-section" style="margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -71,7 +83,7 @@
       
       <!-- Lista dinamica delle gallery. Verrà popolata via JS in admin-logic -->
       <section id="galleries"></section>
-      <section id="site-config" class="site-config">
+      <section id="site-config" class="site-config hidden-section">
         <h2>Bio &amp; Contatti</h2>
         <label class="block-label">Hero Text
           <input id="hero-text-input" type="text" style="width:100%" placeholder="Titolo landing (es. vfxulo)">
@@ -112,8 +124,16 @@
           <button id="save-site-btn" class="add-slide-btn">Salva dettagli</button>
         </div>
       </section>
-    </div>
-  </main>
+
+      <!-- Logs Section -->
+      <section id="logs-section" class="logs hidden-section">
+        <h2>Log</h2>
+        <pre id="log-output" class="log-output"></pre>
+      </section>
+
+    </div> <!-- admin-content -->
+    </main> <!-- main-content -->
+  </div> <!-- admin-layout -->
 
   <template id="gallery-template">
     <details class="gallery-panel">
