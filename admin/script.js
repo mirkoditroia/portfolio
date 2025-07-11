@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // Determine environment once
   const host = window.location.hostname;
-  const isLocalhost = host === 'localhost' || host === '127.0.0.1' || host.includes('localhost');
+  const isLocalhost = host === 'localhost' || host.includes('localhost');
 
   let env;
   if (isLocalhost) {
@@ -217,10 +217,51 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const origSlides = orig[gKey] || [];
       slides.forEach((sl,idx)=>{
         const prev = origSlides[idx] || {};
+        
+        // Check for title changes
+        if((prev.title||'') !== (sl.title||'')){
+          diffMsgs.push(`📝 TITOLO modificato [Gallery: ${gKey} | Slide #${idx+1}]\n   • Prima: "${prev.title||'(vuoto)'}" → Dopo: "${sl.title||'(vuoto)'}"`);
+        }
+        
+        // Check for description changes
         if((prev.description||'') !== (sl.description||'')){
-          diffMsgs.push(`\n📌 Descrizione modificata [Gallery: ${gKey} | Slide #${idx+1} "${sl.title||'-'}"]\n   • Prima: "${(prev.description||'').substr(0,120)}"\n   • Dopo:  "${(sl.description||'').substr(0,120)}"`);
+          const prevDesc = prev.description || '(vuota)';
+          const newDesc = sl.description || '(vuota)';
+          diffMsgs.push(`📝 DESCRIZIONE modificata [Gallery: ${gKey} | Slide #${idx+1} "${sl.title||'Senza titolo'}"]\n   • Prima: "${prevDesc.substr(0,80)}${prevDesc.length>80?'...':''}"\n   • Dopo:  "${newDesc.substr(0,80)}${newDesc.length>80?'...':''}"`);
+        }
+        
+        // Check for video path changes
+        if((prev.video||'') !== (sl.video||'')){
+          diffMsgs.push(`📝 VIDEO modificato [Gallery: ${gKey} | Slide #${idx+1} "${sl.title||'Senza titolo'}"]\n   • Prima: "${prev.video||'(nessun video)'}" → Dopo: "${sl.video||'(nessun video)'}"`);
+        }
+        
+        // Check for image src changes
+        if((prev.src||'') !== (sl.src||'')){
+          diffMsgs.push(`📝 IMMAGINE COPERTINA modificata [Gallery: ${gKey} | Slide #${idx+1} "${sl.title||'Senza titolo'}"]\n   • Prima: "${prev.src||'(nessuna)'}" → Dopo: "${sl.src||'(nessuna)'}"`);
+        }
+        
+        // Check for modal image changes
+        if((prev.modalImage||'') !== (sl.modalImage||'')){
+          diffMsgs.push(`📝 IMMAGINE MODALE modificata [Gallery: ${gKey} | Slide #${idx+1} "${sl.title||'Senza titolo'}"]\n   • Prima: "${prev.modalImage||'(nessuna)'}" → Dopo: "${sl.modalImage||'(nessuna)'}"`);
+        }
+        
+        // Check for canvas toggle
+        if(!!prev.canvas !== !!sl.canvas){
+          diffMsgs.push(`📝 CANVAS ${sl.canvas?'ATTIVATO':'DISATTIVATO'} [Gallery: ${gKey} | Slide #${idx+1} "${sl.title||'Senza titolo'}"]`);
         }
       });
+      
+      // Check for added slides
+      if(slides.length > origSlides.length){
+        const addedCount = slides.length - origSlides.length;
+        diffMsgs.push(`➕ AGGIUNTE ${addedCount} nuove slide nella gallery "${gKey}"`);
+      }
+      
+      // Check for removed slides
+      if(slides.length < origSlides.length){
+        const removedCount = origSlides.length - slides.length;
+        diffMsgs.push(`➖ RIMOSSE ${removedCount} slide dalla gallery "${gKey}"`);
+      }
     });
     // Log diffs
     diffMsgs.forEach(m=>window.adminLog?.(m));
@@ -667,13 +708,15 @@ function addLog(msg){
   if(!out) return;
   const time = new Date().toLocaleTimeString();
   const line=document.createElement('span');
-  line.classList.add('log-line');
-  // Determine type from first char
-  let type='info';
-  if(msg.startsWith('✅')) type='success';
-  else if(msg.startsWith('❌')) type='error';
-  else if(msg.startsWith('📌')) type='diff';
-  line.classList.add(`log-${type}`);
+  line.style.display='block';
+  line.style.margin='2px 0';
+  line.style.fontFamily='monospace';
+  // Determine color from first char
+  if(msg.startsWith('✅')) line.style.color='#28a745'; // green
+  else if(msg.startsWith('❌')) line.style.color='#dc3545'; // red  
+  else if(msg.startsWith('📌') || msg.startsWith('📝')) line.style.color='#ffc107'; // yellow
+  else if(msg.startsWith('➕') || msg.startsWith('➖')) line.style.color='#fd7e14'; // orange
+  else line.style.color='#17a2b8'; // cyan
   line.textContent=`[${time}] ${msg}`;
   out.appendChild(line);
   out.appendChild(document.createElement('br'));
@@ -695,11 +738,11 @@ window.adminLog = addLog;
 
 // --- Local testing helper ---
 if (location.hostname === 'localhost' || location.hostname.startsWith('127.') || location.hostname.includes('local')) {
-  window.adminLog('🔧 Sistema log inizializzato');
+  window.adminLog('🔧 Sistema log inizializzato - Script aggiornato alle 16:34:15');
   let _testCnt = 0;
   const _testId = setInterval(() => {
     _testCnt++;
-    window.adminLog(`Log di prova #${_testCnt}`);
+    window.adminLog(`✅ Log di prova #${_testCnt} - DOVREBBE ESSERE VERDE`);
     if (_testCnt >= 3) clearInterval(_testId);
   }, 2000);
 } 
