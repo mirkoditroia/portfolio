@@ -1508,17 +1508,36 @@ document.addEventListener('DOMContentLoaded', function() {
 }); 
 
   // ---------------- sito meta (bio, contatti, visibilità sezioni) ----------------
-  // Force Firestore in production
+  // Load site configuration with robust fallbacks
   const loadSiteConfig = async () => {
-    if(window.APP_ENV === 'prod' && window.getSiteProd) {
+    console.log('🔧 Loading site configuration...');
+    
+    // Wait for dataProvider to initialize
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Try dataProvider's fetchJson first (handles Firestore in prod)
+    if (window.fetchJson) {
       try {
-        return await window.getSiteProd();
+        const site = await window.fetchJson('/api/site', 'data/site.json');
+        console.log('✅ Site config loaded via dataProvider:', site);
+        return site;
       } catch(err) {
-        console.error('Firestore site load error:', err);
-        return await fetchJson('/api/site','data/site.json');
+        console.error('❌ DataProvider site load error:', err);
       }
     }
-    return await fetchJson('/api/site','data/site.json');
+    
+    // Fallback to direct file fetch
+    try {
+      console.log('🔄 Trying direct fetch to data/site.json');
+      const response = await fetch('data/site.json');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const site = await response.json();
+      console.log('✅ Site config loaded via direct fetch:', site);
+      return site;
+    } catch(err) {
+      console.error('❌ Direct fetch site load error:', err);
+      throw new Error('Failed to load site configuration');
+    }
   };
   
   loadSiteConfig()
@@ -1828,4 +1847,5 @@ function cleanupCanvasVideos() {
 }
 
 // Cleanup on page unload
+window.addEventListener('beforeunload', cleanupCanvasVideos); 
 window.addEventListener('beforeunload', cleanupCanvasVideos); 
