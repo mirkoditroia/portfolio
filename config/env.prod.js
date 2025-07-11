@@ -1,10 +1,11 @@
 window.APP_ENV = "prod";
+// NOTE: valori reali da inserire tramite processo di build o variabili di ambiente
 window.FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAZyywhWm0Ju-N_YhIgUhWaqENfXrgZ8fY",
-  authDomain: "portfolio-eb526.firebaseapp.com",
-  projectId: "portfolio-eb526",
-  storageBucket: "portfolio-eb526.appspot.com",
-  messagingSenderId: "92912043022",
-  appId: "1:92912043022:web:c49dc167d9c84ead46a85f",
-  measurementId: "G-TRZ856L9ZZ"
+  apiKey: "<REPLACE_IN_CI>",
+  authDomain: "<REPLACE_IN_CI>",
+  projectId: "<REPLACE_IN_CI>",
+  storageBucket: "<REPLACE_IN_CI>",
+  messagingSenderId: "<REPLACE_IN_CI>",
+  appId: "<REPLACE_IN_CI>",
+  measurementId: "<REPLACE_IN_CI>"
 }; 
