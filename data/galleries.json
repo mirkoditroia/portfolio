@@ -13,17 +13,16 @@
       ]
     },
     {
-      "src": "images/TDMovieOut0-1751897136468.jpg",
-      "canvas": true,
-      "title": "meirkssss",
-      "description": "Effetti visivi e compositing.",
-      "modalImage": "images/PXL_20250609_132751594MP-1751897112432.jpg"
-    },
-    {
       "canvas": true,
       "title": "VFX Demo",
       "modalImage": "images/art_2k2.png",
       "description": "Demo effetti visivi avanzati."
+    },
+    {
+      "canvas": true,
+      "title": "meirkssssss",
+      "description": "Effetti visivi e compositing.",
+      "modalImage": "images/PXL_20250609_132751594MP-1751897112432.jpg"
     },
     {
       "canvas": true,
@@ -39,7 +38,7 @@
     {
       "src": "images/Umberto_Boccioni_1912_Elasticity_Elasticit_oil_on_canvas_100_x_100_cm_Museo_del_Novecento-1752186653670.jpg",
       "canvas": true,
-      "title": "boccioni",
+      "title": "boccionis",
       "description": "Lorem ipsum dolor sit amet, Frame 1040.",
       "video": "video/1.mp4"
     },
@@ -98,13 +97,13 @@
       "description": "Arte generativa creata con algoritmi."
     },
     {
-      "canvas": true,
       "title": "Particle System",
+      "canvas": true,
+      "description": "Sistema di particelle interattivo.",
       "modalGallery": [
         "images/frame_1040.jpg",
         "images/art_2k_end.png"
-      ],
-      "description": "Sistema di particelle interattivo."
+      ]
     },
     {
       "canvas": true,
@@ -117,8 +116,8 @@
     {
       "canvas": true,
       "title": "Creative Coding",
-      "modalImage": "images/boccioni.png",
-      "description": "Programmazione creativa e arte digitale."
+      "description": "Programmazione creativa e arte digitale.",
+      "modalImage": "images/Screenshot2025-07-11003656-1752237831755.png"
     },
     {
       "canvas": true,
@@ -130,10 +129,11 @@
       "description": "Arte algoritmica e procedurale."
     },
     {
+      "src": "images/Screenshot2024-09-09005620-1752245015437.png",
       "canvas": true,
       "title": "Code Art",
-      "modalImage": "images/rhythm_v004.karmarendersettings.1052.png",
-      "description": "Arte generata tramite codice."
+      "description": "Arte generata tramite codice.",
+      "modalImage": "images/Screenshot2024-11-11134300-1752245025797.png"
     },
     {
       "canvas": true,

@@ -2,20 +2,14 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>Admin Dashboard – Portfolio</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no" />
+  <title>Admin Dashboard – VFXULO</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="banner" role="banner" style="position:relative; overflow:hidden;">
-    <div class="shader-banner">
-      <iframe id="shader-iframe" src="..." ...></iframe>
-    </div>
-    <div class="shader-vignette"></div>
-
+  <header class="banner" role="banner" style="background:#222;color:#fff;padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;">
     <div class="logo">
-      <img src="logo.png" alt="VFXulo Logo" />
-      <span>VFXULO STUDIO</span>
+      <span>VFXULO Admin</span>
     </div>
 
     <nav class="menu">
@@ -84,44 +78,77 @@
       <!-- Lista dinamica delle gallery. Verrà popolata via JS in admin-logic -->
       <section id="galleries"></section>
       <section id="site-config" class="site-config hidden-section">
-        <h2>Bio &amp; Contatti</h2>
-        <label class="block-label">Hero Text
-          <input id="hero-text-input" type="text" style="width:100%" placeholder="Titolo landing (es. vfxulo)">
-        </label>
-        <label class="block-label">Versione sito
-          <input id="version-input" type="text" style="width:100%" placeholder="v1.2.3">
-        </label>
-        <label class="block-label">Bio
-          <textarea id="bio-input" rows="4" style="width:100%"></textarea>
-        </label>
-        <h3>Contatti</h3>
-        <div id="contacts-list"></div>
-        <button id="add-contact-btn" class="secondary">+ Aggiungi contatto</button>
+        <!-- Hero & Bio Form -->
+        <div class="config-form" id="hero-bio-form">
+          <h2>Hero Text & Bio</h2>
+          <label class="block-label">Nome Sito
+            <input id="site-name-input" type="text" style="width:100%" placeholder="Nome del sito (es. VFXULO)">
+          </label>
+          <label class="block-label">Hero Text
+            <input id="hero-text-input" type="text" style="width:100%" placeholder="Titolo landing (es. vfxulo)">
+          </label>
+          <label class="block-label">Mostra Logo
+            <input id="show-logo-input" type="checkbox"> 
+            <small style="color:#666;margin-left:8px;">Attiva per mostrare logo.png nel header e hero</small>
+          </label>
+          <label class="block-label">Bio
+            <textarea id="bio-input" rows="4" style="width:100%"></textarea>
+          </label>
+          <button id="save-hero-bio-btn" class="add-slide-btn">Salva Impostazioni</button>
+        </div>
 
-        <h3>Impostazioni API</h3>
-        <label class="block-label">Base URL
-          <input id="api-base-input" type="text" placeholder="/api" style="width:100%" />
-        </label>
-        <label class="block-label">Shader URL (Shadertoy embed)
-          <input id="shader-url-input" type="text" placeholder="https://www.shadertoy.com/embed/XXXXX?..." style="width:100%" />
-        </label>
-        <p id="shader-current" style="font-size:0.85rem;color:#555;margin:4px 0 12px 0;word-break:break-all;"></p>
+        <!-- Version Form -->
+        <div class="config-form" id="version-form">
+          <h2>Versione Sito</h2>
+          <label class="block-label">Versione sito
+            <input id="version-input" type="text" style="width:100%" placeholder="v1.2.3">
+          </label>
+          <button id="save-version-btn" class="add-slide-btn">Salva Versione</button>
+        </div>
 
-        <h2>Sezioni</h2>
-        <table id="sections-table" class="slides-table">
-          <thead>
-            <tr><th></th><th>Stato</th><th>Key</th><th>Label</th><th>Azioni</th></tr>
-          </thead>
-          <tbody id="sections-tbody"></tbody>
-        </table>
-        <button id="add-section-btn" class="secondary">+ Aggiungi sezione</button>
+        <!-- Contacts Form -->
+        <div class="config-form" id="contacts-form">
+          <h2>Contatti</h2>
+          <div id="contacts-list"></div>
+          <button id="add-contact-btn" class="secondary">+ Aggiungi contatto</button>
+          <div style="margin-top:1rem">
+            <button id="save-contacts-btn" class="add-slide-btn">Salva Contatti</button>
+          </div>
+        </div>
 
-        <h2>Mobile Shader</h2>
-        <textarea id="shader-text" rows="15" style="width:100%;font-family:monospace;font-size:0.8rem"></textarea>
-        <button id="save-shader-btn" class="add-slide-btn" style="margin-top:8px">Salva Shader</button>
+        <!-- API Settings Form -->
+        <div class="config-form" id="api-form">
+          <h2>Impostazioni API</h2>
+          <label class="block-label">Base URL
+            <input id="api-base-input" type="text" placeholder="/api" style="width:100%" />
+          </label>
+          <label class="block-label">Shader URL (Shadertoy embed)
+            <input id="shader-url-input" type="text" placeholder="https://www.shadertoy.com/embed/XXXXX?..." style="width:100%" />
+          </label>
+          <p id="shader-current" style="font-size:0.85rem;color:#555;margin:4px 0 12px 0;word-break:break-all;"></p>
+          <button id="save-api-btn" class="add-slide-btn">Salva API Settings</button>
+        </div>
 
-        <div style="margin-top:1rem">
-          <button id="save-site-btn" class="add-slide-btn">Salva dettagli</button>
+        <!-- Sections Form -->
+        <div class="config-form" id="sections-form">
+          <h2>Sezioni</h2>
+          <table id="sections-table" class="slides-table">
+            <thead>
+              <tr><th></th><th>Stato</th><th>Key</th><th>Label</th><th>Azioni</th></tr>
+            </thead>
+            <tbody id="sections-tbody"></tbody>
+          </table>
+          <button id="add-section-btn" class="secondary">+ Aggiungi sezione</button>
+          <div style="margin-top:1rem">
+            <button id="save-sections-btn" class="add-slide-btn">Salva Sezioni</button>
+          </div>
+        </div>
+
+        <!-- Mobile Shader Form -->
+        <div class="config-form" id="shader-form">
+          <h2>Mobile Shader</h2>
+          <textarea id="shader-text" rows="15" style="width:100%;font-family:monospace;font-size:0.8rem"></textarea>
+          <button id="save-shader-btn" class="add-slide-btn" style="margin-top:8px">Salva Shader</button>
         </div>
       </section>
 
@@ -244,6 +271,19 @@
   <!-- hidden file chooser -->
   <input type="file" id="hidden-file-input" style="display:none" />
   
+  <!-- Upload progress overlay -->
+  <div id="upload-progress-overlay" class="upload-progress-overlay">
+    <div class="upload-progress-content">
+      <div class="upload-spinner"></div>
+      <h3 id="upload-title">Caricamento in corso...</h3>
+      <div class="upload-progress-bar">
+        <div class="upload-progress-fill" id="upload-progress-fill"></div>
+      </div>
+      <p id="upload-status">Preparazione upload...</p>
+      <div id="upload-file-list" class="upload-file-list"></div>
+    </div>
+  </div>
+
   <!-- Footer with environment info and credits -->
   <footer style="
     margin-top: 50px;

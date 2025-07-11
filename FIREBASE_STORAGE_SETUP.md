@@ -251,3 +251,24 @@ service cloud.firestore {
    - Email: `admin@tuodominio.com`
    - Password: `password_sicura`
 4. **Testa il login** nell'admin panel 
+
+✅  Configurazione Firebase di produzione applicata localmente:
+
+1. Creato file `.env` (ignorato da Git) con le tue chiavi.
+2. Eseguito `npm run postinstall` → generato `config/env.local.js` contenente  
+   ```
+   window.APP_ENV = "prod";
+   window.FIREBASE_CONFIG = { ... }
+   ```
+
+Il file è già pronto per il deploy ed è escluso dal repository, quindi le chiavi non verranno mai pushate.
+
+Ora puoi testare in locale (`npm start`) e, quando vuoi:
+
+```
+firebase deploy --only hosting
+```
+
+Il predeploy rigenererà l’`env.local.js` usando le stesse variabili ambiente e caricherà l’app su Firebase Hosting in modalità PROD.
+
+Fammi sapere se va tutto liscio! 

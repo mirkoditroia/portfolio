@@ -7,3 +7,4 @@ video/
 *.env
 npm-debug.log 
 config/env.local.js 
+notepad.env 

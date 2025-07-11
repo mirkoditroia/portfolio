@@ -1062,6 +1062,42 @@ document.addEventListener('DOMContentLoaded', function() {
         if(versionEl && site.version){
           versionEl.textContent = site.version;
         }
+        
+        // Site name
+        const siteNameEl = document.getElementById('site-name');
+        const heroTitleEl = document.getElementById('hero-title');
+        if(site.siteName) {
+          if(siteNameEl) siteNameEl.textContent = site.siteName;
+          if(heroTitleEl) heroTitleEl.textContent = site.siteName;
+        }
+        
+        // Logo visibility
+        if(site.showLogo) {
+          // Show logos if enabled
+          const headerLogo = document.querySelector('.logo img');
+          const heroLogo = document.querySelector('.center-logo img');
+          if(!headerLogo) {
+            const img = document.createElement('img');
+            img.src = 'logo.png';
+            img.alt = site.siteName || 'Logo';
+            img.onerror = function() { this.style.display = 'none'; };
+            document.querySelector('.logo').insertBefore(img, document.getElementById('site-name'));
+          }
+          if(!heroLogo) {
+            const img = document.createElement('img');
+            img.src = 'logo.png';
+            img.alt = site.siteName || 'Logo';
+            img.style.width = '60px';
+            img.onerror = function() { this.style.display = 'none'; };
+            document.querySelector('.center-logo').insertBefore(img, document.getElementById('hero-title'));
+          }
+        } else {
+          // Hide logos if disabled
+          const headerLogo = document.querySelector('.logo img');
+          const heroLogo = document.querySelector('.center-logo img');
+          if(headerLogo) headerLogo.style.display = 'none';
+          if(heroLogo) heroLogo.style.display = 'none';
+        }
       }catch(err){ console.error('Errore applicazione site meta',err); }
     })
     .catch(err=>console.error('Errore fetch site meta',err)); 

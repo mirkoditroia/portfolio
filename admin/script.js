@@ -185,11 +185,35 @@ document.addEventListener('DOMContentLoaded', ()=>{
           });
           // delete
           tr.querySelector('.delete-btn').addEventListener('click',()=>{
-            if(confirm('Eliminare questa slide?')){ tr.remove(); refreshIndexes(tbody);}
+            if(confirm('Eliminare questa slide?')){ 
+              tr.remove(); 
+              refreshIndexes(tbody);
+              // Mark gallery as unsaved when slide is deleted
+              const galleryKey = tbody.closest('.gallery-panel').querySelector('.gallery-title').textContent.trim();
+              markGalleryUnsaved(galleryKey);
+            }
           });
           // move up/down
-          tr.querySelector('.up-btn').addEventListener('click',()=>{ const prev=tr.previousElementSibling; if(prev){ tbody.insertBefore(tr,prev); refreshIndexes(tbody);} });
-          tr.querySelector('.down-btn').addEventListener('click',()=>{ const next=tr.nextElementSibling?.nextElementSibling; tbody.insertBefore(tr,next); refreshIndexes(tbody);} );
+          tr.querySelector('.up-btn').addEventListener('click',()=>{ 
+            const prev=tr.previousElementSibling; 
+            if(prev){ 
+              tbody.insertBefore(tr,prev); 
+              refreshIndexes(tbody);
+              // Mark gallery as unsaved when order changes
+              const galleryKey = tbody.closest('.gallery-panel').querySelector('.gallery-title').textContent.trim();
+              markGalleryUnsaved(galleryKey);
+            }
+          });
+          tr.querySelector('.down-btn').addEventListener('click',()=>{ 
+            const next=tr.nextElementSibling?.nextElementSibling; 
+            if(next){
+              tbody.insertBefore(tr,next); 
+              refreshIndexes(tbody);
+              // Mark gallery as unsaved when order changes
+              const galleryKey = tbody.closest('.gallery-panel').querySelector('.gallery-title').textContent.trim();
+              markGalleryUnsaved(galleryKey);
+            }
+          });
           tbody.appendChild(frag);
       }
 
@@ -197,7 +221,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
       tbody.innerHTML = '';
       slides.forEach(addSlideRow);
       // enable drag reorder slides
-      if(window.Sortable){ new Sortable(tbody,{animation:120,handle:'.slide-index',onEnd:()=>refreshIndexes(tbody)}); }
+      if(window.Sortable){ 
+        new Sortable(tbody, {
+          animation: 120,
+          handle: '.drag-handle',
+          onEnd: () => {
+            refreshIndexes(tbody);
+            // Mark gallery as unsaved when order changes
+            const galleryKey = panel.querySelector('.gallery-title').textContent.trim();
+            markGalleryUnsaved(galleryKey);
+          }
+        }); 
+      }
     });
   }
 
@@ -269,7 +304,35 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // Detailed log information
     const galleryCount = Object.keys(galleriesData).length;
     const slideCount = Object.values(galleriesData).reduce((acc,arr)=>acc+arr.length,0);
-    const logMsgOk = `✅ Gallerie salvate (${galleryCount} gallery, ${slideCount} slide)`;
+    
+    // Create summary of changes
+    let changeSummary = '';
+    if(diffMsgs.length === 0){
+      changeSummary = 'Nessuna modifica rilevata';
+    } else {
+      const changeTypes = {
+        titoli: diffMsgs.filter(m=>m.includes('TITOLO')).length,
+        descrizioni: diffMsgs.filter(m=>m.includes('DESCRIZIONE')).length,
+        video: diffMsgs.filter(m=>m.includes('VIDEO')).length,
+        immagini: diffMsgs.filter(m=>m.includes('IMMAGINE')).length,
+        canvas: diffMsgs.filter(m=>m.includes('CANVAS')).length,
+        aggiunte: diffMsgs.filter(m=>m.includes('AGGIUNTE')).length,
+        rimosse: diffMsgs.filter(m=>m.includes('RIMOSSE')).length
+      };
+      
+      const changes = [];
+      if(changeTypes.titoli > 0) changes.push(`${changeTypes.titoli} titoli`);
+      if(changeTypes.descrizioni > 0) changes.push(`${changeTypes.descrizioni} descrizioni`);
+      if(changeTypes.video > 0) changes.push(`${changeTypes.video} video`);
+      if(changeTypes.immagini > 0) changes.push(`${changeTypes.immagini} immagini`);
+      if(changeTypes.canvas > 0) changes.push(`${changeTypes.canvas} canvas`);
+      if(changeTypes.aggiunte > 0) changes.push(`${changeTypes.aggiunte} slide aggiunte`);
+      if(changeTypes.rimosse > 0) changes.push(`${changeTypes.rimosse} slide rimosse`);
+      
+      changeSummary = changes.length > 0 ? `Modifiche: ${changes.join(', ')}` : 'Modifiche minori';
+    }
+    
+    const logMsgOk = `✅ Salvataggio completato → ${changeSummary} | Totale: ${galleryCount} gallery, ${slideCount} slide`;
 
     if(window.APP_ENV==='prod'){
       // Check if user is authenticated
@@ -279,7 +342,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }
       
       window.saveGalleriesProd(galleriesData)
-        .then(()=>{ alert('Gallerie salvate su Firestore!'); window.adminLog?.(logMsgOk+' [Firestore]'); })
+        .then(()=>{ alert('Gallerie salvate su Firestore!'); window.adminLog?.(logMsgOk+' [Firestore]'); window.unsavedChanges.galleries.clear(); document.querySelectorAll('.gallery-panel').forEach(p=>p.classList.remove('unsaved-changes')); document.querySelectorAll('.save-gallery-btn').forEach(b=>b.classList.remove('save-btn-highlight')); })
         .catch(err=>{ console.error(err); alert('Errore salvataggio'); window.adminLog?.('❌ Errore salvataggio gallerie'); });
       return;
     }
@@ -291,7 +354,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify(galleriesData)
     }).then(r=>{
-      if(r.ok){ window.adminLog?.(logMsgOk); }
+      if(r.ok){ window.adminLog?.(logMsgOk); window.unsavedChanges.galleries.clear(); document.querySelectorAll('.gallery-panel').forEach(p=>p.classList.remove('unsaved-changes')); document.querySelectorAll('.save-gallery-btn').forEach(b=>b.classList.remove('save-btn-highlight')); }
       else{ alert('Errore nel salvataggio'); window.adminLog?.('❌ Errore salvataggio gallerie'); }
     }).catch(err=>{
       alert('Errore di rete'); console.error(err); window.adminLog?.('❌ Errore rete salvataggio gallerie');
@@ -303,6 +366,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const loadSiteConfigAdmin = async () => {
     try {
       const site = await fetchJson('/api/site','../data/site.json');
+      window._origSite = JSON.parse(JSON.stringify(site)); // Store original for diff
       renderSiteConfig(site);
       window.adminLog?.('Site config caricata');
       return site; // <-- ensure the promise resolves with the loaded config
@@ -318,8 +382,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // api base
     const apiInput=document.getElementById('api-base-input');
     if(apiInput) apiInput.value = site.apiBase || '';
+    // site name
+    const siteNameInput=document.getElementById('site-name-input');
+    if(siteNameInput) siteNameInput.value = site.siteName || 'VFXULO';
     const heroInput=document.getElementById('hero-text-input');
     if(heroInput) heroInput.value = site.heroText || '';
+    // show logo
+    const showLogoInput=document.getElementById('show-logo-input');
+    if(showLogoInput) showLogoInput.checked = site.showLogo || false;
     // version
     const versionInput=document.getElementById('version-input');
     if(versionInput) versionInput.value = site.version || '';
@@ -376,55 +446,35 @@ document.addEventListener('DOMContentLoaded', ()=>{
       document.querySelector('#sections-table tbody').appendChild(tr);
     });
 
-    // save btn
-    document.getElementById('save-site-btn').addEventListener('click',()=>{
-      const bioVal = document.getElementById('bio-input').value;
-      const heroVal = document.getElementById('hero-text-input').value;
-      // collect contacts
-      const contacts = Array.from(document.querySelectorAll('.contact-row')).map(r=>({
-        label: r.querySelector('.contact-label').value,
-        value: r.querySelector('.contact-value').value
-      })).filter(c=>c.label||c.value);
-      // collect sections
-      const sections = Array.from(document.querySelectorAll('#sections-table tbody tr')).map(tr=>({
-        status: tr.querySelector('.status-select').value,
-        key: tr.querySelector('.sec-key').value.trim(),
-        label: tr.querySelector('.sec-label').value.trim()
-      })).filter(s=>s.key);
-
-      const apiBaseVal = document.getElementById('api-base-input').value.trim();
-      const shaderVal = document.getElementById('shader-url-input').value.trim();
-      const versionVal = document.getElementById('version-input').value.trim();
-      const payload = { bio: bioVal, heroText: heroVal, contacts, sections, apiBase: apiBaseVal, shaderUrl: shaderVal, version: versionVal };
-
-      const logSiteMsg = `✅ Site salvato (version ${versionVal||'n/a'}, contatti ${contacts.length}, sezioni ${sections.length})`;
-
-      if(window.APP_ENV==='prod'){
-        window.saveSiteProd(payload)
-          .then(()=>{ alert('Salvato in Firestore!'); window.adminLog?.(logSiteMsg+' [Firestore]'); })
-          .catch(err=>{ console.error(err); alert('Errore salvataggio'); });
-        return;
+    // Individual save functions
+    setupIndividualSaveFunctions();
+    
+    // Add change detection to all site config inputs
+    const siteInputs = [
+      { id: 'site-name-input', form: 'heroBio' },
+      { id: 'bio-input', form: 'heroBio' },
+      { id: 'hero-text-input', form: 'heroBio' },
+      { id: 'show-logo-input', form: 'heroBio' },
+      { id: 'version-input', form: 'version' },
+      { id: 'api-base-input', form: 'api' },
+      { id: 'shader-url-input', form: 'api' }
+    ];
+    
+    siteInputs.forEach(({id, form}) => {
+      const input = document.getElementById(id);
+      if(input) {
+        const eventType = input.type === 'checkbox' ? 'change' : 'input';
+        input.addEventListener(eventType, () => markFormUnsaved(form));
       }
-
-      const token = prompt('Inserisci il token amministratore per salvare:');
-      if(!token) return;
-      fetch(`/api/site?token=${encodeURIComponent(token)}`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(payload)
-      }).then(r=>{
-        if(r.ok){
-          alert('Salvato con successo!');
-          window.adminLog?.(logSiteMsg);
-        }else{
-          alert('Errore nel salvataggio');
-          window.adminLog?.('❌ Errore salvataggio site');
-        }
-      }).catch(err=>{
-        alert('Errore di rete');
-        console.error(err);
-        window.adminLog?.('❌ Errore rete salvataggio site');
-      });
+    });
+    
+    // Add change detection to contact and section modifications
+    document.getElementById('add-contact-btn').addEventListener('click', () => {
+      setTimeout(() => markFormUnsaved('contacts'), 100);
+    });
+    
+    document.getElementById('add-section-btn').addEventListener('click', () => {
+      setTimeout(() => markFormUnsaved('sections'), 100);
     });
 
     const shaderInput=document.getElementById('shader-url-input');
@@ -482,27 +532,29 @@ document.addEventListener('DOMContentLoaded', ()=>{
   let editorCb = null;
   document.getElementById('se-cancel').addEventListener('click',()=>overlay.classList.add('hidden'));
   document.getElementById('se-save').addEventListener('click',()=>{
-    const obj = {};
-    if(F.src.value.trim()) obj.src = F.src.value.trim();
-    if(F.canvas.checked) obj.canvas = true;
-    if(F.title.value.trim()) obj.title = F.title.value.trim();
-    if(F.desc.value.trim()) obj.description = F.desc.value.trim();
-    switch(F.type.value){
-      case 'video':
-        if(F.src.value.trim()) obj.src = F.src.value.trim();
-        if(F.video.value.trim()) obj.video = F.video.value.trim();
-        break;
-      case 'image':
-        obj.modalImage = F.image.value.trim();
-        if(!obj.canvas) obj.canvas = true;
-        break;
-      case 'gallery':
-        obj.modalGallery = [...galleryArr];
-        if(!obj.canvas) obj.canvas = true;
-        break;
+    const slideData = {
+      title: F.title.value,
+      canvas: F.canvas.checked,
+      description: F.desc.value
+    };
+    if(F.type.value==='video'){
+      slideData.src = F.src.value;
+      slideData.video = F.video.value;
+    }else if(F.type.value==='image'){
+      slideData.modalImage = F.image.value;
+    }else if(F.type.value==='gallery'){
+      slideData.modalGallery = [...galleryArr];
     }
+    editorCb(slideData);
+    
+    // Mark gallery as unsaved when slide is modified
+    const activeGallery = document.querySelector('.gallery-panel[open]');
+    if(activeGallery) {
+      const galleryKey = activeGallery.querySelector('.gallery-title').textContent.trim();
+      markGalleryUnsaved(galleryKey);
+    }
+    
     overlay.classList.add('hidden');
-    if(editorCb) editorCb(obj);
   });
 
   function openSlideEditor(slide, cb){
@@ -549,27 +601,80 @@ document.addEventListener('DOMContentLoaded', ()=>{
   hiddenInput.addEventListener('change',()=>{
     if(!hiddenInput.files || hiddenInput.files.length===0) return;
     
+    // Show upload overlay
+    const overlay = document.getElementById('upload-progress-overlay');
+    const progressFill = document.getElementById('upload-progress-fill');
+    const uploadStatus = document.getElementById('upload-status');
+    const uploadTitle = document.getElementById('upload-title');
+    const fileList = document.getElementById('upload-file-list');
+    
+    const showUploadProgress = () => {
+      overlay.classList.add('show');
+      progressFill.style.width = '0%';
+      uploadStatus.textContent = 'Preparazione upload...';
+      uploadTitle.textContent = `Caricamento ${hiddenInput.files.length} file...`;
+      fileList.innerHTML = '';
+      
+      // Add files to list
+      Array.from(hiddenInput.files).forEach(file => {
+        const item = document.createElement('div');
+        item.className = 'upload-file-item';
+        item.innerHTML = `<span class="upload-file-icon">📄</span>${file.name}`;
+        fileList.appendChild(item);
+      });
+    };
+    
+    const hideUploadProgress = () => {
+      setTimeout(() => {
+        overlay.classList.remove('show');
+      }, 1000);
+    };
+    
+    const updateProgress = (percent, status) => {
+      progressFill.style.width = percent + '%';
+      uploadStatus.textContent = status;
+    };
+    
+    const markFileComplete = (fileName, success = true) => {
+      const items = fileList.querySelectorAll('.upload-file-item');
+      items.forEach(item => {
+        if(item.textContent.includes(fileName)) {
+          item.classList.add(success ? 'success' : 'error');
+          item.querySelector('.upload-file-icon').textContent = success ? '✅' : '❌';
+        }
+      });
+    };
+    
+    showUploadProgress();
+    
     if(window.APP_ENV === 'prod') {
       // Check if user is authenticated
       if (!window.isAuthenticated || !window.isAuthenticated()) {
         alert('Please login first');
         hiddenInput.value = '';
+        hideUploadProgress();
         return;
       }
       
+      updateProgress(10, 'Connessione a Firebase...');
+      
       // Firebase Storage upload in production
       const filesArr = Array.from(hiddenInput.files);
-      const uploadPromises = filesArr.map(async file => {
+      const uploadPromises = filesArr.map(async (file, index) => {
         try {
+          updateProgress(20 + (index * 60 / filesArr.length), `Upload ${file.name}...`);
           const downloadURL = await uploadToFirebaseStorage(file);
+          markFileComplete(file.name, true);
           return { path: downloadURL };
         } catch (error) {
           console.error('Firebase upload error:', error);
+          markFileComplete(file.name, false);
           throw error;
         }
       });
       
       Promise.all(uploadPromises).then(results => {
+        updateProgress(100, 'Upload completato!');
         const paths = results.map(r => r.path);
         const targetEl = document.getElementById(uploadTargetInputId);
         if(!targetEl) return;
@@ -582,28 +687,37 @@ document.addEventListener('DOMContentLoaded', ()=>{
         hiddenInput.value = '';
         alert('Upload completato!');
         window.adminLog?.(`✅ Upload completato (${paths.length} file): ${paths.join(', ')}`);
+        hideUploadProgress();
       }).catch(err => {
+        updateProgress(0, 'Errore durante upload');
         alert('Errore upload: ' + err.message);
         console.error(err);
         window.adminLog?.('❌ Errore upload');
         hiddenInput.value = '';
+        hideUploadProgress();
       });
       return;
     }
     
     const token = prompt('Token amministratore per upload:');
-    if(!token){ hiddenInput.value=''; return; }
+    if(!token){ hiddenInput.value=''; hideUploadProgress(); return; }
 
+    updateProgress(20, 'Invio file al server...');
     const filesArr = Array.from(hiddenInput.files);
 
-    const uploadPromises = filesArr.map(file=>{
+    const uploadPromises = filesArr.map((file, index)=>{
+      updateProgress(30 + (index * 50 / filesArr.length), `Upload ${file.name}...`);
       const fd = new FormData();
       fd.append('file', file);
       return fetch(`/api/upload?token=${encodeURIComponent(token)}`,{method:'POST',body:fd})
-              .then(r=>r.json());
+              .then(r=>{
+                markFileComplete(file.name, r.ok);
+                return r.json();
+              });
     });
 
     Promise.all(uploadPromises).then(results=>{
+      updateProgress(100, 'Upload completato!');
       const paths = results.map(r=>r.path);
       const targetEl = document.getElementById(uploadTargetInputId);
       if(!targetEl) return;
@@ -614,8 +728,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
         targetEl.value = paths[0];
       }
       hiddenInput.value='';
+      window.adminLog?.(`✅ Upload completato (${paths.length} file): ${paths.join(', ')}`);
+      hideUploadProgress();
     }).catch(err=>{
+      updateProgress(0, 'Errore durante upload');
       alert('Errore upload'); console.error(err); hiddenInput.value='';
+      hideUploadProgress();
     });
   });
 });
@@ -735,6 +853,161 @@ selectNav('galleries');
 
 // expose addLog globally for other modules
 window.adminLog = addLog; 
+
+// --- Unsaved changes tracking ---
+window.unsavedChanges = {
+  galleries: new Set(),
+  heroBio: false,
+  version: false,
+  contacts: false,
+  api: false,
+  sections: false,
+  shader: false
+};
+
+function markGalleryUnsaved(galleryKey) {
+  window.unsavedChanges.galleries.add(galleryKey);
+  const panel = Array.from(document.querySelectorAll('.gallery-panel')).find(p => 
+    p.querySelector('.gallery-title').textContent.trim() === galleryKey
+  );
+  if(panel) {
+    panel.classList.add('unsaved-changes');
+    const saveBtn = panel.querySelector('.save-gallery-btn');
+    if(saveBtn) saveBtn.classList.add('save-btn-highlight');
+  }
+  window.adminLog?.(`⚠️ Gallery "${galleryKey}" ha modifiche non salvate`);
+}
+
+function markSiteConfigUnsaved() {
+  // This function is now replaced by specific form functions
+}
+
+function markFormUnsaved(formType) {
+  window.unsavedChanges[formType] = true;
+  const form = document.getElementById(`${formType.replace(/([A-Z])/g, '-$1').toLowerCase()}-form`);
+  if(form) {
+    form.classList.add('unsaved-changes');
+    const saveBtn = form.querySelector('button[id*="save"]');
+    if(saveBtn) saveBtn.classList.add('save-btn-highlight');
+  }
+  window.adminLog?.(`⚠️ ${getFormDisplayName(formType)} ha modifiche non salvate`);
+}
+
+function clearFormUnsaved(formType) {
+  window.unsavedChanges[formType] = false;
+  const form = document.getElementById(`${formType.replace(/([A-Z])/g, '-$1').toLowerCase()}-form`);
+  if(form) {
+    form.classList.remove('unsaved-changes');
+    const saveBtn = form.querySelector('button[id*="save"]');
+    if(saveBtn) saveBtn.classList.remove('save-btn-highlight');
+  }
+}
+
+function getFormDisplayName(formType) {
+  const names = {
+    heroBio: 'Hero & Bio',
+    version: 'Versione',
+    contacts: 'Contatti',
+    api: 'API Settings',
+    sections: 'Sezioni',
+    shader: 'Mobile Shader'
+  };
+  return names[formType] || formType;
+}
+
+function clearSiteConfigUnsaved() {
+  // Clear all form unsaved states
+  ['heroBio', 'version', 'contacts', 'api', 'sections', 'shader'].forEach(clearFormUnsaved);
+}
+
+function setupIndividualSaveFunctions() {
+  // Hero & Bio save
+  document.getElementById('save-hero-bio-btn')?.addEventListener('click', () => {
+    const siteNameVal = document.getElementById('site-name-input').value;
+    const heroVal = document.getElementById('hero-text-input').value;
+    const showLogoVal = document.getElementById('show-logo-input').checked;
+    const bioVal = document.getElementById('bio-input').value;
+    const payload = { siteName: siteNameVal, heroText: heroVal, showLogo: showLogoVal, bio: bioVal };
+    savePartialSiteConfig('Hero & Bio', payload, 'heroBio');
+  });
+
+  // Version save
+  document.getElementById('save-version-btn')?.addEventListener('click', () => {
+    const versionVal = document.getElementById('version-input').value.trim();
+    const payload = { version: versionVal };
+    savePartialSiteConfig('Versione', payload, 'version');
+  });
+
+  // Contacts save
+  document.getElementById('save-contacts-btn')?.addEventListener('click', () => {
+    const contacts = Array.from(document.querySelectorAll('.contact-row')).map(r=>({
+      label: r.querySelector('.contact-label').value,
+      value: r.querySelector('.contact-value').value
+    })).filter(c=>c.label||c.value);
+    const payload = { contacts };
+    savePartialSiteConfig('Contatti', payload, 'contacts');
+  });
+
+  // API Settings save
+  document.getElementById('save-api-btn')?.addEventListener('click', () => {
+    const apiBaseVal = document.getElementById('api-base-input').value.trim();
+    const shaderVal = document.getElementById('shader-url-input').value.trim();
+    const payload = { apiBase: apiBaseVal, shaderUrl: shaderVal };
+    savePartialSiteConfig('API Settings', payload, 'api');
+  });
+
+  // Sections save
+  document.getElementById('save-sections-btn')?.addEventListener('click', () => {
+    const sections = Array.from(document.querySelectorAll('#sections-table tbody tr')).map(tr=>({
+      status: tr.querySelector('.status-select').value,
+      key: tr.querySelector('.sec-key').value.trim(),
+      label: tr.querySelector('.sec-label').value.trim()
+    })).filter(s=>s.key);
+    const payload = { sections };
+    savePartialSiteConfig('Sezioni', payload, 'sections');
+  });
+}
+
+async function savePartialSiteConfig(displayName, partialPayload, formType) {
+  try {
+    // Merge with existing site config
+    const currentSite = window._origSite || {};
+    const fullPayload = { ...currentSite, ...partialPayload };
+    
+    const logMsg = `✅ ${displayName} salvato`;
+    
+    if(window.APP_ENV === 'prod') {
+      await window.saveSiteProd(fullPayload);
+      alert(`${displayName} salvato in Firestore!`);
+      window.adminLog?.(logMsg + ' [Firestore]');
+    } else {
+      const token = prompt(`Token amministratore per salvare ${displayName}:`);
+      if(!token) return;
+      
+      const response = await fetch(`/api/site?token=${encodeURIComponent(token)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fullPayload)
+      });
+      
+      if(response.ok) {
+        alert(`${displayName} salvato con successo!`);
+        window.adminLog?.(logMsg);
+      } else {
+        throw new Error('Errore nel salvataggio');
+      }
+    }
+    
+    // Update original site config and clear unsaved state
+    Object.assign(window._origSite, partialPayload);
+    clearFormUnsaved(formType);
+    
+  } catch(err) {
+    console.error(err);
+    alert(`Errore salvataggio ${displayName}`);
+    window.adminLog?.(`❌ Errore salvataggio ${displayName}`);
+  }
+}
 
 // --- Local testing helper ---
 if (location.hostname === 'localhost' || location.hostname.startsWith('127.') || location.hostname.includes('local')) {
