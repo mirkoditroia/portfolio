@@ -6,6 +6,19 @@ function fetchJson(primaryUrl, fallbackUrl){
   }).catch(()=> fetch(fallbackUrl).then(r=>r.json()));
 }
 
+// Ensure APP_ENV is available immediately (may load env script async)
+(function(){
+  if(window.APP_ENV) return; // already set by env.*.js
+  const host = location.hostname;
+  if(host==='localhost' || host==='127.0.0.1' || host.includes('local')){
+    window.APP_ENV='local';
+  }else if(host.includes('preprod') || host.includes('pre-prod')){
+    window.APP_ENV='preprod';
+  }else{
+    window.APP_ENV='prod';
+  }
+})();
+
 // JS per multiple gallery sections
 document.addEventListener('DOMContentLoaded', function() {
   
