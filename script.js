@@ -1720,9 +1720,14 @@ document.addEventListener('DOMContentLoaded', function() {
       // Load fresh data DIRECTLY from Firestore
       let newSiteConfig;
       if (window.APP_ENV === 'prod' && window.getSiteProd) {
-        console.log('🔥 Loading fresh site data DIRECTLY from Firestore...');
-        newSiteConfig = await window.getSiteProd();
-        console.log('🔥 Raw Firestore data received:', newSiteConfig);
+        try {
+          console.log('🔥 Loading fresh site data DIRECTLY from Firestore...');
+          newSiteConfig = await window.getSiteProd();
+          console.log('🔥 Raw Firestore data received:', newSiteConfig);
+        } catch (firebaseError) {
+          console.warn('🔥 Firestore failed during update check, falling back to local data:', firebaseError);
+          newSiteConfig = await loadSiteConfig(true);
+        }
       } else {
         console.log('🔥 Loading site data from local/dev environment...');
         newSiteConfig = await loadSiteConfig(true);
@@ -1914,9 +1919,15 @@ document.addEventListener('DOMContentLoaded', function() {
       
       let site;
       if (window.APP_ENV === 'prod' && window.getSiteProd) {
-        console.log('🔥 Initial load: Loading site data DIRECTLY from Firestore...');
-        site = await window.getSiteProd();
-        console.log('🔥 Initial Firestore data loaded:', site);
+        try {
+          console.log('🔥 Initial load: Loading site data DIRECTLY from Firestore...');
+          site = await window.getSiteProd();
+          console.log('🔥 Initial Firestore data loaded:', site);
+        } catch (firebaseError) {
+          console.warn('🔥 Firestore failed, falling back to local data:', firebaseError);
+          // Fallback to local JSON if Firestore fails
+          site = await loadSiteConfig();
+        }
       } else {
         console.log('🔥 Initial load: Loading site data from local/dev environment...');
         site = await loadSiteConfig();
@@ -1947,6 +1958,17 @@ document.addEventListener('DOMContentLoaded', function() {
       
     } catch (err) {
       console.error('❌ Errore initial site load:', err);
+      
+      // Final fallback: try to load local data
+      try {
+        console.log('🔄 Final fallback: loading local site data...');
+        const site = await loadSiteConfig();
+        currentSiteConfig = site;
+        applySiteConfig(site);
+        listenForAdminUpdates();
+      } catch (fallbackError) {
+        console.error('❌ Even fallback failed:', fallbackError);
+      }
     }
   };
   

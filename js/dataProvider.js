@@ -25,7 +25,7 @@
     if(!window.db){
       await new Promise((resolve, reject) => {
         let attempts = 0;
-        const maxAttempts = 100; // 5 seconds timeout
+        const maxAttempts = 200; // 10 seconds timeout (increased from 5)
         const iv = setInterval(() => {
           attempts++;
           if(window.db){ 
@@ -33,7 +33,7 @@
             resolve(); 
           } else if(attempts >= maxAttempts) {
             clearInterval(iv);
-            reject(new Error('Firebase initialization timeout'));
+            reject(new Error('Firebase initialization timeout after 10 seconds'));
           }
         }, 50);
       });
@@ -52,7 +52,7 @@
     if(!window.db){ 
       await new Promise((resolve, reject) => {
         let attempts = 0;
-        const maxAttempts = 100; // 5 seconds timeout
+        const maxAttempts = 200; // 10 seconds timeout (increased from 5)
         const iv = setInterval(() => {
           attempts++;
           if(window.db){ 
@@ -60,7 +60,7 @@
             resolve(); 
           } else if(attempts >= maxAttempts) {
             clearInterval(iv);
-            reject(new Error('Firebase initialization timeout'));
+            reject(new Error('Firebase initialization timeout after 10 seconds'));
           }
         }, 50);
       });
@@ -94,7 +94,7 @@
     if(!window.db){ 
       await new Promise((resolve, reject) => {
         let attempts = 0;
-        const maxAttempts = 100; // 5 seconds timeout
+        const maxAttempts = 200; // 10 seconds timeout (increased from 5)
         const iv = setInterval(() => {
           attempts++;
           if(window.db){ 
@@ -102,7 +102,7 @@
             resolve(); 
           } else if(attempts >= maxAttempts) {
             clearInterval(iv);
-            reject(new Error('Firebase initialization timeout'));
+            reject(new Error('Firebase initialization timeout after 10 seconds'));
           }
         }, 50);
       });
@@ -118,7 +118,7 @@
     if(!window.db){ 
       await new Promise((resolve, reject) => {
         let attempts = 0;
-        const maxAttempts = 100; // 5 seconds timeout
+        const maxAttempts = 200; // 10 seconds timeout (increased from 5)
         const iv = setInterval(() => {
           attempts++;
           if(window.db){ 
@@ -126,7 +126,7 @@
             resolve(); 
           } else if(attempts >= maxAttempts) {
             clearInterval(iv);
-            reject(new Error('Firebase initialization timeout'));
+            reject(new Error('Firebase initialization timeout after 10 seconds'));
           }
         }, 50);
       });
