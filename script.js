@@ -1716,12 +1716,30 @@ document.addEventListener('DOMContentLoaded', function() {
   const checkForSiteUpdates = async () => {
     try {
       console.log('🔍 Checking for site configuration updates...');
+      
+      // Clear any localStorage cache markers to force fresh data
+      const forceRefresh = localStorage.getItem('force-site-refresh');
+      if (forceRefresh) {
+        console.log('🔄 Force refresh flag detected, clearing cache markers');
+        localStorage.removeItem('force-site-refresh');
+      }
+      
       const newSiteConfig = await loadSiteConfig(true); // Force cache bust
       
       if (currentSiteConfig) {
         // Create a deep comparison hash for better change detection
         const currentHash = JSON.stringify(currentSiteConfig);
         const newHash = JSON.stringify(newSiteConfig);
+        
+        console.log('🔍 Comparing configurations:', {
+          currentHash: currentHash.substring(0, 100) + '...',
+          newHash: newHash.substring(0, 100) + '...',
+          hashesMatch: currentHash === newHash,
+          currentVersion: currentSiteConfig.version,
+          newVersion: newSiteConfig.version,
+          currentHeroText: currentSiteConfig.heroText,
+          newHeroText: newSiteConfig.heroText
+        });
         
         if (currentHash !== newHash) {
           console.log('🔄 Site configuration changes detected');
@@ -1734,6 +1752,22 @@ document.addEventListener('DOMContentLoaded', function() {
             showUpdateNotification(newSiteConfig.version);
           }
           
+          // Check for specific field changes
+          const changedFields = [];
+          if (currentSiteConfig.heroText !== newSiteConfig.heroText) {
+            changedFields.push('heroText');
+          }
+          if (currentSiteConfig.bio !== newSiteConfig.bio) {
+            changedFields.push('bio');
+          }
+          if (JSON.stringify(currentSiteConfig.contacts) !== JSON.stringify(newSiteConfig.contacts)) {
+            changedFields.push('contacts');
+          }
+          
+          if (changedFields.length > 0) {
+            console.log('🔄 Changed fields detected:', changedFields);
+          }
+          
           // Apply all changes
           applySiteConfig(newSiteConfig);
           
@@ -1741,14 +1775,30 @@ document.addEventListener('DOMContentLoaded', function() {
           if (currentSiteConfig.version === newSiteConfig.version) {
             showUpdateNotification('Contenuto aggiornato');
           }
+          
+          // Set a flag to force refresh on next load if needed
+          localStorage.setItem('last-successful-update', Date.now().toString());
+          
+          // Clear force refresh flags after successful update
+          localStorage.removeItem('force-site-refresh');
+          localStorage.removeItem('cache-invalidation-timestamp');
+          
         } else {
           console.log('✅ No site configuration changes detected');
         }
+      } else {
+        console.log('🔄 Initial site configuration load');
       }
       
       currentSiteConfig = newSiteConfig;
     } catch (err) {
       console.error('❌ Error checking for site updates:', err);
+      
+      // If we're having trouble getting fresh data, try to force a cache clear
+      if (err.message && err.message.includes('cache')) {
+        console.log('🔄 Cache-related error detected, setting force refresh flag');
+        localStorage.setItem('force-site-refresh', 'true');
+      }
     }
   };
   
@@ -1830,10 +1880,11 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
           const updateInfo = JSON.parse(e.newValue);
           if (updateInfo.type === 'site-config-update') {
-            console.log('🔄 Admin update detected:', updateInfo.displayName);
+            console.log('🔄 Admin update detected via storage event:', updateInfo.displayName);
             
-            // Force immediate config reload
+            // Force immediate config reload with aggressive cache clearing
             setTimeout(() => {
+              console.log('🔄 Forcing immediate site config reload due to admin update');
               checkForSiteUpdates();
             }, 500); // Small delay to ensure admin save is complete
           }
@@ -1841,22 +1892,67 @@ document.addEventListener('DOMContentLoaded', function() {
           console.error('Error parsing admin update trigger:', err);
         }
       }
+      
+      // Also listen for force refresh flags
+      if (e.key === 'force-site-refresh' && e.newValue === 'true') {
+        console.log('🔄 Force site refresh flag detected');
+        setTimeout(() => {
+          checkForSiteUpdates();
+        }, 1000);
+      }
+      
+      // Listen for cache invalidation timestamps
+      if (e.key === 'cache-invalidation-timestamp' && e.newValue) {
+        console.log('🔄 Cache invalidation timestamp detected:', e.newValue);
+        setTimeout(() => {
+          checkForSiteUpdates();
+        }, 1500);
+      }
     });
     
     // Also check for persistent markers on page load/focus
     const checkPersistentUpdates = () => {
       try {
         const lastUpdate = localStorage.getItem('last-admin-update');
+        const forceRefresh = localStorage.getItem('force-site-refresh');
+        const cacheInvalidationTimestamp = localStorage.getItem('cache-invalidation-timestamp');
+        
+        console.log('🔍 Checking for persistent update markers:', {
+          lastUpdate: lastUpdate ? 'present' : 'none',
+          forceRefresh: forceRefresh,
+          cacheInvalidationTimestamp: cacheInvalidationTimestamp
+        });
+        
         if (lastUpdate) {
           const updateInfo = JSON.parse(lastUpdate);
           const timeSinceUpdate = Date.now() - updateInfo.timestamp;
           
           // If update was less than 5 minutes ago, force a refresh
           if (timeSinceUpdate < 5 * 60 * 1000) {
-            console.log('🔄 Recent admin update detected, forcing refresh');
+            console.log('🔄 Recent admin update detected, forcing refresh', {
+              timeSinceUpdate: Math.round(timeSinceUpdate / 1000) + 's',
+              displayName: updateInfo.displayName
+            });
             setTimeout(() => {
               checkForSiteUpdates();
             }, 1000);
+          }
+        }
+        
+        if (forceRefresh === 'true') {
+          console.log('🔄 Force refresh flag detected on page load');
+          setTimeout(() => {
+            checkForSiteUpdates();
+          }, 1500);
+        }
+        
+        if (cacheInvalidationTimestamp) {
+          const timeSinceInvalidation = Date.now() - parseInt(cacheInvalidationTimestamp);
+          if (timeSinceInvalidation < 5 * 60 * 1000) {
+            console.log('🔄 Recent cache invalidation detected, forcing refresh');
+            setTimeout(() => {
+              checkForSiteUpdates();
+            }, 2000);
           }
         }
       } catch (err) {
@@ -1869,6 +1965,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Check when page regains focus
     window.addEventListener('focus', checkPersistentUpdates);
+    
+    // Also check periodically for missed updates
+    setInterval(() => {
+      const forceRefresh = localStorage.getItem('force-site-refresh');
+      if (forceRefresh === 'true') {
+        console.log('🔄 Periodic check found force refresh flag');
+        checkForSiteUpdates();
+      }
+    }, 10000); // Check every 10 seconds
   };
   
   // Initial load

@@ -1323,9 +1323,11 @@ async function savePartialSiteConfig(displayName, partialPayload, formType) {
 // Trigger cache invalidation for connected clients
 function triggerCacheInvalidation(displayName, payload) {
   try {
+    const timestamp = Date.now();
+    
     // Store update info in localStorage for cross-tab communication
     const updateInfo = {
-      timestamp: Date.now(),
+      timestamp,
       displayName,
       payload,
       type: 'site-config-update'
@@ -1335,20 +1337,40 @@ function triggerCacheInvalidation(displayName, payload) {
     
     // Also store a persistent marker for other sessions
     const persistentMarker = {
-      timestamp: Date.now(),
+      timestamp,
       displayName,
-      type: 'site-config-update'
+      type: 'site-config-update',
+      version: payload.version || 'unknown'
     };
     localStorage.setItem('last-admin-update', JSON.stringify(persistentMarker));
+    
+    // Force cache refresh strategies
+    localStorage.setItem('force-site-refresh', 'true');
+    localStorage.setItem('cache-invalidation-timestamp', timestamp.toString());
+    
+    // Clear any existing cache markers
+    localStorage.removeItem('site-config-cache');
+    localStorage.removeItem('last-site-load');
+    localStorage.removeItem('firestore-cache-marker');
     
     // Clear the trigger after a short delay to prevent repeated triggers
     setTimeout(() => {
       localStorage.removeItem('admin-update-trigger');
     }, 1000);
     
-    window.adminLog?.(`🔄 Cache invalidation triggered for ${displayName}`);
+    console.log('🔄 Cache invalidation strategies deployed:', {
+      adminUpdateTrigger: true,
+      lastAdminUpdate: true,
+      forceSiteRefresh: true,
+      cacheInvalidationTimestamp: timestamp,
+      displayName,
+      payloadKeys: Object.keys(payload)
+    });
+    
+    window.adminLog?.(`🔄 Cache invalidation triggered for ${displayName} (${Object.keys(payload).join(', ')})`);
   } catch(err) {
     console.error('Failed to trigger cache invalidation:', err);
+    window.adminLog?.(`❌ Errore cache invalidation: ${err.message}`);
   }
 }
 

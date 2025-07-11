@@ -67,30 +67,61 @@
     }
     
     const base='https://www.gstatic.com/firebasejs/10.12.0';
-    const { getDoc, doc, getDocFromServer } = await import(`${base}/firebase-firestore.js`);
+    const { getDoc, doc, getDocFromServer, enableNetwork, disableNetwork } = await import(`${base}/firebase-firestore.js`);
     const ref = doc(window.db,'config','site');
     
-    // Force fresh data from server (bypass cache)
+    // Force fresh data from server (bypass cache) with multiple strategies
     let snap;
+    let cacheBypassSuccess = false;
+    
     try {
-      // Try to get from server first to bypass cache
+      // Strategy 1: Try getDocFromServer first
+      console.log('🔥 Attempting to get site data from server (bypass cache)...');
       snap = await getDocFromServer(ref);
-      console.log('🔥 Retrieved site data from Firestore server (cache bypassed)');
+      cacheBypassSuccess = true;
+      console.log('🔥 ✅ Successfully retrieved site data from Firestore server (cache bypassed)');
     } catch (err) {
-      console.warn('🔥 Failed to get from server, falling back to cache:', err);
-      snap = await getDoc(ref);
+      console.warn('🔥 ❌ getDocFromServer failed, trying network disable/enable strategy:', err);
+      
+      try {
+        // Strategy 2: Disable/enable network to force fresh data
+        await disableNetwork(window.db);
+        await enableNetwork(window.db);
+        
+        // Wait a bit for network to re-establish
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        snap = await getDocFromServer(ref);
+        cacheBypassSuccess = true;
+        console.log('🔥 ✅ Successfully retrieved site data after network reset');
+      } catch (err2) {
+        console.warn('🔥 ❌ Network reset strategy failed, falling back to cache:', err2);
+        snap = await getDoc(ref);
+        cacheBypassSuccess = false;
+      }
     }
+    
     const data = snap.exists() ? snap.data() : {};
     
-    // Add debug info
+    // Add comprehensive debug info
     if (data) {
       console.log('🔥 Firestore site data retrieved:', {
         exists: snap.exists(),
         metadata: snap.metadata,
         fromCache: snap.metadata.fromCache,
         hasPendingWrites: snap.metadata.hasPendingWrites,
+        cacheBypassSuccess: cacheBypassSuccess,
         timestamp: new Date().toISOString(),
-        data: data
+        dataHash: JSON.stringify(data).substring(0, 100) + '...',
+        fullData: data
+      });
+      
+      // Log specific fields for debugging
+      console.log('🔥 Site data fields:', {
+        heroText: data.heroText,
+        bio: data.bio,
+        version: data.version,
+        contacts: data.contacts
       });
     }
     
