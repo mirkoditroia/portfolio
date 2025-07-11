@@ -790,7 +790,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     image: document.getElementById('field-image'),
     gallery: document.getElementById('field-gallery'),
     'canvas-video': document.getElementById('field-canvas-video'),
-    canvas: document.getElementById('field-canvas-video') // reuse same container; video field will stay empty
+    canvas: document.getElementById('field-image')
   };
 
   function showTypeFields(t){
@@ -862,7 +862,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       slideData.canvasVideo = true; // Flag to distinguish from regular canvas+video
     }
     else if(F.type.value==='canvas'){
-      slideData.src = F.canvasFallback.value || '';
+      slideData.src = F.image.value || F.canvasFallback.value || '';
       slideData.canvas = true;
     }
     editorCb(slideData);
