@@ -1143,16 +1143,17 @@ document.addEventListener('DOMContentLoaded', function() {
                   if (Math.abs(deltaX) > Math.abs(deltaY)) {
                     e.preventDefault();
                     
-                    // Add visual feedback during swipe
+                    // Add visual feedback during swipe - only for valid directions
                     const progress = Math.min(Math.abs(deltaX) / minSwipeDistance, 1);
                     const opacity = 0.1 + (progress * 0.2);
                     
+                    // Only show feedback if swipe is valid
                     if (deltaX > 0 && galleryIndex > 0) {
-                      // Swiping right - show left area
+                      // Swiping right - show left area (only if not at start)
                       const leftArea = galleryContainer.querySelector('div[style*="left: 0"]');
                       if (leftArea) leftArea.style.opacity = opacity;
                     } else if (deltaX < 0 && galleryIndex < imgs.length - 1) {
-                      // Swiping left - show right area
+                      // Swiping left - show right area (only if not at end)
                       const rightArea = galleryContainer.querySelector('div[style*="right: 0"]');
                       if (rightArea) rightArea.style.opacity = opacity;
                     }
@@ -1175,7 +1176,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   // Only process horizontal swipes
                   if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
                     if (deltaX > 0) {
-                      // Swipe right - go to previous
+                      // Swipe right - go to previous (only if not at start)
                       if (galleryIndex > 0) {
                         const currentVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
                         if (currentVideo) currentVideo.pause();
@@ -1196,7 +1197,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         updateSwipeHint();
                       }
                     } else {
-                      // Swipe left - go to next
+                      // Swipe left - go to next (only if not at end)
                       if (galleryIndex < imgs.length - 1) {
                         const currentVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
                         if (currentVideo) currentVideo.pause();
@@ -1218,13 +1219,26 @@ document.addEventListener('DOMContentLoaded', function() {
                       }
                     }
                   }
+                  
+                  // Force alignment to prevent drift
+                  setTimeout(() => {
+                    const containerWidth = galleryContainer.offsetWidth;
+                    const translateX = -galleryIndex * containerWidth;
+                    galleryTrack.style.transform = `translateX(${translateX}px)`;
+                  }, 50);
                 };
                 
-                // Function to ensure proper alignment
+                // Function to ensure proper alignment and prevent over-scrolling
                 const ensureProperAlignment = () => {
+                  // Clamp galleryIndex to valid bounds
+                  galleryIndex = Math.max(0, Math.min(galleryIndex, imgs.length - 1));
+                  
                   const containerWidth = galleryContainer.offsetWidth;
                   const translateX = -galleryIndex * containerWidth;
                   galleryTrack.style.transform = `translateX(${translateX}px)`;
+                  
+                  // Prevent any CSS transitions that might cause drift
+                  galleryTrack.style.transition = 'transform 0.3s ease';
                 };
                 
                 // Add touch event listeners to gallery container
@@ -1416,6 +1430,9 @@ document.addEventListener('DOMContentLoaded', function() {
                   prevButton.className = 'modal-gallery-btn prev';
                   prevButton.innerHTML = '&#8592;';
                   prevButton.addEventListener('click', () => {
+                    // Only proceed if not at start
+                    if (galleryIndex <= 0) return;
+                    
                     // Pause current video if playing
                     const currentVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
                     if (currentVideo) currentVideo.pause();
@@ -1441,6 +1458,9 @@ document.addEventListener('DOMContentLoaded', function() {
                   nextButton.className = 'modal-gallery-btn next';
                   nextButton.innerHTML = '&#8594;';
                   nextButton.addEventListener('click', () => {
+                    // Only proceed if not at end
+                    if (galleryIndex >= imgs.length - 1) return;
+                    
                     // Pause current video if playing
                     const currentVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
                     if (currentVideo) currentVideo.pause();
@@ -1508,17 +1528,20 @@ document.addEventListener('DOMContentLoaded', function() {
 }); 
 
   // ---------------- sito meta (bio, contatti, visibilità sezioni) ----------------
-  // Load site configuration with robust fallbacks
-  const loadSiteConfig = async () => {
+  // Load site configuration with robust fallbacks and cache busting
+  const loadSiteConfig = async (bustCache = false) => {
     console.log('🔧 Loading site configuration...');
     
     // Wait for dataProvider to initialize
     await new Promise(resolve => setTimeout(resolve, 100));
     
+    // Cache busting parameter
+    const cacheBuster = bustCache ? `?_cb=${Date.now()}` : '';
+    
     // Try dataProvider's fetchJson first (handles Firestore in prod)
     if (window.fetchJson) {
       try {
-        const site = await window.fetchJson('/api/site', 'data/site.json');
+        const site = await window.fetchJson(`/api/site${cacheBuster}`, `data/site.json${cacheBuster}`);
         console.log('✅ Site config loaded via dataProvider:', site);
         return site;
       } catch(err) {
@@ -1529,7 +1552,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Fallback to direct file fetch
     try {
       console.log('🔄 Trying direct fetch to data/site.json');
-      const response = await fetch('data/site.json');
+      const response = await fetch(`data/site.json${cacheBuster}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const site = await response.json();
       console.log('✅ Site config loaded via direct fetch:', site);
@@ -1540,147 +1563,297 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
   
-  loadSiteConfig()
-    .then(site=>{
-      try{
-        const applyHero=text=>{
-          document.querySelectorAll('.fa3io-text').forEach(el=>{
-            el.textContent=text;
-            el.classList.remove('preload');
-          });
-        };
-        // Bio
-        const aboutTextEl = document.querySelector('.about-text');
-        if(aboutTextEl && site.bio) aboutTextEl.textContent = site.bio;
-        if(site.heroText){ applyHero(site.heroText); }
-
-        // Contatti
-        const contactSection = document.getElementById('contact');
-        if(contactSection && Array.isArray(site.contacts)){
-          const contactsContainer = document.createElement('div');
-          contactsContainer.className = 'contacts-container';
-          
-          site.contacts.forEach(c=>{
-            // Skip hidden contacts
-            if(c.visible === false) return;
-            
-            const contactItem = document.createElement('div');
-            contactItem.className = 'contact-item';
-            
-            // Create clickable link if it's a URL or email
-            let valueElement;
-            if(c.value.includes('@')) {
-              valueElement = `<a href="mailto:${c.value}" class="contact-link">${c.value}</a>`;
-            } else if(c.value.includes('http')) {
-              valueElement = `<a href="${c.value}" target="_blank" rel="noopener noreferrer" class="contact-link">${c.value}</a>`;
-            } else {
-              valueElement = `<span class="contact-text">${c.value}</span>`;
-            }
-            
-            contactItem.innerHTML = `
-              <div class="contact-info">
-                <div class="contact-label">${c.label}</div>
-                <div class="contact-value">${valueElement}</div>
-              </div>
-            `;
-            
-            contactsContainer.appendChild(contactItem);
-          });
-          
-          contactSection.innerHTML = '<h2 id="contact-heading">CONTACT</h2>';
-          contactSection.appendChild(contactsContainer);
-        }
-
-        // Sezioni
-        site.sections?.forEach(sec=>{
-          const id = sec.key;
-          const sectionEl = document.getElementById(id);
-          const navLink   = document.querySelector(`.menu a[href="#${id}"]`);
-          const heading   = document.querySelector(`#${id}-heading`);
-          if(!sectionEl) return;
-          const status = sec.status || (sec.visible===false? 'hide':'show');
-          if(status==='hide'){
-            sectionEl.style.display='none';
-            if(navLink) navLink.style.display='none';
-          }else{
-            if(sec.label){
-              if(heading) heading.textContent = sec.label;
-              if(navLink) navLink.textContent = sec.label;
-            }
-            if(status==='soon'){
-              const galleryCarousel = sectionEl.querySelector('.gallery-carousel');
-              if(galleryCarousel) galleryCarousel.style.display='none';
-              const placeholder=document.createElement('p');
-              placeholder.className='coming-soon';
-              placeholder.textContent='Coming Soon';
-              placeholder.style.color='#fff';
-              placeholder.style.textAlign='center';
-              placeholder.style.fontSize='1.4rem';
-              placeholder.style.padding='40px 0';
-              sectionEl.appendChild(placeholder);
-            }
-          }
+  // Apply site configuration to the page
+  const applySiteConfig = (site) => {
+    try {
+      const applyHero = text => {
+        document.querySelectorAll('.fa3io-text').forEach(el => {
+          el.textContent = text;
+          el.classList.remove('preload');
         });
-        // aggiorna apiBase per fetch futuri
-        if(site.apiBase){
-          window.__API_BASE = site.apiBase;
-          if(!location.origin.includes(site.apiBase)){
-            fetch(`${site.apiBase}/api/site`).then(r=>r.ok?r.json():null).then(remote=>{
-              if(remote){ Object.assign(site,remote);
-                if(remote.heroText){ applyHero(remote.heroText); }
-              }
-            }).catch(()=>{});
-          }
-        }
-        if(site.shaderUrl){
-          const sh=document.getElementById('shader-iframe');
-          if(sh) sh.src = site.shaderUrl;
-        }
+      };
+      
+      // Bio
+      const aboutTextEl = document.querySelector('.about-text');
+      if (aboutTextEl && site.bio) aboutTextEl.textContent = site.bio;
+      if (site.heroText) { applyHero(site.heroText); }
 
-        // Versione sito
-        const versionEl = document.getElementById('version');
-        if(versionEl && site.version){
-          versionEl.textContent = site.version;
-        }
+      // Contatti
+      const contactSection = document.getElementById('contact');
+      if (contactSection && Array.isArray(site.contacts)) {
+        const contactsContainer = document.createElement('div');
+        contactsContainer.className = 'contacts-container';
         
-        // Site name
-        const siteNameEl = document.getElementById('site-name');
-        const heroTitleEl = document.getElementById('hero-title');
-        if(site.siteName) {
-          if(siteNameEl) siteNameEl.textContent = site.siteName;
-          if(heroTitleEl) heroTitleEl.textContent = site.siteName;
-        }
+        site.contacts.forEach(c => {
+          // Skip hidden contacts
+          if (c.visible === false) return;
+          
+          const contactItem = document.createElement('div');
+          contactItem.className = 'contact-item';
+          
+          // Create clickable link if it's a URL or email
+          let valueElement;
+          if (c.value.includes('@')) {
+            valueElement = `<a href="mailto:${c.value}" class="contact-link">${c.value}</a>`;
+          } else if (c.value.includes('http')) {
+            valueElement = `<a href="${c.value}" target="_blank" rel="noopener noreferrer" class="contact-link">${c.value}</a>`;
+          } else {
+            valueElement = `<span class="contact-text">${c.value}</span>`;
+          }
+          
+          contactItem.innerHTML = `
+            <div class="contact-info">
+              <div class="contact-label">${c.label}</div>
+              <div class="contact-value">${valueElement}</div>
+            </div>
+          `;
+          
+          contactsContainer.appendChild(contactItem);
+        });
         
-        // Logo visibility
-        if(site.showLogo) {
-          // Show logos if enabled
-          const headerLogo = document.querySelector('.logo img');
-          const heroLogo = document.querySelector('.center-logo img');
-          if(!headerLogo) {
-            const img = document.createElement('img');
-            img.src = 'logo.png';
-            img.alt = site.siteName || 'Logo';
-            img.onerror = function() { this.style.display = 'none'; };
-            document.querySelector('.logo').insertBefore(img, document.getElementById('site-name'));
-          }
-          if(!heroLogo) {
-            const img = document.createElement('img');
-            img.src = 'logo.png';
-            img.alt = site.siteName || 'Logo';
-            img.style.width = '60px';
-            img.onerror = function() { this.style.display = 'none'; };
-            document.querySelector('.center-logo').insertBefore(img, document.getElementById('hero-title'));
-          }
+        contactSection.innerHTML = '<h2 id="contact-heading">CONTACT</h2>';
+        contactSection.appendChild(contactsContainer);
+      }
+
+      // Sezioni
+      site.sections?.forEach(sec => {
+        const id = sec.key;
+        const sectionEl = document.getElementById(id);
+        const navLink = document.querySelector(`.menu a[href="#${id}"]`);
+        const heading = document.querySelector(`#${id}-heading`);
+        if (!sectionEl) return;
+        const status = sec.status || (sec.visible === false ? 'hide' : 'show');
+        if (status === 'hide') {
+          sectionEl.style.display = 'none';
+          if (navLink) navLink.style.display = 'none';
         } else {
-          // Hide logos if disabled
-          const headerLogo = document.querySelector('.logo img');
-          const heroLogo = document.querySelector('.center-logo img');
-          if(headerLogo) headerLogo.style.display = 'none';
-          if(heroLogo) heroLogo.style.display = 'none';
+          if (sec.label) {
+            if (heading) heading.textContent = sec.label;
+            if (navLink) navLink.textContent = sec.label;
+          }
+          if (status === 'soon') {
+            const galleryCarousel = sectionEl.querySelector('.gallery-carousel');
+            if (galleryCarousel) galleryCarousel.style.display = 'none';
+            const placeholder = document.createElement('p');
+            placeholder.className = 'coming-soon';
+            placeholder.textContent = 'Coming Soon';
+            placeholder.style.color = '#fff';
+            placeholder.style.textAlign = 'center';
+            placeholder.style.fontSize = '1.4rem';
+            placeholder.style.padding = '40px 0';
+            sectionEl.appendChild(placeholder);
+          }
         }
-      }catch(err){ console.error('Errore applicazione site meta',err); }
+      });
+      
+      // aggiorna apiBase per fetch futuri
+      if (site.apiBase) {
+        window.__API_BASE = site.apiBase;
+        if (!location.origin.includes(site.apiBase)) {
+          fetch(`${site.apiBase}/api/site`).then(r => r.ok ? r.json() : null).then(remote => {
+            if (remote) {
+              Object.assign(site, remote);
+              if (remote.heroText) { applyHero(remote.heroText); }
+            }
+          }).catch(() => {});
+        }
+      }
+      if (site.shaderUrl) {
+        const sh = document.getElementById('shader-iframe');
+        if (sh) sh.src = site.shaderUrl;
+      }
+
+      // Versione sito
+      const versionEl = document.getElementById('version');
+      if (versionEl && site.version) {
+        versionEl.textContent = site.version;
+      }
+      
+      // Site name
+      const siteNameEl = document.getElementById('site-name');
+      const heroTitleEl = document.getElementById('hero-title');
+      if (site.siteName) {
+        if (siteNameEl) siteNameEl.textContent = site.siteName;
+        if (heroTitleEl) heroTitleEl.textContent = site.siteName;
+      }
+      
+      // Logo visibility
+      if (site.showLogo) {
+        // Show logos if enabled
+        const headerLogo = document.querySelector('.logo img');
+        const heroLogo = document.querySelector('.center-logo img');
+        if (!headerLogo) {
+          const img = document.createElement('img');
+          img.src = 'logo.png';
+          img.alt = site.siteName || 'Logo';
+          img.onerror = function() { this.style.display = 'none'; };
+          document.querySelector('.logo').insertBefore(img, document.getElementById('site-name'));
+        }
+        if (!heroLogo) {
+          const img = document.createElement('img');
+          img.src = 'logo.png';
+          img.alt = site.siteName || 'Logo';
+          img.style.width = '60px';
+          img.onerror = function() { this.style.display = 'none'; };
+          document.querySelector('.center-logo').insertBefore(img, document.getElementById('hero-title'));
+        }
+      } else {
+        // Hide logos if disabled
+        const headerLogo = document.querySelector('.logo img');
+        const heroLogo = document.querySelector('.center-logo img');
+        if (headerLogo) headerLogo.style.display = 'none';
+        if (heroLogo) heroLogo.style.display = 'none';
+      }
+    } catch (err) { 
+      console.error('Errore applicazione site meta', err); 
+    }
+  };
+  
+  // Store current site config for comparison
+  let currentSiteConfig = null;
+  
+  // Check for site config updates
+  const checkForSiteUpdates = async () => {
+    try {
+      const newSiteConfig = await loadSiteConfig(true); // Force cache bust
+      
+      if (currentSiteConfig) {
+        // Check if version has changed
+        if (currentSiteConfig.version !== newSiteConfig.version) {
+          console.log(`🔄 Site version updated: ${currentSiteConfig.version} → ${newSiteConfig.version}`);
+          
+          // Show update notification
+          showUpdateNotification(newSiteConfig.version);
+        }
+        
+        // Check if other important fields have changed
+        const importantFields = ['heroText', 'bio', 'siteName', 'contacts', 'sections'];
+        let hasImportantChanges = false;
+        
+        for (const field of importantFields) {
+          if (JSON.stringify(currentSiteConfig[field]) !== JSON.stringify(newSiteConfig[field])) {
+            hasImportantChanges = true;
+            break;
+          }
+        }
+        
+        if (hasImportantChanges) {
+          console.log('🔄 Important site configuration changes detected');
+          applySiteConfig(newSiteConfig);
+        }
+      }
+      
+      currentSiteConfig = newSiteConfig;
+    } catch (err) {
+      console.error('❌ Error checking for site updates:', err);
+    }
+  };
+  
+  // Show update notification to user
+  const showUpdateNotification = (newVersion) => {
+    const notification = document.createElement('div');
+    notification.id = 'update-notification';
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #40e0d0, #ff0080);
+      color: white;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      z-index: 10000;
+      font-size: 14px;
+      font-weight: 500;
+      max-width: 300px;
+      animation: slideInRight 0.3s ease-out;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+    `;
+    
+    notification.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="font-size: 20px;">🚀</div>
+        <div>
+          <div style="font-weight: 600; margin-bottom: 4px;">Sito aggiornato!</div>
+          <div style="opacity: 0.9; font-size: 12px;">Versione ${newVersion}</div>
+        </div>
+        <div style="margin-left: auto; font-size: 18px; opacity: 0.7;">×</div>
+      </div>
+    `;
+    
+    // Add animation keyframes
+    if (!document.getElementById('update-notification-styles')) {
+      const style = document.createElement('style');
+      style.id = 'update-notification-styles';
+      style.textContent = `
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(100%); opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    // Remove existing notification if present
+    const existing = document.getElementById('update-notification');
+    if (existing) existing.remove();
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.style.animation = 'slideOutRight 0.3s ease-in';
+        setTimeout(() => notification.remove(), 300);
+      }
+    }, 5000);
+    
+    // Click to dismiss
+    notification.addEventListener('click', () => {
+      notification.style.animation = 'slideOutRight 0.3s ease-in';
+      setTimeout(() => notification.remove(), 300);
+    });
+  };
+  
+  // Listen for admin updates via localStorage
+  const listenForAdminUpdates = () => {
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'admin-update-trigger' && e.newValue) {
+        try {
+          const updateInfo = JSON.parse(e.newValue);
+          if (updateInfo.type === 'site-config-update') {
+            console.log('🔄 Admin update detected:', updateInfo.displayName);
+            
+            // Force immediate config reload
+            setTimeout(() => {
+              checkForSiteUpdates();
+            }, 500); // Small delay to ensure admin save is complete
+          }
+        } catch (err) {
+          console.error('Error parsing admin update trigger:', err);
+        }
+      }
+    });
+  };
+  
+  // Initial load
+  loadSiteConfig()
+    .then(site => {
+      currentSiteConfig = site;
+      applySiteConfig(site);
+      
+      // Start polling for updates every 30 seconds
+      setInterval(checkForSiteUpdates, 30000);
+      
+      // Listen for admin updates
+      listenForAdminUpdates();
     })
-    .catch(err=>console.error('Errore fetch site meta',err)); 
+    .catch(err => console.error('Errore fetch site meta', err)); 
 
 document.addEventListener('DOMContentLoaded',()=>{
   // Apply pulse animation to gallery cards until first interaction

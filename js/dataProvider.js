@@ -93,7 +93,11 @@
         }
       }
       if(primaryUrl.includes('/api/site')){
-        try{ return await getSiteFirestore(); }catch(err){ 
+        try{ 
+          const siteData = await getSiteFirestore(); 
+          console.log('📡 Site data loaded from Firestore:', siteData);
+          return siteData;
+        }catch(err){ 
           console.error('Firestore site error',err);
           // Fallback to local JSON file
           return safeFetchJson('data/site.json', fallbackUrl);

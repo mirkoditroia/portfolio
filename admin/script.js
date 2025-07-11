@@ -1310,10 +1310,37 @@ async function savePartialSiteConfig(displayName, partialPayload, formType) {
     Object.assign(window._origSite, partialPayload);
     clearFormUnsaved(formType);
     
+    // Trigger cache invalidation for connected clients
+    triggerCacheInvalidation(displayName, partialPayload);
+    
   } catch(err) {
     console.error(err);
     alert(`Errore salvataggio ${displayName}`);
     window.adminLog?.(`❌ Errore salvataggio ${displayName}`);
+  }
+}
+
+// Trigger cache invalidation for connected clients
+function triggerCacheInvalidation(displayName, payload) {
+  try {
+    // Store update info in localStorage for cross-tab communication
+    const updateInfo = {
+      timestamp: Date.now(),
+      displayName,
+      payload,
+      type: 'site-config-update'
+    };
+    
+    localStorage.setItem('admin-update-trigger', JSON.stringify(updateInfo));
+    
+    // Clear the trigger after a short delay to prevent repeated triggers
+    setTimeout(() => {
+      localStorage.removeItem('admin-update-trigger');
+    }, 1000);
+    
+    window.adminLog?.(`🔄 Cache invalidation triggered for ${displayName}`);
+  } catch(err) {
+    console.error('Failed to trigger cache invalidation:', err);
   }
 }
 
