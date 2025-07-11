@@ -1,5 +1,46 @@
 /* Admin dashboard logic (work in progress) */
 
+// Global auth UI update function
+function updateAuthUI() {
+  const authStatus = document.getElementById('auth-status');
+  const loginForm = document.getElementById('login-form');
+  const adminContent = document.getElementById('admin-content');
+  const logoutBtn = document.getElementById('logout-btn');
+  
+  // Check if we have Firebase auth available
+  const isFirebaseAuth = window.APP_ENV === 'prod' && window.getCurrentUser;
+  
+  if (isFirebaseAuth) {
+    const currentUser = window.getCurrentUser();
+    if (currentUser) {
+      // User is authenticated
+      if (authStatus) authStatus.textContent = `Logged in as: ${currentUser.email}`;
+      if (loginForm) loginForm.style.display = 'none';
+      if (adminContent) adminContent.style.display = 'block';
+      if (logoutBtn) logoutBtn.style.display = 'inline-block';
+      return;
+    }
+  }
+  
+  // For non-prod environments or when not authenticated
+  if (window.APP_ENV === 'local' || window.APP_ENV === 'preprod') {
+    // Local/preprod: skip login, show admin directly
+    if (authStatus) authStatus.textContent = 'Development mode - no authentication required';
+    if (loginForm) loginForm.style.display = 'none';
+    if (adminContent) adminContent.style.display = 'block';
+    if (logoutBtn) logoutBtn.style.display = 'none';
+  } else {
+    // Production: show login form
+    if (authStatus) authStatus.textContent = 'Please log in to access admin panel';
+    if (loginForm) loginForm.style.display = 'block';
+    if (adminContent) adminContent.style.display = 'none';
+    if (logoutBtn) logoutBtn.style.display = 'none';
+  }
+}
+
+// Make it globally available
+window.updateAuthUI = updateAuthUI;
+
 document.addEventListener('DOMContentLoaded', ()=>{
   const container = document.getElementById('galleries');
   if(!container) return;
@@ -40,12 +81,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
     adminEnvSpan.innerHTML = `ENV: <span style="color: ${envColors[env] || '#6c757d'}; font-weight: bold;">${envNames[env] || env.toUpperCase()}</span>`;
   }
 
-  // Disable login for LOCAL e PRE-PROD (token only)
-  if(env === 'preprod' || env === 'local'){
-    const authSection = document.getElementById('auth-section');
-    if(authSection) authSection.style.display='none';
-    window.isAuthenticated = ()=>true; // stub
-  }
+  // Initialize auth UI immediately
+  updateAuthUI();
+  
+  // Also update auth UI periodically in case Firebase loads later
+  let authCheckInterval = setInterval(() => {
+    updateAuthUI();
+    // Stop checking after Firebase is loaded or after 10 seconds
+    if ((window.APP_ENV === 'prod' && window.getCurrentUser) || Date.now() > window.loadTime + 10000) {
+      clearInterval(authCheckInterval);
+    }
+  }, 500);
+  
+  // Store load time for timeout
+  window.loadTime = Date.now();
 
   // Setup authentication event listeners
   const loginBtn = document.getElementById('login-btn');
@@ -71,6 +120,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           await window.adminLogin(email, password);
           loginEmail.value = '';
           loginPassword.value = '';
+          updateAuthUI(); // Update UI after login
         } else {
           throw new Error('Authentication not available');
         }
@@ -89,6 +139,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         if (window.adminLogout) {
           await window.adminLogout();
         }
+        updateAuthUI(); // Update UI after logout
       } catch (error) {
         alert('Logout failed: ' + error.message);
       }
@@ -111,6 +162,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
       return fetch(fallbackUrl).then(r=>r.json());
     }).catch(()=>fetch(fallbackUrl).then(r=>r.json()));
   }
+  
+  // Make fetchJson available globally for dataProvider
+  window.fetchJson = fetchJson;
 
   const progressDiv = document.getElementById('upload-progress');
   const hideLoading=()=>{ if(progressDiv) progressDiv.style.display='none'; };
