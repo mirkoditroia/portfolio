@@ -1085,11 +1085,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalImg.style.display = '';
                 modalImg.onload = function() {
                   if (modalImg.naturalHeight > modalImg.naturalWidth) {
-                    modalImg.style.maxWidth = '60vw';
-                    modalImg.style.maxHeight = '80vh';
+                    // Vertical image - limit width more aggressively
+                    modalImg.style.maxWidth = '40vw';
+                    modalImg.style.maxHeight = '85vh';
+                    modalImg.style.width = 'auto';
+                    modalImg.style.height = 'auto';
                   } else {
-                    modalImg.style.maxWidth = '90vw';
-                    modalImg.style.maxHeight = '60vh';
+                    // Horizontal image
+                    modalImg.style.maxWidth = '85vw';
+                    modalImg.style.maxHeight = '70vh';
+                    modalImg.style.width = 'auto';
+                    modalImg.style.height = 'auto';
                   }
                 };
               }
@@ -1112,6 +1118,238 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const galleryTrack = document.createElement('div');
                 galleryTrack.className = 'modal-gallery-track';
+                
+                // Add touch gesture support for mobile navigation
+                let touchStartX = 0;
+                let touchStartY = 0;
+                let touchEndX = 0;
+                let touchEndY = 0;
+                let isDragging = false;
+                const minSwipeDistance = 50; // Minimum distance for swipe
+                
+                const handleTouchStart = (e) => {
+                  touchStartX = e.touches[0].clientX;
+                  touchStartY = e.touches[0].clientY;
+                  isDragging = true;
+                };
+                
+                const handleTouchMove = (e) => {
+                  if (!isDragging) return;
+                  
+                  touchEndX = e.touches[0].clientX;
+                  touchEndY = e.touches[0].clientY;
+                  
+                  // Calculate distances
+                  const deltaX = touchEndX - touchStartX;
+                  const deltaY = touchEndY - touchStartY;
+                  
+                  // Only prevent default if horizontal swipe is dominant
+                  if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                    e.preventDefault();
+                    
+                    // Add visual feedback during swipe
+                    const progress = Math.min(Math.abs(deltaX) / minSwipeDistance, 1);
+                    const opacity = 0.1 + (progress * 0.2);
+                    
+                    if (deltaX > 0 && galleryIndex > 0) {
+                      // Swiping right - show left area
+                      const leftArea = galleryContainer.querySelector('div[style*="left: 0"]');
+                      if (leftArea) leftArea.style.opacity = opacity;
+                    } else if (deltaX < 0 && galleryIndex < imgs.length - 1) {
+                      // Swiping left - show right area
+                      const rightArea = galleryContainer.querySelector('div[style*="right: 0"]');
+                      if (rightArea) rightArea.style.opacity = opacity;
+                    }
+                  }
+                };
+                
+                const handleTouchEnd = (e) => {
+                  if (!isDragging) return;
+                  isDragging = false;
+                  
+                  // Reset visual feedback
+                  const leftArea = galleryContainer.querySelector('div[style*="left: 0"]');
+                  const rightArea = galleryContainer.querySelector('div[style*="right: 0"]');
+                  if (leftArea) leftArea.style.opacity = '0';
+                  if (rightArea) rightArea.style.opacity = '0';
+                  
+                  const deltaX = touchEndX - touchStartX;
+                  const deltaY = touchEndY - touchStartY;
+                  
+                  // Only process horizontal swipes
+                  if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+                    if (deltaX > 0) {
+                      // Swipe right - go to previous
+                      if (galleryIndex > 0) {
+                        const currentVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
+                        if (currentVideo) currentVideo.pause();
+                        
+                        galleryIndex = galleryIndex - 1;
+                        // Ensure we don't go below 0
+                        galleryIndex = Math.max(0, galleryIndex);
+                        
+                        // Calculate precise transform with container width
+                        const containerWidth = galleryContainer.offsetWidth;
+                        const translateX = -galleryIndex * containerWidth;
+                        galleryTrack.style.transform = `translateX(${translateX}px)`;
+                        
+                        const newVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
+                        if (newVideo) newVideo.play().catch(e => console.warn('Video autoplay failed:', e));
+                        
+                        // Update swipe hint
+                        updateSwipeHint();
+                      }
+                    } else {
+                      // Swipe left - go to next
+                      if (galleryIndex < imgs.length - 1) {
+                        const currentVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
+                        if (currentVideo) currentVideo.pause();
+                        
+                        galleryIndex = galleryIndex + 1;
+                        // Ensure we don't exceed array bounds
+                        galleryIndex = Math.min(imgs.length - 1, galleryIndex);
+                        
+                        // Calculate precise transform with container width
+                        const containerWidth = galleryContainer.offsetWidth;
+                        const translateX = -galleryIndex * containerWidth;
+                        galleryTrack.style.transform = `translateX(${translateX}px)`;
+                        
+                        const newVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
+                        if (newVideo) newVideo.play().catch(e => console.warn('Video autoplay failed:', e));
+                        
+                        // Update swipe hint
+                        updateSwipeHint();
+                      }
+                    }
+                  }
+                };
+                
+                // Function to ensure proper alignment
+                const ensureProperAlignment = () => {
+                  const containerWidth = galleryContainer.offsetWidth;
+                  const translateX = -galleryIndex * containerWidth;
+                  galleryTrack.style.transform = `translateX(${translateX}px)`;
+                };
+                
+                // Add touch event listeners to gallery container
+                galleryContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
+                galleryContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+                galleryContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
+                
+                // Ensure proper alignment on window resize
+                window.addEventListener('resize', () => {
+                  setTimeout(ensureProperAlignment, 100);
+                });
+                
+                // Update swipe hint visibility based on gallery position
+                const updateSwipeHint = () => {
+                  const swipeHintText = galleryContainer.querySelector('.swipe-hint-text');
+                  if (swipeHintText && galleryIndex === imgs.length - 1) {
+                    // At the end - show hint
+                    swipeHintText.style.opacity = '1';
+                    setTimeout(() => {
+                      if (galleryIndex === imgs.length - 1) {
+                        swipeHintText.style.opacity = '0.7';
+                      }
+                    }, 2000);
+                  } else if (swipeHintText) {
+                    swipeHintText.style.opacity = '0';
+                  }
+                };
+                
+                // Add visual feedback for swipe areas on mobile
+                if (window.innerWidth <= 900) {
+                  galleryContainer.style.position = 'relative';
+                  
+                  // Create invisible swipe areas for better UX
+                  const leftSwipeArea = document.createElement('div');
+                  leftSwipeArea.style.cssText = `
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 30%;
+                    height: 100%;
+                    z-index: 15;
+                    background: rgba(255,255,255,0.05);
+                    opacity: 0;
+                    transition: opacity 0.2s;
+                    pointer-events: none;
+                  `;
+                  
+                  const rightSwipeArea = document.createElement('div');
+                  rightSwipeArea.style.cssText = `
+                    position: absolute;
+                    right: 0;
+                    top: 0;
+                    width: 30%;
+                    height: 100%;
+                    z-index: 15;
+                    background: rgba(255,255,255,0.05);
+                    opacity: 0;
+                    transition: opacity 0.2s;
+                    pointer-events: none;
+                  `;
+                  
+                  // Add swipe hint text at the end
+                  const swipeHintText = document.createElement('div');
+                  swipeHintText.className = 'swipe-hint-text';
+                  swipeHintText.style.cssText = `
+                    position: absolute;
+                    bottom: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    color: rgba(255,255,255,0.7);
+                    font-size: 0.9rem;
+                    text-align: center;
+                    z-index: 20;
+                    opacity: 0;
+                    transition: opacity 0.3s;
+                    pointer-events: none;
+                    background: rgba(0,0,0,0.5);
+                    padding: 8px 12px;
+                    border-radius: 20px;
+                    backdrop-filter: blur(10px);
+                  `;
+                  swipeHintText.innerHTML = '← Swipe indietro';
+                  
+                  // Show swipe areas briefly on touch
+                  const showSwipeHint = () => {
+                    if (galleryIndex > 0) {
+                      leftSwipeArea.style.opacity = '1';
+                      setTimeout(() => leftSwipeArea.style.opacity = '0', 200);
+                    }
+                    if (galleryIndex < imgs.length - 1) {
+                      rightSwipeArea.style.opacity = '1';
+                      setTimeout(() => rightSwipeArea.style.opacity = '0', 200);
+                    }
+                    updateSwipeHint();
+                  };
+                  
+                  galleryContainer.addEventListener('touchstart', showSwipeHint);
+                  galleryContainer.appendChild(leftSwipeArea);
+                  galleryContainer.appendChild(rightSwipeArea);
+                  galleryContainer.appendChild(swipeHintText);
+                  
+                  // Initial hint update and show when reaching the end
+                  setTimeout(updateSwipeHint, 500);
+                  
+                  // Show hint when user reaches the end for the first time
+                  let hasShownEndHint = false;
+                  const originalUpdateSwipeHint = updateSwipeHint;
+                  updateSwipeHint = () => {
+                    originalUpdateSwipeHint();
+                    if (galleryIndex === imgs.length - 1 && !hasShownEndHint) {
+                      hasShownEndHint = true;
+                      const swipeHintText = galleryContainer.querySelector('.swipe-hint-text');
+                      if (swipeHintText) {
+                        swipeHintText.style.opacity = '1';
+                        setTimeout(() => {
+                          if (swipeHintText) swipeHintText.style.opacity = '0.7';
+                        }, 3000);
+                      }
+                    }
+                  };
+                }
                 
                 imgs.forEach((mediaSrc, index) => {
                   // 🎬 NEW: Detect if media is video or image
@@ -1157,11 +1395,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     mediaEl.className = 'modal-gallery-img';
                     mediaEl.onload = function() {
                       if (mediaEl.naturalHeight > mediaEl.naturalWidth) {
-                        mediaEl.style.maxWidth = '60vw';
-                        mediaEl.style.maxHeight = '80vh';
+                        // Vertical image - limit width more aggressively
+                        mediaEl.style.maxWidth = '40vw';
+                        mediaEl.style.maxHeight = '85vh';
+                        mediaEl.style.width = 'auto';
+                        mediaEl.style.height = 'auto';
                       } else {
-                        mediaEl.style.maxWidth = '90vw';
-                        mediaEl.style.maxHeight = '60vh';
+                        // Horizontal image
+                        mediaEl.style.maxWidth = '85vw';
+                        mediaEl.style.maxHeight = '70vh';
+                        mediaEl.style.width = 'auto';
+                        mediaEl.style.height = 'auto';
                       }
                     };
                   }
@@ -1180,12 +1424,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     const currentVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
                     if (currentVideo) currentVideo.pause();
                     
-                    galleryIndex = (galleryIndex - 1 + imgs.length) % imgs.length;
-                    galleryTrack.style.transform = `translateX(-${galleryIndex * 100}%)`;
+                    galleryIndex = galleryIndex - 1;
+                    // Ensure we don't go below 0
+                    galleryIndex = Math.max(0, galleryIndex);
+                    
+                    // Calculate precise transform with container width
+                    const containerWidth = galleryContainer.offsetWidth;
+                    const translateX = -galleryIndex * containerWidth;
+                    galleryTrack.style.transform = `translateX(${translateX}px)`;
                     
                     // Auto-play new video if it exists
                     const newVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
                     if (newVideo) newVideo.play().catch(e => console.warn('Video autoplay failed:', e));
+                    
+                    // Update swipe hint if function exists
+                    if (typeof updateSwipeHint === 'function') updateSwipeHint();
                   });
                   
                   const nextButton = document.createElement('button');
@@ -1196,12 +1449,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     const currentVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
                     if (currentVideo) currentVideo.pause();
                     
-                    galleryIndex = (galleryIndex + 1) % imgs.length;
-                    galleryTrack.style.transform = `translateX(-${galleryIndex * 100}%)`;
+                    galleryIndex = galleryIndex + 1;
+                    // Ensure we don't exceed array bounds
+                    galleryIndex = Math.min(imgs.length - 1, galleryIndex);
+                    
+                    // Calculate precise transform with container width
+                    const containerWidth = galleryContainer.offsetWidth;
+                    const translateX = -galleryIndex * containerWidth;
+                    galleryTrack.style.transform = `translateX(${translateX}px)`;
                     
                     // Auto-play new video if it exists
                     const newVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
                     if (newVideo) newVideo.play().catch(e => console.warn('Video autoplay failed:', e));
+                    
+                    // Update swipe hint if function exists
+                    if (typeof updateSwipeHint === 'function') updateSwipeHint();
                   });
                   
                   galleryContainer.appendChild(prevButton);

@@ -398,10 +398,10 @@ localStorage.setItem('debug', 'true');
 - [x] **Advanced Contact Admin** - Dropdown intelligente, quick-add social, controllo visibilità
 - [x] **Performance Optimization** - Rimozione elementi non necessari, ottimizzazioni mobile
 - [x] **UI/UX Improvements** - Layout orizzontale desktop, colonna mobile, design pulito
+- [x] **Video thumbnails generation**
 
 ### **v1.3.0** 🚧 **IN SVILUPPO**
 - [ ] Image optimization automatica
-- [ ] Video thumbnails generation
 - [ ] Bulk operations per gallerie
 - [ ] Export/Import configurazioni
 - [ ] Backup automatico dati
@@ -440,4 +440,4 @@ MIT License - Vedi `LICENSE` file per dettagli.
 
 ---
 
-*Ultimo aggiornamento: Gennaio 2025 - v1.2.0-release* 
+*Ultimo aggiornamento: LUGLIO 2025 - v1.2.0-release* 
