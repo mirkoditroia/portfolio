@@ -296,7 +296,7 @@ localStorage.setItem('debug', 'true');
 ### **v1.1.0**
 - [ ] Drag & drop upload
 - [ ] Bulk operations
-- [☑️ ] Image optimization
+- [ ] Image optimization
 - [ ] Video thumbnails
 
 ### **v1.2.0**
