@@ -1764,21 +1764,10 @@ document.addEventListener('DOMContentLoaded', function() {
       currentSiteConfig = site;
       applySiteConfig(site);
       
-      // Start with more frequent polling for the first few minutes
-      let pollCount = 0;
-      const pollInterval = setInterval(() => {
-        checkForSiteUpdates();
-        pollCount++;
-        
-        // After 10 polls (5 minutes), reduce frequency
-        if (pollCount >= 10) {
-          clearInterval(pollInterval);
-          // Start regular polling every 30 seconds
-          setInterval(checkForSiteUpdates, 30000);
-        }
-      }, 30000); // Check every 30 seconds initially
+      // ---- Reduce update checks: run once a day (24h = 86_400_000 ms) ----
+      setInterval(checkForSiteUpdates, 86400000);
       
-      // Also do an immediate check after 5 seconds
+      // Keep a single immediate check after 5 s to catch rapid admin deploys
       setTimeout(checkForSiteUpdates, 5000);
       
       // Listen for admin updates
@@ -1974,69 +1963,27 @@ window.addEventListener('beforeunload', cleanupCanvasVideos);
 const loadSiteData = async () => {
   try {
     let siteData;
-    
-    console.log('🔍 Environment check:', {
-      APP_ENV: window.APP_ENV,
-      getSiteData: typeof window.getSiteData
-    });
-    
-    // In production, FORCE loading from Firebase
     if (window.APP_ENV === 'prod') {
-      console.log('🔥 PRODUCTION: Loading from Firebase...');
-      
-      // Wait for Firebase to be ready
-      let attempts = 0;
-      while (!window.getSiteData && attempts < 50) {
-        console.log(`⏳ Waiting for Firebase... (${attempts}/50)`);
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
+      // Wait max 15s for Firebase helpers
+      if (!window.getSiteData) {
+        await new Promise(res => {
+          const t = setTimeout(res, 15000);
+          window.addEventListener('firebase-ready', () => { clearTimeout(t); res(); }, { once:true });
+        });
       }
-      
-      if (window.getSiteData) {
-        try {
-          console.log('🔥 Loading from Firestore...');
-          siteData = await window.getSiteData();
-          console.log('✅ Firestore data loaded:', siteData);
-        } catch (error) {
-          console.error('❌ Firestore failed:', error);
-          // In production, if Firebase fails, use defaults instead of local file
-          console.log('🔥 Using default values since Firebase failed');
-          siteData = {
-            heroText: "VFXULO",
-            bio: "Portfolio di effetti visivi e animazioni",
-            version: "v1.0.0",
-            contacts: []
-          };
-        }
-      } else {
-        console.error('❌ Firebase not available after 5 seconds');
-        // Use defaults if Firebase never loads
-        siteData = {
-          heroText: "VFXULO",
-          bio: "Portfolio di effetti visivi e animazioni",
-          version: "v1.0.0",
-          contacts: []
-        };
-      }
+      if (!window.getSiteData) throw new Error('Firebase not ready');
+      siteData = await window.getSiteData();
+      console.log('[Site] Data from Firestore', siteData);
     } else {
-      // Local environment - load from file
-      console.log('🔥 LOCAL: Loading from local file...');
-      const response = await fetch('data/site.json');
-      siteData = await response.json();
+      // dev/local
+      const resp = await fetch('data/site.json');
+      siteData = await resp.json();
+      console.log('[Site] Data from local file', siteData);
     }
-    
-    console.log('✅ Site data loaded:', siteData);
     return siteData;
-    
-  } catch (error) {
-    console.error('❌ Error loading site data:', error);
-    // Final fallback
-    return {
-      heroText: "VFXULO",
-      bio: "Portfolio di effetti visivi e animazioni",
-      version: "v1.0.0",
-      contacts: []
-    };
+  } catch(err){
+    console.error('[Site] loadSiteData error', err);
+    return { heroText:'VFXULO', bio:'Portfolio', version:'v1.0.0', contacts:[] };
   }
 };
 
@@ -2163,8 +2110,8 @@ const init = async () => {
     // Listen for updates
     listenForUpdates();
     
-    // Check for updates every 30 seconds
-    setInterval(checkForUpdates, 30000);
+    // Check for updates once per day (24h)
+    setInterval(checkForUpdates, 86400000);
     
     console.log('✅ Site initialized successfully');
     
