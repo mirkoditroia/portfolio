@@ -31,6 +31,14 @@
     } catch(err) {
       console.warn('[Firebase] Storage compat failed to load', err);
     }
+
+    // Load Auth compat and expose instance for admin login (window.auth)
+    try {
+      await load('firebase-auth-compat.js');
+      window.auth = firebase.auth();
+    } catch(err) {
+      console.warn('[Firebase] Auth compat failed to load', err);
+    }
     console.log('[Firebase] Connected (compat)');
 
     // Global helpers

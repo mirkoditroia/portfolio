@@ -21,34 +21,33 @@
   // Initialize auth state listener
   const initAuth = async () => {
     try {
-      const auth = await waitForAuth();
-      const { onAuthStateChanged, signInWithEmailAndPassword, signOut } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
-      
-      // Listen for auth state changes
-      onAuthStateChanged(auth, (user) => {
+      const auth = await waitForAuth(); // compat auth instance
+
+      // Listen for auth state changes (compat)
+      auth.onAuthStateChanged((user) => {
         currentUser = user;
         updateAuthUI();
-        
+
         if (user) {
           console.log('🔐 User authenticated:', user.email);
         } else {
           console.log('🔓 User signed out');
         }
       });
-      
-      // Expose auth functions globally
+
+      // Expose auth functions globally using compat methods
       window.adminLogin = async (email, password) => {
         try {
-          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          const userCredential = await auth.signInWithEmailAndPassword(email, password);
           return userCredential.user;
         } catch (error) {
           throw new Error('Login failed: ' + error.message);
         }
       };
-      
+
       window.adminLogout = async () => {
         try {
-          await signOut(auth);
+          await auth.signOut();
         } catch (error) {
           throw new Error('Logout failed: ' + error.message);
         }
