@@ -155,28 +155,50 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
   }
 
-  // Fetch galleries data
-  function fetchJson(primaryUrl, fallbackUrl){
-    return fetch(primaryUrl).then(res=>{
-      if(res.ok) return res.json();
-      return fetch(fallbackUrl).then(r=>r.json());
-    }).catch(()=>fetch(fallbackUrl).then(r=>r.json()));
-  }
-  
-  // Make fetchJson available globally for dataProvider
-  window.fetchJson = fetchJson;
+  // Don't define fetchJson here - let dataProvider handle it
+  // The dataProvider.js will override window.fetchJson with proper fallbacks
 
   const progressDiv = document.getElementById('upload-progress');
   const hideLoading=()=>{ if(progressDiv) progressDiv.style.display='none'; };
 
-  fetchJson('/api/galleries','../data/galleries.json')
-    .then(data=>{renderGalleries(data); hideLoading(); window._origGalleries = JSON.parse(JSON.stringify(data)); window.adminLog?.('Gallerie caricate');})
-    .catch(err=>{
+  // Wait for dataProvider to load, then use its fetchJson
+  const loadGalleries = async () => {
+    // Wait a bit for dataProvider to initialize
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    if (!window.fetchJson) {
+      console.error('dataProvider not loaded, using fallback');
+      try {
+        const response = await fetch('../data/galleries.json');
+        const data = await response.json();
+        renderGalleries(data);
+        hideLoading();
+        window._origGalleries = JSON.parse(JSON.stringify(data));
+        window.adminLog?.('Gallerie caricate (fallback)');
+      } catch (err) {
+        console.error(err);
+        window.adminLog?.('Errore caricamento gallerie');
+        container.innerHTML = '<p class="error">Impossibile caricare i dati. Controlla che il server sia in esecuzione.</p>';
+        hideLoading();
+      }
+      return;
+    }
+    
+    try {
+      const data = await window.fetchJson('/api/galleries', '../data/galleries.json');
+      renderGalleries(data);
+      hideLoading();
+      window._origGalleries = JSON.parse(JSON.stringify(data));
+      window.adminLog?.('Gallerie caricate');
+    } catch (err) {
       console.error(err);
       window.adminLog?.('Errore caricamento gallerie');
       container.innerHTML = '<p class="error">Impossibile caricare i dati. Controlla che il server sia in esecuzione.</p>';
       hideLoading();
-    });
+    }
+  };
+  
+  loadGalleries();
 
   function renderGalleries(data){
     const gTpl = document.getElementById('gallery-template');
@@ -416,10 +438,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   // Additionally load site config (bio, contacts, sections)
-  // Load site config - use Firestore in prod
+  // Load site config - use dataProvider's fetchJson
   const loadSiteConfigAdmin = async () => {
     try {
-      const site = await fetchJson('/api/site','../data/site.json');
+      // Wait for dataProvider to load
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      let site;
+      if (window.fetchJson) {
+        site = await window.fetchJson('/api/site', '../data/site.json');
+      } else {
+        console.warn('dataProvider not loaded, using direct fetch');
+        const response = await fetch('../data/site.json');
+        site = await response.json();
+      }
+      
       window._origSite = JSON.parse(JSON.stringify(site)); // Store original for diff
       renderSiteConfig(site);
       window.adminLog?.('Site config caricata');
