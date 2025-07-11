@@ -6,7 +6,8 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "compress-images": "node scripts/compress-images.js",
-    "optimize": "npm run compress-images && echo 'Optimization completed!'"
+    "optimize": "npm run compress-images && echo 'Optimization completed!'",
+    "postinstall": "node scripts/generate-env.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
