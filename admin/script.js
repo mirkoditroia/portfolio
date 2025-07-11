@@ -1325,7 +1325,7 @@ function triggerCacheInvalidation(displayName, payload) {
   try {
     const timestamp = Date.now();
     
-    // Store update info in localStorage for cross-tab communication
+    // Simple update trigger for cross-tab communication
     const updateInfo = {
       timestamp,
       displayName,
@@ -1335,42 +1335,25 @@ function triggerCacheInvalidation(displayName, payload) {
     
     localStorage.setItem('admin-update-trigger', JSON.stringify(updateInfo));
     
-    // Also store a persistent marker for other sessions
-    const persistentMarker = {
-      timestamp,
+    // Set a simple flag to trigger refresh
+    localStorage.setItem('site-needs-refresh', 'true');
+    
+    console.log('🔄 Simple cache invalidation triggered:', {
       displayName,
-      type: 'site-config-update',
-      version: payload.version || 'unknown'
-    };
-    localStorage.setItem('last-admin-update', JSON.stringify(persistentMarker));
+      timestamp,
+      payloadKeys: Object.keys(payload)
+    });
     
-    // Force cache refresh strategies
-    localStorage.setItem('force-site-refresh', 'true');
-    localStorage.setItem('cache-invalidation-timestamp', timestamp.toString());
+    window.adminLog?.(`🔄 Update triggered for ${displayName}`);
     
-    // Clear any existing cache markers
-    localStorage.removeItem('site-config-cache');
-    localStorage.removeItem('last-site-load');
-    localStorage.removeItem('firestore-cache-marker');
-    
-    // Clear the trigger after a short delay to prevent repeated triggers
+    // Clear the trigger after a short delay
     setTimeout(() => {
       localStorage.removeItem('admin-update-trigger');
     }, 1000);
     
-    console.log('🔄 Cache invalidation strategies deployed:', {
-      adminUpdateTrigger: true,
-      lastAdminUpdate: true,
-      forceSiteRefresh: true,
-      cacheInvalidationTimestamp: timestamp,
-      displayName,
-      payloadKeys: Object.keys(payload)
-    });
-    
-    window.adminLog?.(`🔄 Cache invalidation triggered for ${displayName} (${Object.keys(payload).join(', ')})`);
   } catch(err) {
     console.error('Failed to trigger cache invalidation:', err);
-    window.adminLog?.(`❌ Errore cache invalidation: ${err.message}`);
+    window.adminLog?.(`❌ Errore update trigger: ${err.message}`);
   }
 }
 

@@ -1717,88 +1717,70 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       console.log('🔍 Checking for site configuration updates...');
       
-      // Clear any localStorage cache markers to force fresh data
-      const forceRefresh = localStorage.getItem('force-site-refresh');
-      if (forceRefresh) {
-        console.log('🔄 Force refresh flag detected, clearing cache markers');
-        localStorage.removeItem('force-site-refresh');
+      // Load fresh data from Firestore
+      let newSiteConfig;
+      if (window.APP_ENV === 'prod' && window.getSiteProd) {
+        console.log('🔥 Loading fresh site data from Firestore...');
+        newSiteConfig = await window.getSiteProd();
+      } else {
+        newSiteConfig = await loadSiteConfig(true);
       }
       
-      const newSiteConfig = await loadSiteConfig(true); // Force cache bust
-      
       if (currentSiteConfig) {
-        // Create a deep comparison hash for better change detection
-        const currentHash = JSON.stringify(currentSiteConfig);
-        const newHash = JSON.stringify(newSiteConfig);
+        // Simple comparison of key fields
+        const currentVersion = currentSiteConfig.version || '';
+        const newVersion = newSiteConfig.version || '';
+        const currentHeroText = currentSiteConfig.heroText || '';
+        const newHeroText = newSiteConfig.heroText || '';
+        const currentBio = currentSiteConfig.bio || '';
+        const newBio = newSiteConfig.bio || '';
         
-        console.log('🔍 Comparing configurations:', {
-          currentHash: currentHash.substring(0, 100) + '...',
-          newHash: newHash.substring(0, 100) + '...',
-          hashesMatch: currentHash === newHash,
-          currentVersion: currentSiteConfig.version,
-          newVersion: newSiteConfig.version,
-          currentHeroText: currentSiteConfig.heroText,
-          newHeroText: newSiteConfig.heroText
+        console.log('🔍 Comparing site data:', {
+          currentVersion,
+          newVersion,
+          currentHeroText: currentHeroText.substring(0, 50) + '...',
+          newHeroText: newHeroText.substring(0, 50) + '...',
+          currentBio: currentBio.substring(0, 50) + '...',
+          newBio: newBio.substring(0, 50) + '...'
         });
         
-        if (currentHash !== newHash) {
-          console.log('🔄 Site configuration changes detected');
-          console.log('Previous config:', currentSiteConfig);
-          console.log('New config:', newSiteConfig);
+        // Check if anything changed
+        const hasChanges = (
+          currentVersion !== newVersion ||
+          currentHeroText !== newHeroText ||
+          currentBio !== newBio ||
+          JSON.stringify(currentSiteConfig.contacts) !== JSON.stringify(newSiteConfig.contacts)
+        );
+        
+        if (hasChanges) {
+          console.log('🔄 Site configuration changes detected!');
           
-          // Check if version has changed
-          if (currentSiteConfig.version !== newSiteConfig.version) {
-            console.log(`🔄 Site version updated: ${currentSiteConfig.version} → ${newSiteConfig.version}`);
-            showUpdateNotification(newSiteConfig.version);
-          }
-          
-          // Check for specific field changes
-          const changedFields = [];
-          if (currentSiteConfig.heroText !== newSiteConfig.heroText) {
-            changedFields.push('heroText');
-          }
-          if (currentSiteConfig.bio !== newSiteConfig.bio) {
-            changedFields.push('bio');
-          }
-          if (JSON.stringify(currentSiteConfig.contacts) !== JSON.stringify(newSiteConfig.contacts)) {
-            changedFields.push('contacts');
-          }
-          
-          if (changedFields.length > 0) {
-            console.log('🔄 Changed fields detected:', changedFields);
-          }
-          
-          // Apply all changes
-          applySiteConfig(newSiteConfig);
-          
-          // Show generic update notification if no version change
-          if (currentSiteConfig.version === newSiteConfig.version) {
+          // Show version update notification
+          if (currentVersion !== newVersion) {
+            console.log(`🔄 Version changed: ${currentVersion} → ${newVersion}`);
+            showUpdateNotification(newVersion);
+          } else {
             showUpdateNotification('Contenuto aggiornato');
           }
           
-          // Set a flag to force refresh on next load if needed
-          localStorage.setItem('last-successful-update', Date.now().toString());
+          // Apply changes
+          applySiteConfig(newSiteConfig);
           
-          // Clear force refresh flags after successful update
+          // Clear force refresh flags
           localStorage.removeItem('force-site-refresh');
           localStorage.removeItem('cache-invalidation-timestamp');
           
         } else {
-          console.log('✅ No site configuration changes detected');
+          console.log('✅ No changes detected');
         }
       } else {
         console.log('🔄 Initial site configuration load');
       }
       
       currentSiteConfig = newSiteConfig;
+      
     } catch (err) {
       console.error('❌ Error checking for site updates:', err);
-      
-      // If we're having trouble getting fresh data, try to force a cache clear
-      if (err.message && err.message.includes('cache')) {
-        console.log('🔄 Cache-related error detected, setting force refresh flag');
-        localStorage.setItem('force-site-refresh', 'true');
-      }
     }
   };
   
@@ -1879,101 +1861,42 @@ document.addEventListener('DOMContentLoaded', function() {
       if (e.key === 'admin-update-trigger' && e.newValue) {
         try {
           const updateInfo = JSON.parse(e.newValue);
-          if (updateInfo.type === 'site-config-update') {
-            console.log('🔄 Admin update detected via storage event:', updateInfo.displayName);
-            
-            // Force immediate config reload with aggressive cache clearing
-            setTimeout(() => {
-              console.log('🔄 Forcing immediate site config reload due to admin update');
-              checkForSiteUpdates();
-            }, 500); // Small delay to ensure admin save is complete
-          }
+          console.log('🔄 Admin update detected:', updateInfo.displayName);
+          
+          // Force immediate config reload
+          setTimeout(() => {
+            checkForSiteUpdates();
+          }, 1000);
         } catch (err) {
           console.error('Error parsing admin update trigger:', err);
         }
       }
       
-      // Also listen for force refresh flags
-      if (e.key === 'force-site-refresh' && e.newValue === 'true') {
-        console.log('🔄 Force site refresh flag detected');
-        setTimeout(() => {
-          checkForSiteUpdates();
-        }, 1000);
-      }
-      
-      // Listen for cache invalidation timestamps
-      if (e.key === 'cache-invalidation-timestamp' && e.newValue) {
-        console.log('🔄 Cache invalidation timestamp detected:', e.newValue);
+      if (e.key === 'site-needs-refresh' && e.newValue === 'true') {
+        console.log('🔄 Site refresh needed flag detected');
         setTimeout(() => {
           checkForSiteUpdates();
         }, 1500);
       }
     });
     
-    // Also check for persistent markers on page load/focus
-    const checkPersistentUpdates = () => {
-      try {
-        const lastUpdate = localStorage.getItem('last-admin-update');
-        const forceRefresh = localStorage.getItem('force-site-refresh');
-        const cacheInvalidationTimestamp = localStorage.getItem('cache-invalidation-timestamp');
-        
-        console.log('🔍 Checking for persistent update markers:', {
-          lastUpdate: lastUpdate ? 'present' : 'none',
-          forceRefresh: forceRefresh,
-          cacheInvalidationTimestamp: cacheInvalidationTimestamp
-        });
-        
-        if (lastUpdate) {
-          const updateInfo = JSON.parse(lastUpdate);
-          const timeSinceUpdate = Date.now() - updateInfo.timestamp;
-          
-          // If update was less than 5 minutes ago, force a refresh
-          if (timeSinceUpdate < 5 * 60 * 1000) {
-            console.log('🔄 Recent admin update detected, forcing refresh', {
-              timeSinceUpdate: Math.round(timeSinceUpdate / 1000) + 's',
-              displayName: updateInfo.displayName
-            });
-            setTimeout(() => {
-              checkForSiteUpdates();
-            }, 1000);
-          }
-        }
-        
-        if (forceRefresh === 'true') {
-          console.log('🔄 Force refresh flag detected on page load');
-          setTimeout(() => {
-            checkForSiteUpdates();
-          }, 1500);
-        }
-        
-        if (cacheInvalidationTimestamp) {
-          const timeSinceInvalidation = Date.now() - parseInt(cacheInvalidationTimestamp);
-          if (timeSinceInvalidation < 5 * 60 * 1000) {
-            console.log('🔄 Recent cache invalidation detected, forcing refresh');
-            setTimeout(() => {
-              checkForSiteUpdates();
-            }, 2000);
-          }
-        }
-      } catch (err) {
-        console.error('Error checking persistent updates:', err);
+    // Check for refresh flag on page load
+    const checkForRefreshFlag = () => {
+      const needsRefresh = localStorage.getItem('site-needs-refresh');
+      if (needsRefresh === 'true') {
+        console.log('🔄 Site needs refresh flag found on page load');
+        setTimeout(() => {
+          checkForSiteUpdates();
+          localStorage.removeItem('site-needs-refresh');
+        }, 2000);
       }
     };
     
     // Check on page load
-    checkPersistentUpdates();
+    checkForRefreshFlag();
     
     // Check when page regains focus
-    window.addEventListener('focus', checkPersistentUpdates);
-    
-    // Also check periodically for missed updates
-    setInterval(() => {
-      const forceRefresh = localStorage.getItem('force-site-refresh');
-      if (forceRefresh === 'true') {
-        console.log('🔄 Periodic check found force refresh flag');
-        checkForSiteUpdates();
-      }
-    }, 10000); // Check every 10 seconds
+    window.addEventListener('focus', checkForRefreshFlag);
   };
   
   // Initial load
