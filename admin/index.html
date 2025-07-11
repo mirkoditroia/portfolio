@@ -216,6 +216,11 @@
       let env = 'prod';
       if(h === 'localhost' || h.startsWith('127.') || h.includes('local')) env='local';
       else if(h.includes('preprod') || h.includes('pre-prod')) env='preprod';
+      
+      // Set global APP_ENV for Firebase
+      window.APP_ENV = env;
+      console.log('🌍 Environment detected:', window.APP_ENV);
+      
       const s=document.createElement('script');
       s.src=`/config/env.${env}.js`;
       document.head.appendChild(s);
