@@ -1,14 +1,16 @@
 {
   "vfx": [
     {
+      "src": "images/Active_Render10620-1752188255807.jpg",
       "canvas": true,
       "title": "Motion Graphics",
+      "description": "Grafica animata e motion design.",
       "modalGallery": [
         "images/frame_1040.jpg",
         "images/art_2k_end.png",
-        "images/rhythm_v004.karmarendersettings.1052.png"
-      ],
-      "description": "Grafica animata e motion design."
+        "images/rhythm_v004.karmarendersettings.1052.png",
+        "images/Active_Render10620-1752188212937.jpg"
+      ]
     },
     {
       "src": "images/TDMovieOut0-1751897136468.jpg",
@@ -35,28 +37,32 @@
   ],
   "art3d": [
     {
-      "src": "images/boccioni.png",
+      "src": "images/Umberto_Boccioni_1912_Elasticity_Elasticit_oil_on_canvas_100_x_100_cm_Museo_del_Novecento-1752186653670.jpg",
+      "canvas": true,
       "title": "boccioni",
-      "video": "video/1.mp4",
-      "description": "Lorem ipsum dolor sit amet, Frame 1040."
+      "description": "Lorem ipsum dolor sit amet, Frame 1040.",
+      "video": "video/1.mp4"
     },
     {
       "src": "images/rhythm_v004.karmarendersettings.1052.png",
-      "video": "video/3.mp4",
+      "canvas": true,
       "title": "Rhythm Render",
-      "description": "Lorem ipsum dolor sit amet, Rhythm Render."
+      "description": "Lorem ipsum dolor sit amet, Rhythm Render.",
+      "video": "video/3.mp4"
     },
     {
       "src": "images/art_2k2.png",
+      "canvas": true,
       "title": "Art 2K2",
-      "video": "video/ART.mp4",
-      "description": "Lorem ipsum dolor sit amet, Art 2K2."
+      "description": "Lorem ipsum dolor sit amet, Art 2K2.",
+      "video": "video/ART.mp4"
     },
     {
       "src": "images/frame_1040.jpg",
-      "video": "video/2.mp4",
+      "canvas": true,
       "title": "aaaaa",
-      "description": "Lorem ipsum dolor sit amet, aaaaa."
+      "description": "Lorem ipsum dolor sit amet, aaaaa.",
+      "video": "video/2.mp4"
     },
     {
       "canvas": true,

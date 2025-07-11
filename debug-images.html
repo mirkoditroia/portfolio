@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Lazy Loading - Portfolio</title>
+    <link rel="stylesheet" href="css/lazy-images.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        .test-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .test-item {
+            border: 1px solid #555;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .test-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+        .status {
+            font-size: 12px;
+            margin-top: 5px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .status.loading { background: #ffc107; color: #000; }
+        .status.loaded { background: #28a745; color: #fff; }
+        .status.error { background: #dc3545; color: #fff; }
+        
+        .log {
+            background: #2d2d2d;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Lazy Loading Immagini</h1>
+    
+    <div class="log" id="debug-log">
+        <div>🚀 Inizializzazione debug...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📸 Test Immagini Originali</h2>
+        <div class="test-images" id="original-images">
+            <!-- Immagini originali -->
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🖼️ Test Immagini Ottimizzate</h2>
+        <div class="test-images" id="optimized-images">
+            <!-- Immagini ottimizzate -->
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔄 Test Lazy Loading</h2>
+        <div class="test-images" id="lazy-images">
+            <!-- Immagini con lazy loading -->
+        </div>
+    </div>
+
+    <script type="module" src="js/imageOptimizer-wrapper.js"></script>
+    <script>
+        const log = document.getElementById('debug-log');
+        
+        function debugLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+            console.log(message);
+        }
+        
+        // Lista delle immagini da testare (dalla sezione art3d)
+        const testImages = [
+            { name: 'boccioni', src: 'images/boccioni.png' },
+            { name: 'art_2k2', src: 'images/art_2k2.png' },
+            { name: 'art_2k_end', src: 'images/art_2k_end.png' },
+            { name: 'frame_1040', src: 'images/frame_1040.jpg' },
+            { name: 'rhythm_v004', src: 'images/rhythm_v004.karmarendersettings.1052.png' }
+        ];
+        
+        function createTestItem(imageName, imageSrc, containerType) {
+            const item = document.createElement('div');
+            item.className = 'test-item';
+            
+            const img = document.createElement('img');
+            const status = document.createElement('div');
+            status.className = 'status loading';
+            status.textContent = 'Loading...';
+            
+            const title = document.createElement('h4');
+            title.textContent = imageName;
+            
+            if (containerType === 'original') {
+                img.src = imageSrc;
+                img.alt = imageName;
+                debugLog(`📷 Caricamento originale: ${imageSrc}`);
+            } else if (containerType === 'optimized') {
+                // Test immagine ottimizzata WebP medium
+                const optimizedSrc = imageSrc.replace('images/', 'images/optimized/')
+                                            .replace(/\.(png|jpg|jpeg)$/i, '-medium.webp');
+                img.src = optimizedSrc;
+                img.alt = imageName;
+                debugLog(`🖼️ Caricamento ottimizzato: ${optimizedSrc}`);
+            } else if (containerType === 'lazy') {
+                // Test lazy loading
+                img.className = 'lazy-image';
+                img.alt = imageName;
+                img.loading = 'lazy';
+                img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzJkMmQyZCIvPgogIDx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkxvYWRpbmcuLi48L3RleHQ+Cjwvc3ZnPg==';
+                img.setAttribute('data-src', imageSrc);
+                debugLog(`🔄 Setup lazy loading: ${imageSrc}`);
+            }
+            
+            img.onload = () => {
+                status.className = 'status loaded';
+                status.textContent = 'Loaded ✅';
+                debugLog(`✅ Caricata: ${img.src}`);
+            };
+            
+            img.onerror = () => {
+                status.className = 'status error';
+                status.textContent = 'Error ❌';
+                debugLog(`❌ Errore caricamento: ${img.src}`);
+            };
+            
+            item.appendChild(title);
+            item.appendChild(img);
+            item.appendChild(status);
+            
+            return item;
+        }
+        
+        function runTests() {
+            debugLog('🔍 Avvio test immagini...');
+            
+            const originalContainer = document.getElementById('original-images');
+            const optimizedContainer = document.getElementById('optimized-images');
+            const lazyContainer = document.getElementById('lazy-images');
+            
+            testImages.forEach(({ name, src }) => {
+                // Test immagini originali
+                originalContainer.appendChild(createTestItem(name, src, 'original'));
+                
+                // Test immagini ottimizzate
+                optimizedContainer.appendChild(createTestItem(name + ' (WebP)', src, 'optimized'));
+                
+                // Test lazy loading
+                lazyContainer.appendChild(createTestItem(name + ' (Lazy)', src, 'lazy'));
+            });
+            
+            // Inizializza ImageOptimizer
+            if (window.ImageOptimizer) {
+                debugLog('🖼️ Inizializzazione ImageOptimizer...');
+                window.imageOptimizer = new ImageOptimizer({
+                    rootMargin: '50px',
+                    threshold: 0.1,
+                    enableWebP: true,
+                    enableAVIF: true
+                });
+                debugLog('✅ ImageOptimizer inizializzato');
+                
+                // Verifica supporto formati
+                setTimeout(() => {
+                    debugLog(`📊 Supporto WebP: ${window.imageOptimizer.formatSupport.webp}`);
+                    debugLog(`📊 Supporto AVIF: ${window.imageOptimizer.formatSupport.avif}`);
+                }, 1000);
+            } else {
+                debugLog('❌ ImageOptimizer non disponibile');
+            }
+        }
+        
+        // Monitora errori
+        window.addEventListener('error', (e) => {
+            debugLog(`❌ Errore globale: ${e.message}`);
+        });
+        
+        // Avvia test quando la pagina è pronta
+        document.addEventListener('DOMContentLoaded', runTests);
+        
+        debugLog('📝 Pagina debug caricata');
+    </script>
+</body>
+</html> 

@@ -1,0 +1,8 @@
+node_modules/
+.DS_Store
+images/
+video/
+*.log
+.env
+*.env
+npm-debug.log 

@@ -451,15 +451,12 @@ document.addEventListener('DOMContentLoaded', function() {
       if (img.canvas) {
         mediaEl = document.createElement('canvas');
         mediaEl.className = 'gallery-canvas';
-        // Imposto dimensioni canvas responsive
+        // Dimensioni canvas responsive
         mediaEl.width = 300;
         mediaEl.height = 210;
-        if (window.innerWidth <= 480) {
+        if (window.innerWidth <= 600) {
           mediaEl.width = 240;
           mediaEl.height = 160;
-        } else if (window.innerWidth <= 600) {
-          mediaEl.width = 270;
-          mediaEl.height = 180;
         }
         
         const ctx = mediaEl.getContext('2d');
@@ -483,19 +480,33 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.clearRect(0, 0, canvasW, canvasH);
             ctx.drawImage(imageObj, offsetX, offsetY, drawW, drawH);
           };
+
+          // Se l'immagine non esiste o dà errore, mostra un placeholder testuale
+          imageObj.onerror = function() {
+            console.warn('⚠️ Canvas fallback, immagine non trovata:', imageObj.src);
+            createCanvasContent(ctx, img.title, mediaEl.width, mediaEl.height);
+          };
           imageObj.src = img.src;
         } else {
           createCanvasContent(ctx, img.title, mediaEl.width, mediaEl.height);
         }
       } else {
-        mediaEl = document.createElement('img');
-        mediaEl.className = 'gallery-img';
-        mediaEl.src = img.src;
-        mediaEl.alt = img.title;
-        mediaEl.onerror = () => { 
-          mediaEl.style.display = 'none'; 
-          console.log('Immagine non trovata:', mediaEl.src); 
-        };
+        /* Utilizza ImageOptimizer per immagini responsive e lazy */
+        const imgFilename = (img.src || '').split('/').pop(); // es. "boccioni.png"
+        if (window.createResponsiveImage) {
+          // Crea <img> con placeholder base64, attributi data-* e classe "lazy-image"
+          mediaEl = window.createResponsiveImage(imgFilename, img.title, 'gallery-img');
+        } else {
+          // Fallback: comportamento precedente
+          mediaEl = document.createElement('img');
+          mediaEl.className = 'gallery-img';
+          mediaEl.src = img.src;
+          mediaEl.alt = img.title;
+          mediaEl.onerror = () => { 
+            mediaEl.style.display = 'none'; 
+            console.log('Immagine non trovata:', mediaEl.src); 
+          };
+        }
       }
 
       const titleEl = document.createElement('div');
@@ -548,13 +559,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const clampTranslate = (sw) => {
       if (typeof sw.__maxTranslate === 'undefined') updateClamp(sw);
       const tx = sw.getTranslate(); // valore negativo attuale
+
+      // Evita ricorsione infinita usando un semplice lock
+      if (sw.__clampLock) return;
+
       if (tx < sw.__maxTranslate) {
+        sw.__clampLock = true;
         sw.setTranslate(sw.__maxTranslate);
+        sw.__clampLock = false;
         sw.allowSlideNext = false;
       } else {
         sw.allowSlideNext = true;
       }
-      // prev
+      // prev limite inizio
       if (sw.getTranslate() === 0) {
         sw.allowSlidePrev = false;
       } else {
@@ -773,6 +790,17 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function afterGalleryInit() {
+    // Lazy-loading: inizializza ImageOptimizer una sola volta
+    if (window.ImageOptimizer && !window.imageOptimizer) {
+      window.imageOptimizer = new ImageOptimizer({
+        rootMargin: '300px',
+        threshold: 0.1,
+        enableWebP: true,
+        enableAVIF: true
+      });
+      console.log('🖼️ ImageOptimizer avviato (gallerie)');
+    }
+
     // Aggiungi click handlers dopo che tutte le gallery sono pronte
     console.log('🔗 Aggiunta click handlers...');
     const galleryItems = document.querySelectorAll('.gallery-item');
@@ -891,6 +919,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalGallery.appendChild(galleryContainer);
               }
             }
+            else if (imgData.video || videoSrc) {
+              // Open video in modal when canvas overlay is present
+              modal.style.display = 'flex';
+              modalPlayer.style.display = '';
+              const modalImg = document.getElementById('modalImage');
+              if (modalImg) modalImg.style.display = 'none';
+              const modalGallery = document.getElementById('modalGallery');
+              if (modalGallery) modalGallery.style.display = 'none';
+
+              const src = videoSrc || imgData.video;
+              modalPlayer.src = src;
+              modalPlayer.play();
+            }
           } else if (canvas && !imgData) {
             // Canvas senza dati specifici - mostra messaggio di demo
             console.log('Canvas clicked but no specific data found');
@@ -933,7 +974,12 @@ document.addEventListener('DOMContentLoaded', function() {
   loadSiteConfig()
     .then(site=>{
       try{
-        const applyHero=text=>{ document.querySelectorAll('.fa3io-text').forEach(el=>el.textContent=text); };
+        const applyHero=text=>{
+          document.querySelectorAll('.fa3io-text').forEach(el=>{
+            el.textContent=text;
+            el.classList.remove('preload');
+          });
+        };
         // Bio
         const aboutTextEl = document.querySelector('.about-text');
         if(aboutTextEl && site.bio) aboutTextEl.textContent = site.bio;
@@ -997,6 +1043,12 @@ document.addEventListener('DOMContentLoaded', function() {
           const sh=document.getElementById('shader-iframe');
           if(sh) sh.src = site.shaderUrl;
         }
+
+        // Versione sito
+        const versionEl = document.getElementById('version');
+        if(versionEl && site.version){
+          versionEl.textContent = site.version;
+        }
       }catch(err){ console.error('Errore applicazione site meta',err); }
     })
     .catch(err=>console.error('Errore fetch site meta',err)); 
@@ -1033,12 +1085,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Fade-in shader iframe after load
   const shader=document.getElementById('shader-iframe');
   const logoEl=document.querySelector('.center-logo');
+  const shaderLoader=document.getElementById('shaderLoader');
+  const hideShaderLoader=()=>{ if(shaderLoader) shaderLoader.classList.add('hide'); };
   if(shader){ shader.addEventListener('load',()=>{
       shader.classList.add('loaded');
       if(logoEl) logoEl.classList.add('loaded');
+      hideShaderLoader();
     });
   }else{
     if(logoEl) logoEl.classList.add('loaded');
+    hideShaderLoader();
   }
 
   /* Mobile GLSL shader fetched from API */
@@ -1071,6 +1127,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       const sandbox=new GlslCanvas(canvas);
       sandbox.load(shaderText);
       console.log('[MobileShader] GLSL initialized');
+      hideShaderLoader();
       const resize=()=>{const ratio=window.devicePixelRatio||1;const scale=0.5;canvas.width=canvas.clientWidth*scale*ratio;canvas.height=canvas.clientHeight*scale*ratio;};
       resize();window.addEventListener('resize',resize);
     }else{
@@ -1082,6 +1139,7 @@ document.addEventListener('DOMContentLoaded',()=>{
            const sandbox=new Glsl(canvas);
            sandbox.load(text);
            console.log('[MobileShader] GLSL initialized (dynamic)');
+           hideShaderLoader();
            const resize=()=>{const ratio=window.devicePixelRatio||1;const scale=0.5;canvas.width=canvas.clientWidth*scale*ratio;canvas.height=canvas.clientHeight*scale*ratio;};
            resize();window.addEventListener('resize',resize);
         });
@@ -1092,6 +1150,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         function resize2d(){canvas.width=canvas.clientWidth;canvas.height=canvas.clientHeight;}
         resize2d();window.addEventListener('resize',resize2d);
         function draw(t){requestAnimationFrame(draw);const w=canvas.width,h=canvas.height;const time=t*0.0004;const grd=ctx.createRadialGradient(w*0.5+Math.sin(time)*w*0.2,h*0.4+Math.cos(time*1.3)*h*0.2,0,w/2,h/2,Math.max(w,h)*0.7);const hue=(time*40)%360;grd.addColorStop(0,`hsl(${hue},70%,55%)`);grd.addColorStop(1,'#001820');ctx.fillStyle=grd;ctx.fillRect(0,0,w,h);}draw();
+        hideShaderLoader();
       });
     }
   })();

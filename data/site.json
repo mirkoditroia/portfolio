@@ -39,5 +39,6 @@
     }
   ],
   "apiBase": "https://mirkoditroia.github.io/portfolio",
-  "shaderUrl": "https://www.shadertoy.com/embed/XstGWn?gui=false&t=10&paused=false&muted=true"
+  "shaderUrl": "https://www.shadertoy.com/embed/XstGWn?gui=false&t=10&paused=false&muted=true",
+  "version": "v1.1.2-alpha"
 }

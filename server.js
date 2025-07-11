@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import multer from 'multer';
+import sharp from 'sharp';
 
 dotenv.config();
 
@@ -13,7 +14,7 @@ const __dirname  = path.dirname(__filename);
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
-const TOKEN= process.env.ADMIN_TOKEN || 'MY_SECRET_TOKEN';
+const TOKEN= process.env.ADMIN_TOKEN || 'TOKEN';
 
 // paths
 const PUBLIC_DIR = __dirname; // serve existing project root
@@ -45,6 +46,56 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage });
+
+// ---- Config immagini ottimizzate ----
+const SIZES = { small: 400, medium: 800, large: 1200, xlarge: 1920 };
+const QUALITY = { jpeg: 80, webp: 85, avif: 60 };
+
+// Helper per generare immagine se non esiste
+async function ensureOptimized(nameWithExt, size, format) {
+  const baseName = path.parse(nameWithExt).name; // senza estensione
+  const inputPath = path.join(__dirname, 'images', nameWithExt);
+  const outputDir = path.join(__dirname, 'images', 'optimized');
+  const outputName = `${baseName}-${size}.${format}`;
+  const outputPath = path.join(outputDir, outputName);
+
+  try {
+    // Se già esiste, stop
+    await fs.access(outputPath).then(() => true).catch(() => false);
+  } catch {
+    // ignore
+  }
+  try {
+    await fs.access(outputPath);
+    return outputName; // già esiste
+  } catch {
+    // crea outputDir se manca
+    await fs.mkdir(outputDir, { recursive: true });
+    // genera con sharp
+    await sharp(inputPath)
+      .resize(SIZES[size], null, { withoutEnlargement: true, fit: 'inside' })
+      .toFormat(format, { quality: QUALITY[format] || 80 })
+      .toFile(outputPath);
+    console.log(`🖼️ Generated ${outputName}`);
+    return outputName;
+  }
+}
+
+// Endpoint on-demand optimization
+app.get('/api/optimize', async (req, res) => {
+  try {
+    const { name, size = 'medium', format = 'webp' } = req.query;
+    if (!name) return res.status(400).json({ error: 'name-required' });
+    if (!SIZES[size]) return res.status(400).json({ error: 'invalid-size' });
+    if (!['jpeg', 'webp', 'avif'].includes(format)) return res.status(400).json({ error: 'invalid-format' });
+
+    const optimizedName = await ensureOptimized(name, size, format);
+    return res.json({ path: `images/optimized/${optimizedName}` });
+  } catch (err) {
+    console.error('optimize-error', err);
+    res.status(500).json({ error: 'optimize-failed' });
+  }
+});
 
 // ---------------- API ----------------
 app.get('/api/galleries', async (_req,res) => {

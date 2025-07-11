@@ -1,0 +1,262 @@
+/**
+ * Lazy Images CSS - Styling per caricamento ottimizzato
+ */
+
+/* Placeholder e stato di caricamento */
+.lazy-image {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  background-color: #2d2d2d;
+  background-image: linear-gradient(45deg, #2d2d2d 25%, transparent 25%), 
+                    linear-gradient(-45deg, #2d2d2d 25%, transparent 25%), 
+                    linear-gradient(45deg, transparent 75%, #2d2d2d 75%), 
+                    linear-gradient(-45deg, transparent 75%, #2d2d2d 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  border-radius: 8px;
+}
+
+/* Stato di caricamento */
+.lazy-image.loading {
+  opacity: 0.6;
+  animation: shimmer 2s infinite;
+  position: relative;
+}
+
+.lazy-image.loading::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: shimmer-slide 2s infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes shimmer-slide {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Stato caricato */
+.lazy-image.loaded {
+  opacity: 1;
+  background: none;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Stato di errore */
+.lazy-image.error {
+  opacity: 0.5;
+  background: #333;
+  position: relative;
+}
+
+.lazy-image.error::before {
+  content: '⚠️';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  color: #ff6b6b;
+}
+
+/* Hover effect per immagini caricate */
+.lazy-image.loaded:hover {
+  transform: scale(1.05);
+  transition: transform 0.3s ease;
+}
+
+/* Responsive behavior */
+.lazy-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-width: 100%;
+}
+
+/* Gallery-specific styles */
+.gallery-item .lazy-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* Modal-specific styles */
+.modal-video .lazy-image {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+}
+
+/* Performance optimizations */
+.lazy-image {
+  content-visibility: auto;
+  contain-intrinsic-size: 400px 300px;
+}
+
+/* Skeleton loading per gallery */
+.gallery-item:has(.lazy-image.loading) {
+  position: relative;
+  overflow: hidden;
+}
+
+.gallery-item:has(.lazy-image.loading)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    #2d2d2d 0%,
+    #3d3d3d 50%,
+    #2d2d2d 100%
+  );
+  animation: skeleton-loading 1.5s infinite;
+  z-index: 1;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+/* Blur-up effect */
+.lazy-image.blur-up {
+  filter: blur(5px);
+  transform: scale(1.05);
+}
+
+.lazy-image.blur-up.loaded {
+  filter: blur(0);
+  transform: scale(1);
+  transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+/* Progressive loading indicator */
+.lazy-image-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.lazy-image-container .loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #40e0d0;
+  font-size: 14px;
+  font-weight: 500;
+  text-shadow: 0 0 10px rgba(64, 224, 208, 0.5);
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.lazy-image-container:has(.lazy-image.loading) .loading-indicator {
+  opacity: 1;
+}
+
+/* Format-specific optimizations */
+.lazy-image[data-format="avif"] {
+  /* Ulteriori ottimizzazioni per AVIF */
+}
+
+.lazy-image[data-format="webp"] {
+  /* Ulteriori ottimizzazioni per WebP */
+}
+
+/* High DPI support */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .lazy-image {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .lazy-image {
+    transition: none;
+    animation: none;
+  }
+  
+  .lazy-image.loaded {
+    animation: none;
+  }
+  
+  .lazy-image.loading {
+    animation: none;
+  }
+  
+  .lazy-image.loaded:hover {
+    transform: none;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .lazy-image {
+    background-color: #1a1a1a;
+  }
+  
+  .lazy-image.error {
+    background-color: #2d2d2d;
+  }
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  .lazy-image {
+    contain-intrinsic-size: 300px 200px;
+  }
+  
+  .lazy-image.loaded:hover {
+    transform: none; /* Disabilita zoom su mobile */
+  }
+  
+  .gallery-item .lazy-image {
+    border-radius: 6px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .lazy-image {
+    opacity: 1 !important;
+    background: none !important;
+    animation: none !important;
+  }
+  
+  .lazy-image.loading,
+  .lazy-image.error {
+    display: none;
+  }
+} 
+
+/* Specifica per immagini della gallery che usano anche la classe lazy-image */
+.lazy-image.gallery-img {
+  width: 90%;
+  height: 210px;
+  object-fit: cover;
+} 

@@ -7,7 +7,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // Update admin footer with environment info
   const adminEnvSpan = document.getElementById('admin-environment');
   if (adminEnvSpan) {
-    const env = window.APP_ENV || 'local';
+    // Auto-detect environment based on hostname
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1' || 
+                       window.location.hostname.includes('localhost');
+    
+    const env = isLocalhost ? 'local' : (window.APP_ENV || 'prod');
     const envColors = {
       local: '#28a745',     // green
       preprod: '#ffc107',   // yellow  
@@ -232,6 +237,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(apiInput) apiInput.value = site.apiBase || '';
     const heroInput=document.getElementById('hero-text-input');
     if(heroInput) heroInput.value = site.heroText || '';
+    // version
+    const versionInput=document.getElementById('version-input');
+    if(versionInput) versionInput.value = site.version || '';
     // bio
     document.getElementById('bio-input').value = site.bio || '';
 
@@ -303,7 +311,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
       const apiBaseVal = document.getElementById('api-base-input').value.trim();
       const shaderVal = document.getElementById('shader-url-input').value.trim();
-      const payload = { bio: bioVal, heroText: heroVal, contacts, sections, apiBase: apiBaseVal, shaderUrl: shaderVal };
+      const versionVal = document.getElementById('version-input').value.trim();
+      const payload = { bio: bioVal, heroText: heroVal, contacts, sections, apiBase: apiBaseVal, shaderUrl: shaderVal, version: versionVal };
 
       if(window.APP_ENV==='prod'){
         window.saveSiteProd(payload)

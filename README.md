@@ -205,6 +205,7 @@ firebase deploy
 - **Bio**: Testo descrittivo
 - **Contatti**: Lista dinamica contatti
 - **Sezioni**: Gestione visibilità sezioni
+- **Versione Sito**: Imposta la release mostrata nel footer
 - **Mobile Shader**: Editor GLSL integrato
 
 #### **Tipi di Contenuto**
@@ -329,4 +330,4 @@ MIT License - Vedi `LICENSE` file per dettagli.
 
 ---
 
-*Ultimo aggiornamento: Gennaio 2025 - v1.0.0-alpha* 
+*Ultimo aggiornamento: Luglio 2025 - v1.1.0-alpha* 
