@@ -28,6 +28,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
     adminEnvSpan.innerHTML = `ENV: <span style="color: ${envColors[env] || '#6c757d'}; font-weight: bold;">${envNames[env] || env.toUpperCase()}</span>`;
   }
 
+  // Disable login for non-prod (local & preprod)
+  if(env !== 'prod'){
+    const authSection = document.getElementById('auth-section');
+    if(authSection) authSection.style.display='none';
+    window.isAuthenticated = ()=>true; // stub
+  }
+
   // Setup authentication event listeners
   const loginBtn = document.getElementById('login-btn');
   const logoutBtn = document.getElementById('logout-btn');
