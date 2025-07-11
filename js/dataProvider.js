@@ -43,7 +43,7 @@
     const colSnap = await window.db.collection('galleries').get();
     if(!colSnap.empty){
       const out = {};
-      colSnap.forEach(doc=>{ out[doc.id]=doc.data().items || []; });
+      colSnap.forEach(doc=>{ const d=doc.data(); out[doc.id]=Array.isArray(d)? d : (d.items || d.slides || d || []); });
       return out;
     }
 
