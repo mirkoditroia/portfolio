@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
+import * as fsSync from 'fs';
 import multer from 'multer';
 import sharp from 'sharp';
 
@@ -11,6 +12,15 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
+
+// Ensure upload directories exist (images, video, optimized)
+['images','video','images/optimized'].forEach((d)=>{
+  try {
+    fsSync.mkdirSync(path.join(__dirname, d), { recursive: true });
+  } catch {
+    /* ignore */
+  }
+});
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
