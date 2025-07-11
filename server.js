@@ -123,12 +123,20 @@ app.get('/api/optimize', async (req, res) => {
 // ---------------- API ----------------
 app.get('/api/galleries', async (_req,res) => {
   try {
+    let out = null;
     if(db){
-      const doc = await db.collection('config').doc('galleries').get();
-      return res.json(doc.exists ? doc.data() : []);
+      try {
+        const doc = await db.collection('config').doc('galleries').get();
+        out = doc.exists ? doc.data() : {};
+      } catch (fsErr) {
+        console.warn('Firestore READ galleries failed, falling back to JSON', fsErr);
+      }
     }
-    const raw = await fs.readFile(DATA_FILE,'utf8');
-    res.json(JSON.parse(raw));
+    if(out === null){
+      const raw = await fs.readFile(DATA_FILE,'utf8');
+      out = JSON.parse(raw);
+    }
+    res.json(out);
   } catch(err){
     console.error('READ galleries',err);
     res.status(500).json({error:'read-failed'});
@@ -140,9 +148,16 @@ app.post('/api/galleries', async (req,res)=>{
     return res.status(401).json({error:'invalid-token'});
   }
   try {
+    let saved = false;
     if(db){
-      await db.collection('config').doc('galleries').set(req.body);
-    } else {
+      try {
+        await db.collection('config').doc('galleries').set(req.body);
+        saved = true;
+      } catch (fsErr) {
+        console.warn('Firestore WRITE galleries failed, falling back to JSON', fsErr);
+      }
+    }
+    if(!saved){
       await fs.writeFile(DATA_FILE, JSON.stringify(req.body,null,2));
     }
     res.sendStatus(200);
@@ -155,12 +170,20 @@ app.post('/api/galleries', async (req,res)=>{
 // -------- Site meta (bio, contacts, sections) --------
 app.get('/api/site', async (_req,res)=>{
   try{
+    let out = null;
     if(db){
-      const doc = await db.collection('config').doc('site').get();
-      return res.json(doc.exists ? doc.data() : {});
+      try{
+        const doc = await db.collection('config').doc('site').get();
+        out = doc.exists ? doc.data() : {};
+      }catch(fsErr){
+        console.warn('Firestore READ site failed, falling back to JSON', fsErr);
+      }
     }
-    const raw = await fs.readFile(SITE_FILE,'utf8');
-    res.json(JSON.parse(raw));
+    if(out === null){
+      const raw = await fs.readFile(SITE_FILE,'utf8');
+      out = JSON.parse(raw);
+    }
+    res.json(out);
   }catch(err){
     console.error('READ site',err);
     res.status(500).json({error:'read-site-failed'});
@@ -172,9 +195,16 @@ app.post('/api/site', async (req,res)=>{
     return res.status(401).json({error:'invalid-token'});
   }
   try{
+    let saved = false;
     if(db){
-      await db.collection('config').doc('site').set(req.body);
-    } else {
+      try{
+        await db.collection('config').doc('site').set(req.body);
+        saved = true;
+      }catch(fsErr){
+        console.warn('Firestore WRITE site failed, falling back to JSON', fsErr);
+      }
+    }
+    if(!saved){
       await fs.writeFile(SITE_FILE, JSON.stringify(req.body,null,2));
     }
     res.sendStatus(200);

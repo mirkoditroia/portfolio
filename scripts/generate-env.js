@@ -19,8 +19,9 @@ const cfg = {
   measurementId: process.env.FIREBASE_MEASUREMENT_ID || ''
 };
 
-const content = `window.APP_ENV = "prod";
+const envName = process.env.APP_ENV || (process.env.NODE_ENV === 'production' ? 'prod' : 'local');
+const content = `window.APP_ENV = "${envName}";
 window.FIREBASE_CONFIG = ${JSON.stringify(cfg, null, 2)};`;
 
 writeFileSync(join(outDir, 'env.local.js'), content);
-console.log('✔️  Generated config/env.local.js for production'); 
+console.log(`✔️  Generated config/env.local.js for environment: ${envName}`); 

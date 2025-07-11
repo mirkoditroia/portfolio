@@ -233,15 +233,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const site = await fetchJson('/api/site','../data/site.json');
       renderSiteConfig(site);
       window.adminLog?.('Site config caricata');
+      return site; // <-- ensure the promise resolves with the loaded config
     } catch (err) {
       console.error(err);
       window.adminLog?.('Errore caricamento site config');
     }
   };
   
-  loadSiteConfigAdmin()
-    .then(site=>renderSiteConfig(site))
-    .catch(err=>console.error(err));
+  loadSiteConfigAdmin();
 
   function renderSiteConfig(site){
     // api base
