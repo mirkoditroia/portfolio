@@ -997,33 +997,29 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Carica dati dinamici e inizializza
-  if (window.APP_ENV === 'prod' && window.getSiteProd) {
-    window.listGalleries()
-      .then(site => {
-        if (site) {
-          galleries = site;
-          Object.entries(galleries).forEach(([k, v]) => initGallery(k, v));
+  console.log('🌍 Environment:', window.APP_ENV);
+  
+  // Use the dataProvider's fetchJson which handles fallbacks correctly
+  window.fetchJson('/api/galleries', 'data/galleries.json')
+    .then(data => {
+      console.log('📁 Galleries loaded:', Object.keys(data));
+      galleries = data;
+      Object.entries(data).forEach(([k, v]) => initGallery(k, v));
+      afterGalleryInit();
+    })
+    .catch(err => {
+      console.error('❌ Errore fetch galleries:', err);
+      // Fallback to local file directly
+      fetch('data/galleries.json')
+        .then(r => r.json())
+        .then(data => {
+          console.log('📁 Galleries loaded from fallback:', Object.keys(data));
+          galleries = data;
+          Object.entries(data).forEach(([k, v]) => initGallery(k, v));
           afterGalleryInit();
-        } else {
-          console.warn('⚠️ Galleries non trovati nel sito prod, fallback a data/galleries.json');
-          fetchJson('/api/galleries','data/galleries.json')
-            .then(data=>{ galleries=data; Object.entries(data).forEach(([k,v])=>initGallery(k,v)); afterGalleryInit(); })
-            .catch(err=>console.error('❌ Errore fetch galleries.json', err));
-        }
-      })
-      .catch(err => {
-        console.error('❌ Errore fetch galleries da Firestore:', err);
-        console.warn('⚠️ Galleries non trovati nel sito prod, fallback a data/galleries.json');
-        fetchJson('/api/galleries','data/galleries.json')
-          .then(data=>{ galleries=data; Object.entries(data).forEach(([k,v])=>initGallery(k,v)); afterGalleryInit(); })
-          .catch(err=>console.error('❌ Errore fetch galleries.json', err));
-      });
-  } else {
-    console.warn('⚠️ Ambiente non prod, fallback a data/galleries.json per le gallerie');
-    fetchJson('/api/galleries','data/galleries.json')
-      .then(data=>{ galleries=data; Object.entries(data).forEach(([k,v])=>initGallery(k,v)); afterGalleryInit(); })
-      .catch(err=>console.error('❌ Errore fetch galleries.json', err));
-  }
+        })
+        .catch(err2 => console.error('❌ Errore fetch galleries fallback:', err2));
+    });
 
   function afterGalleryInit() {
     // Lazy-loading: inizializza ImageOptimizer una sola volta
@@ -1718,21 +1714,49 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(!canvas){console.warn('[MobileShader] canvas not found'); return;}
     const hasGL= typeof GlslCanvas!=='undefined';
     const loadShaderText = async ()=>{
+      // Try to load from local file first
+      try {
+        const res = await fetch('data/mobile_shader.glsl');
+        if(res.ok) {
+          const shaderText = await res.text();
+          console.log('📱 Mobile shader loaded from local file');
+          return shaderText;
+        }
+      } catch(e) { 
+        console.warn('Local mobile shader file failed, trying other sources:', e); 
+      }
+      
+      // Fallback to Firestore in production
       if(window.APP_ENV === 'prod' && window.getSiteProd) {
         try {
           const site = await window.getSiteProd();
-          if(site.mobileShader) return site.mobileShader;
+          if(site.mobileShader) {
+            console.log('📱 Mobile shader loaded from Firestore');
+            return site.mobileShader;
+          }
         } catch(e) { 
           console.warn('Firestore mobileShader failed',e); 
         }
-      } else {
-        try{
-          const res= await fetch('/api/mobileShader');
-          if(res.ok){ return await res.text(); }
-        }catch(e){ console.warn('fetch mobileShader failed',e); }
       }
+      
+      // Fallback to API endpoint
+      try{
+        const res= await fetch('/api/mobileShader');
+        if(res.ok){ 
+          console.log('📱 Mobile shader loaded from API');
+          return await res.text(); 
+        }
+      }catch(e){ console.warn('fetch mobileShader API failed',e); }
+      
+      // Final fallback to inline shader
       const fragEl=document.getElementById('mobile-shader-code');
-      return fragEl? fragEl.textContent : null;
+      if(fragEl && fragEl.textContent) {
+        console.log('📱 Mobile shader loaded from inline script');
+        return fragEl.textContent;
+      }
+      
+      console.error('❌ No mobile shader source available');
+      return null;
     };
 
     if(hasGL){
