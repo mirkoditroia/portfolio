@@ -1333,6 +1333,14 @@ function triggerCacheInvalidation(displayName, payload) {
     
     localStorage.setItem('admin-update-trigger', JSON.stringify(updateInfo));
     
+    // Also store a persistent marker for other sessions
+    const persistentMarker = {
+      timestamp: Date.now(),
+      displayName,
+      type: 'site-config-update'
+    };
+    localStorage.setItem('last-admin-update', JSON.stringify(persistentMarker));
+    
     // Clear the trigger after a short delay to prevent repeated triggers
     setTimeout(() => {
       localStorage.removeItem('admin-update-trigger');

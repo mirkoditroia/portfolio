@@ -1715,31 +1715,34 @@ document.addEventListener('DOMContentLoaded', function() {
   // Check for site config updates
   const checkForSiteUpdates = async () => {
     try {
+      console.log('🔍 Checking for site configuration updates...');
       const newSiteConfig = await loadSiteConfig(true); // Force cache bust
       
       if (currentSiteConfig) {
-        // Check if version has changed
-        if (currentSiteConfig.version !== newSiteConfig.version) {
-          console.log(`🔄 Site version updated: ${currentSiteConfig.version} → ${newSiteConfig.version}`);
+        // Create a deep comparison hash for better change detection
+        const currentHash = JSON.stringify(currentSiteConfig);
+        const newHash = JSON.stringify(newSiteConfig);
+        
+        if (currentHash !== newHash) {
+          console.log('🔄 Site configuration changes detected');
+          console.log('Previous config:', currentSiteConfig);
+          console.log('New config:', newSiteConfig);
           
-          // Show update notification
-          showUpdateNotification(newSiteConfig.version);
-        }
-        
-        // Check if other important fields have changed
-        const importantFields = ['heroText', 'bio', 'siteName', 'contacts', 'sections'];
-        let hasImportantChanges = false;
-        
-        for (const field of importantFields) {
-          if (JSON.stringify(currentSiteConfig[field]) !== JSON.stringify(newSiteConfig[field])) {
-            hasImportantChanges = true;
-            break;
+          // Check if version has changed
+          if (currentSiteConfig.version !== newSiteConfig.version) {
+            console.log(`🔄 Site version updated: ${currentSiteConfig.version} → ${newSiteConfig.version}`);
+            showUpdateNotification(newSiteConfig.version);
           }
-        }
-        
-        if (hasImportantChanges) {
-          console.log('🔄 Important site configuration changes detected');
+          
+          // Apply all changes
           applySiteConfig(newSiteConfig);
+          
+          // Show generic update notification if no version change
+          if (currentSiteConfig.version === newSiteConfig.version) {
+            showUpdateNotification('Contenuto aggiornato');
+          }
+        } else {
+          console.log('✅ No site configuration changes detected');
         }
       }
       
@@ -1839,6 +1842,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
     });
+    
+    // Also check for persistent markers on page load/focus
+    const checkPersistentUpdates = () => {
+      try {
+        const lastUpdate = localStorage.getItem('last-admin-update');
+        if (lastUpdate) {
+          const updateInfo = JSON.parse(lastUpdate);
+          const timeSinceUpdate = Date.now() - updateInfo.timestamp;
+          
+          // If update was less than 5 minutes ago, force a refresh
+          if (timeSinceUpdate < 5 * 60 * 1000) {
+            console.log('🔄 Recent admin update detected, forcing refresh');
+            setTimeout(() => {
+              checkForSiteUpdates();
+            }, 1000);
+          }
+        }
+      } catch (err) {
+        console.error('Error checking persistent updates:', err);
+      }
+    };
+    
+    // Check on page load
+    checkPersistentUpdates();
+    
+    // Check when page regains focus
+    window.addEventListener('focus', checkPersistentUpdates);
   };
   
   // Initial load
@@ -1847,8 +1877,22 @@ document.addEventListener('DOMContentLoaded', function() {
       currentSiteConfig = site;
       applySiteConfig(site);
       
-      // Start polling for updates every 30 seconds
-      setInterval(checkForSiteUpdates, 30000);
+      // Start with more frequent polling for the first few minutes
+      let pollCount = 0;
+      const pollInterval = setInterval(() => {
+        checkForSiteUpdates();
+        pollCount++;
+        
+        // After 10 polls (5 minutes), reduce frequency
+        if (pollCount >= 10) {
+          clearInterval(pollInterval);
+          // Start regular polling every 30 seconds
+          setInterval(checkForSiteUpdates, 30000);
+        }
+      }, 30000); // Check every 30 seconds initially
+      
+      // Also do an immediate check after 5 seconds
+      setTimeout(checkForSiteUpdates, 5000);
       
       // Listen for admin updates
       listenForAdminUpdates();

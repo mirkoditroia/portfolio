@@ -67,10 +67,34 @@
     }
     
     const base='https://www.gstatic.com/firebasejs/10.12.0';
-    const { getDoc, doc } = await import(`${base}/firebase-firestore.js`);
+    const { getDoc, doc, getDocFromServer } = await import(`${base}/firebase-firestore.js`);
     const ref = doc(window.db,'config','site');
-    const snap = await getDoc(ref);
-    return snap.exists()? snap.data() : {};
+    
+    // Force fresh data from server (bypass cache)
+    let snap;
+    try {
+      // Try to get from server first to bypass cache
+      snap = await getDocFromServer(ref);
+      console.log('🔥 Retrieved site data from Firestore server (cache bypassed)');
+    } catch (err) {
+      console.warn('🔥 Failed to get from server, falling back to cache:', err);
+      snap = await getDoc(ref);
+    }
+    const data = snap.exists() ? snap.data() : {};
+    
+    // Add debug info
+    if (data) {
+      console.log('🔥 Firestore site data retrieved:', {
+        exists: snap.exists(),
+        metadata: snap.metadata,
+        fromCache: snap.metadata.fromCache,
+        hasPendingWrites: snap.metadata.hasPendingWrites,
+        timestamp: new Date().toISOString(),
+        data: data
+      });
+    }
+    
+    return data;
   }
 
   async function saveSiteFirestore(data){
