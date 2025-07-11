@@ -22,6 +22,15 @@
     if(!window.firebase){console.error('[Firebase] compat SDK not available');return;}
     firebase.initializeApp(firebaseConfig);
     const db=firebase.firestore();
+    window.db=db; // Expose for modular helpers waiting on window.db
+
+    // Load Storage compat and expose instance for uploads (window.st)
+    try {
+      await load('firebase-storage-compat.js');
+      window.st = firebase.storage();
+    } catch(err) {
+      console.warn('[Firebase] Storage compat failed to load', err);
+    }
     console.log('[Firebase] Connected (compat)');
 
     // Global helpers
