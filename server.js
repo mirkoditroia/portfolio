@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import * as fsSync from 'fs';
+import admin from 'firebase-admin';
 import multer from 'multer';
 import sharp from 'sharp';
 
@@ -21,6 +22,18 @@ const __dirname  = path.dirname(__filename);
     /* ignore */
   }
 });
+
+// ---------- Firebase Admin (for prod) ----------
+let db = null;
+try {
+  if (!admin.apps.length) {
+    admin.initializeApp(); // uses default credentials in Cloud Functions / Render (if set)
+  }
+  db = admin.firestore();
+  console.log('✅ Firestore initialized');
+} catch (err) {
+  console.log('ℹ️  Firestore not available, falling back to JSON files');
+}
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -110,10 +123,14 @@ app.get('/api/optimize', async (req, res) => {
 // ---------------- API ----------------
 app.get('/api/galleries', async (_req,res) => {
   try {
+    if(db){
+      const doc = await db.collection('config').doc('galleries').get();
+      return res.json(doc.exists ? doc.data() : []);
+    }
     const raw = await fs.readFile(DATA_FILE,'utf8');
     res.json(JSON.parse(raw));
   } catch(err){
-    console.error('READ galleries.json',err);
+    console.error('READ galleries',err);
     res.status(500).json({error:'read-failed'});
   }
 });
@@ -123,10 +140,14 @@ app.post('/api/galleries', async (req,res)=>{
     return res.status(401).json({error:'invalid-token'});
   }
   try {
-    await fs.writeFile(DATA_FILE, JSON.stringify(req.body,null,2));
+    if(db){
+      await db.collection('config').doc('galleries').set(req.body);
+    } else {
+      await fs.writeFile(DATA_FILE, JSON.stringify(req.body,null,2));
+    }
     res.sendStatus(200);
   } catch(err){
-    console.error('WRITE galleries.json',err);
+    console.error('WRITE galleries',err);
     res.status(500).json({error:'write-failed'});
   }
 });
@@ -134,10 +155,14 @@ app.post('/api/galleries', async (req,res)=>{
 // -------- Site meta (bio, contacts, sections) --------
 app.get('/api/site', async (_req,res)=>{
   try{
+    if(db){
+      const doc = await db.collection('config').doc('site').get();
+      return res.json(doc.exists ? doc.data() : {});
+    }
     const raw = await fs.readFile(SITE_FILE,'utf8');
     res.json(JSON.parse(raw));
   }catch(err){
-    console.error('READ site.json',err);
+    console.error('READ site',err);
     res.status(500).json({error:'read-site-failed'});
   }
 });
@@ -147,10 +172,14 @@ app.post('/api/site', async (req,res)=>{
     return res.status(401).json({error:'invalid-token'});
   }
   try{
-    await fs.writeFile(SITE_FILE, JSON.stringify(req.body,null,2));
+    if(db){
+      await db.collection('config').doc('site').set(req.body);
+    } else {
+      await fs.writeFile(SITE_FILE, JSON.stringify(req.body,null,2));
+    }
     res.sendStatus(200);
   }catch(err){
-    console.error('WRITE site.json',err);
+    console.error('WRITE site',err);
     res.status(500).json({error:'write-site-failed'});
   }
 });
