@@ -21,12 +21,24 @@
   const safeFetchJson = originalFetchJson || fallbackFetchJson;
 
   async function listGalleriesFirestore(){
-    // Wait for Firebase init
+    // Wait for Firebase init with timeout
     if(!window.db){
-      await new Promise(res=>{
-        const iv=setInterval(()=>{ if(window.db){ clearInterval(iv); res(); } },50);
+      await new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 100; // 5 seconds timeout
+        const iv = setInterval(() => {
+          attempts++;
+          if(window.db){ 
+            clearInterval(iv); 
+            resolve(); 
+          } else if(attempts >= maxAttempts) {
+            clearInterval(iv);
+            reject(new Error('Firebase initialization timeout'));
+          }
+        }, 50);
       });
     }
+    
     const base = 'https://www.gstatic.com/firebasejs/10.12.0';
     const { getDocs, collection } = await import(`${base}/firebase-firestore.js`);
     const snap = await getDocs(collection(window.db,'galleries'));
@@ -36,7 +48,24 @@
   }
 
   async function getSiteFirestore(){
-    if(!window.db){ await new Promise(res=>{const iv=setInterval(()=>{if(window.db){clearInterval(iv);res();}},50);}); }
+    // Wait for Firebase init with timeout
+    if(!window.db){ 
+      await new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 100; // 5 seconds timeout
+        const iv = setInterval(() => {
+          attempts++;
+          if(window.db){ 
+            clearInterval(iv); 
+            resolve(); 
+          } else if(attempts >= maxAttempts) {
+            clearInterval(iv);
+            reject(new Error('Firebase initialization timeout'));
+          }
+        }, 50);
+      });
+    }
+    
     const base='https://www.gstatic.com/firebasejs/10.12.0';
     const { getDoc, doc } = await import(`${base}/firebase-firestore.js`);
     const ref = doc(window.db,'config','site');
@@ -45,14 +74,48 @@
   }
 
   async function saveSiteFirestore(data){
-    if(!window.db){ await new Promise(res=>{const iv=setInterval(()=>{if(window.db){clearInterval(iv);res();}},50);}); }
+    // Wait for Firebase init with timeout
+    if(!window.db){ 
+      await new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 100; // 5 seconds timeout
+        const iv = setInterval(() => {
+          attempts++;
+          if(window.db){ 
+            clearInterval(iv); 
+            resolve(); 
+          } else if(attempts >= maxAttempts) {
+            clearInterval(iv);
+            reject(new Error('Firebase initialization timeout'));
+          }
+        }, 50);
+      });
+    }
+    
     const base='https://www.gstatic.com/firebasejs/10.12.0';
     const { setDoc, doc } = await import(`${base}/firebase-firestore.js`);
     await setDoc(doc(window.db,'config','site'), data, {merge:true});
   }
 
   async function saveGalleriesFirestore(galleriesData){
-    if(!window.db){ await new Promise(res=>{const iv=setInterval(()=>{if(window.db){clearInterval(iv);res();}},50);}); }
+    // Wait for Firebase init with timeout
+    if(!window.db){ 
+      await new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 100; // 5 seconds timeout
+        const iv = setInterval(() => {
+          attempts++;
+          if(window.db){ 
+            clearInterval(iv); 
+            resolve(); 
+          } else if(attempts >= maxAttempts) {
+            clearInterval(iv);
+            reject(new Error('Firebase initialization timeout'));
+          }
+        }, 50);
+      });
+    }
+    
     const base='https://www.gstatic.com/firebasejs/10.12.0';
     const { setDoc, doc } = await import(`${base}/firebase-firestore.js`);
     const writes = Object.entries(galleriesData).map(([key,items])=>
@@ -62,7 +125,24 @@
   }
 
   async function uploadToFirebaseStorage(file){
-    if(!window.st){ await new Promise(res=>{const iv=setInterval(()=>{if(window.st){clearInterval(iv);res();}},50);}); }
+    // Wait for Firebase Storage init with timeout
+    if(!window.st){ 
+      await new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 100; // 5 seconds timeout
+        const iv = setInterval(() => {
+          attempts++;
+          if(window.st){ 
+            clearInterval(iv); 
+            resolve(); 
+          } else if(attempts >= maxAttempts) {
+            clearInterval(iv);
+            reject(new Error('Firebase Storage initialization timeout'));
+          }
+        }, 50);
+      });
+    }
+    
     const base='https://www.gstatic.com/firebasejs/10.12.0';
     const { ref, uploadBytes, getDownloadURL } = await import(`${base}/firebase-storage.js`);
     
@@ -86,8 +166,12 @@
   window.fetchJson = async function(primaryUrl, fallbackUrl){
     if(ENV === 'prod'){
       if(primaryUrl.includes('/api/galleries')){
-        try{ return await listGalleriesFirestore(); }catch(err){ 
-          console.error('Firestore galleries error',err);
+        try{ 
+          const galleriesData = await listGalleriesFirestore(); 
+          console.log('📡 Galleries data loaded from Firestore:', galleriesData);
+          return galleriesData;
+        }catch(err){ 
+          console.error('Firestore galleries error, falling back to local JSON:', err);
           // Fallback to local JSON file
           return safeFetchJson('data/galleries.json', fallbackUrl);
         }
@@ -98,12 +182,14 @@
           console.log('📡 Site data loaded from Firestore:', siteData);
           return siteData;
         }catch(err){ 
-          console.error('Firestore site error',err);
+          console.error('Firestore site error, falling back to local JSON:', err);
           // Fallback to local JSON file
           return safeFetchJson('data/site.json', fallbackUrl);
         }
       }
     }
+    
+    // For non-prod environments or other URLs, use safe fetch
     return safeFetchJson(primaryUrl, fallbackUrl);
   };
 

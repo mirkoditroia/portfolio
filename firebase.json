@@ -1,21 +1,15 @@
 {
-  "functions": {
-    "source": ".",
-    "runtime": "nodejs18"
-  },
   "hosting": {
     "public": ".",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**",
-      "functions.js"
+      "functions.js",
+      "server.js",
+      "render.yaml"
     ],
     "rewrites": [
-      {
-        "source": "/api/**",
-        "function": "server"
-      },
       {
         "source": "**",
         "destination": "/index.html"
