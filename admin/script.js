@@ -579,6 +579,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
 });
 
+  // Inject log styles once
+  (function(){
+    if(document.getElementById('log-style')) return;
+    const style = document.createElement('style');
+    style.id = 'log-style';
+    style.textContent = `
+      .log-line{font-family:monospace;white-space:pre-wrap;}
+      .log-success{color:#28a745;}
+      .log-info{color:#00bcd4;}
+      .log-diff{color:#ffc107;}
+      .log-error{color:#ff3860;}
+    `;
+    document.head.appendChild(style);
+  })();
+
   // Mobile shader editor
   (function(){
     const ta=document.getElementById('shader-text');
@@ -651,7 +666,17 @@ function addLog(msg){
   const out=document.getElementById('log-output');
   if(!out) return;
   const time = new Date().toLocaleTimeString();
-  out.textContent += `[${time}] ${msg}\n`;
+  const line=document.createElement('span');
+  line.classList.add('log-line');
+  // Determine type from first char
+  let type='info';
+  if(msg.startsWith('✅')) type='success';
+  else if(msg.startsWith('❌')) type='error';
+  else if(msg.startsWith('📌')) type='diff';
+  line.classList.add(`log-${type}`);
+  line.textContent=`[${time}] ${msg}`;
+  out.appendChild(line);
+  out.appendChild(document.createElement('br'));
   out.scrollTop = out.scrollHeight;
 }
 
