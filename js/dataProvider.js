@@ -39,9 +39,8 @@
       });
     }
     
-    const base = 'https://www.gstatic.com/firebasejs/10.12.0';
-    const { getDocs, collection } = await import(`${base}/firebase-firestore.js`);
-    const snap = await getDocs(collection(window.db,'galleries'));
+    // Use compat API (window.db is compat Firestore)
+    const snap = await window.db.collection('galleries').get();
     const out = {};
     snap.forEach(doc=>{ out[doc.id]=doc.data().items || []; });
     return out;
@@ -66,18 +65,16 @@
       });
     }
     
-    const base='https://www.gstatic.com/firebasejs/10.12.0';
-    const { getDoc, doc } = await import(`${base}/firebase-firestore.js`);
-    const ref = doc(window.db,'config','site');
+    // Use compat API directly
+    const ref = window.db.collection('config').doc('site');
     
     console.log('🔥 Loading site data from Firestore...');
-    
-    // Simple direct load from Firestore
-    const snap = await getDoc(ref);
-    const data = snap.exists() ? snap.data() : {};
+
+    const snap = await ref.get();
+    const data = snap.exists ? snap.data() : {};
     
     console.log('🔥 Site data loaded from Firestore:', {
-      exists: snap.exists(),
+      exists: snap.exists,
       timestamp: new Date().toISOString(),
       heroText: data.heroText,
       bio: data.bio,
@@ -108,9 +105,7 @@
       });
     }
     
-    const base='https://www.gstatic.com/firebasejs/10.12.0';
-    const { setDoc, doc } = await import(`${base}/firebase-firestore.js`);
-    await setDoc(doc(window.db,'config','site'), data, {merge:true});
+    await window.db.collection('config').doc('site').set(data,{merge:true});
   }
 
   async function saveGalleriesFirestore(galleriesData){
@@ -132,10 +127,8 @@
       });
     }
     
-    const base='https://www.gstatic.com/firebasejs/10.12.0';
-    const { setDoc, doc } = await import(`${base}/firebase-firestore.js`);
     const writes = Object.entries(galleriesData).map(([key,items])=>
-      setDoc(doc(window.db,'galleries',key), {items}, {merge:true})
+      window.db.collection('galleries').doc(key).set({items},{merge:true})
     );
     await Promise.all(writes);
   }
@@ -159,19 +152,16 @@
       });
     }
     
-    const base='https://www.gstatic.com/firebasejs/10.12.0';
-    const { ref, uploadBytes, getDownloadURL } = await import(`${base}/firebase-storage.js`);
-    
     const timestamp = Date.now();
     const extension = file.name.split('.').pop();
     const fileName = `${timestamp}_${Math.random().toString(36).substr(2, 9)}.${extension}`;
     const isVideo = file.type.startsWith('video');
     const folder = isVideo ? 'videos' : 'images';
     const path = `${folder}/${fileName}`;
-    
-    const storageRef = ref(window.st, path);
-    await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(storageRef);
+
+    const storageRef = window.st.ref(path);
+    const snapshot = await storageRef.put(file);
+    const downloadURL = await snapshot.ref.getDownloadURL();
     return downloadURL;
   }
 
