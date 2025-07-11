@@ -1527,189 +1527,17 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('🎉 Portfolio: Inizializzazione completata con successo!');
 }); 
 
-  // ---------------- sito meta (bio, contatti, visibilità sezioni) ----------------
-  // Load site configuration with robust fallbacks and cache busting
-  const loadSiteConfig = async (bustCache = false) => {
-    console.log('🔧 Loading site configuration...');
-    
-    // Wait for dataProvider to initialize
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Cache busting parameter
-    const cacheBuster = bustCache ? `?_cb=${Date.now()}` : '';
-    
-    // Try dataProvider's fetchJson first (handles Firestore in prod)
-    if (window.fetchJson) {
-      try {
-        const site = await window.fetchJson(`/api/site${cacheBuster}`, `data/site.json${cacheBuster}`);
-        console.log('✅ Site config loaded via dataProvider:', site);
-        return site;
-      } catch(err) {
-        console.error('❌ DataProvider site load error:', err);
-      }
-    }
-    
-    // Fallback to direct file fetch
-    try {
-      console.log('🔄 Trying direct fetch to data/site.json');
-      const response = await fetch(`data/site.json${cacheBuster}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const site = await response.json();
-      console.log('✅ Site config loaded via direct fetch:', site);
-      return site;
-    } catch(err) {
-      console.error('❌ Direct fetch site load error:', err);
-      throw new Error('Failed to load site configuration');
-    }
+  // Legacy function - kept for compatibility
+  const loadSiteConfig = async () => {
+    return await loadSiteData();
   };
   
-  // Apply site configuration to the page
+  // Legacy function - kept for compatibility
   const applySiteConfig = (site) => {
-    try {
-      const applyHero = text => {
-        document.querySelectorAll('.fa3io-text').forEach(el => {
-          el.textContent = text;
-          el.classList.remove('preload');
-        });
-      };
-      
-      // Bio
-      const aboutTextEl = document.querySelector('.about-text');
-      if (aboutTextEl && site.bio) aboutTextEl.textContent = site.bio;
-      if (site.heroText) { applyHero(site.heroText); }
-
-      // Contatti
-      const contactSection = document.getElementById('contact');
-      if (contactSection && Array.isArray(site.contacts)) {
-        const contactsContainer = document.createElement('div');
-        contactsContainer.className = 'contacts-container';
-        
-        site.contacts.forEach(c => {
-          // Skip hidden contacts
-          if (c.visible === false) return;
-          
-          const contactItem = document.createElement('div');
-          contactItem.className = 'contact-item';
-          
-          // Create clickable link if it's a URL or email
-          let valueElement;
-          if (c.value.includes('@')) {
-            valueElement = `<a href="mailto:${c.value}" class="contact-link">${c.value}</a>`;
-          } else if (c.value.includes('http')) {
-            valueElement = `<a href="${c.value}" target="_blank" rel="noopener noreferrer" class="contact-link">${c.value}</a>`;
-          } else {
-            valueElement = `<span class="contact-text">${c.value}</span>`;
-          }
-          
-          contactItem.innerHTML = `
-            <div class="contact-info">
-              <div class="contact-label">${c.label}</div>
-              <div class="contact-value">${valueElement}</div>
-            </div>
-          `;
-          
-          contactsContainer.appendChild(contactItem);
-        });
-        
-        contactSection.innerHTML = '<h2 id="contact-heading">CONTACT</h2>';
-        contactSection.appendChild(contactsContainer);
-      }
-
-      // Sezioni
-      site.sections?.forEach(sec => {
-        const id = sec.key;
-        const sectionEl = document.getElementById(id);
-        const navLink = document.querySelector(`.menu a[href="#${id}"]`);
-        const heading = document.querySelector(`#${id}-heading`);
-        if (!sectionEl) return;
-        const status = sec.status || (sec.visible === false ? 'hide' : 'show');
-        if (status === 'hide') {
-          sectionEl.style.display = 'none';
-          if (navLink) navLink.style.display = 'none';
-        } else {
-          if (sec.label) {
-            if (heading) heading.textContent = sec.label;
-            if (navLink) navLink.textContent = sec.label;
-          }
-          if (status === 'soon') {
-            const galleryCarousel = sectionEl.querySelector('.gallery-carousel');
-            if (galleryCarousel) galleryCarousel.style.display = 'none';
-            const placeholder = document.createElement('p');
-            placeholder.className = 'coming-soon';
-            placeholder.textContent = 'Coming Soon';
-            placeholder.style.color = '#fff';
-            placeholder.style.textAlign = 'center';
-            placeholder.style.fontSize = '1.4rem';
-            placeholder.style.padding = '40px 0';
-            sectionEl.appendChild(placeholder);
-          }
-        }
-      });
-      
-      // aggiorna apiBase per fetch futuri
-      if (site.apiBase) {
-        window.__API_BASE = site.apiBase;
-        if (!location.origin.includes(site.apiBase)) {
-          fetch(`${site.apiBase}/api/site`).then(r => r.ok ? r.json() : null).then(remote => {
-            if (remote) {
-              Object.assign(site, remote);
-              if (remote.heroText) { applyHero(remote.heroText); }
-            }
-          }).catch(() => {});
-        }
-      }
-      if (site.shaderUrl) {
-        const sh = document.getElementById('shader-iframe');
-        if (sh) sh.src = site.shaderUrl;
-      }
-
-      // Versione sito
-      const versionEl = document.getElementById('version');
-      if (versionEl && site.version) {
-        versionEl.textContent = site.version;
-      }
-      
-      // Site name
-      const siteNameEl = document.getElementById('site-name');
-      const heroTitleEl = document.getElementById('hero-title');
-      if (site.siteName) {
-        if (siteNameEl) siteNameEl.textContent = site.siteName;
-        if (heroTitleEl) heroTitleEl.textContent = site.siteName;
-      }
-      
-      // Logo visibility
-      if (site.showLogo) {
-        // Show logos if enabled
-        const headerLogo = document.querySelector('.logo img');
-        const heroLogo = document.querySelector('.center-logo img');
-        if (!headerLogo) {
-          const img = document.createElement('img');
-          img.src = 'logo.png';
-          img.alt = site.siteName || 'Logo';
-          img.onerror = function() { this.style.display = 'none'; };
-          document.querySelector('.logo').insertBefore(img, document.getElementById('site-name'));
-        }
-        if (!heroLogo) {
-          const img = document.createElement('img');
-          img.src = 'logo.png';
-          img.alt = site.siteName || 'Logo';
-          img.style.width = '60px';
-          img.onerror = function() { this.style.display = 'none'; };
-          document.querySelector('.center-logo').insertBefore(img, document.getElementById('hero-title'));
-        }
-      } else {
-        // Hide logos if disabled
-        const headerLogo = document.querySelector('.logo img');
-        const heroLogo = document.querySelector('.center-logo img');
-        if (headerLogo) headerLogo.style.display = 'none';
-        if (heroLogo) heroLogo.style.display = 'none';
-      }
-    } catch (err) { 
-      console.error('Errore applicazione site meta', err); 
-    }
+    return applySiteData(site);
   };
   
-  // Store current site config for comparison
+  // Legacy variable - kept for compatibility
   let currentSiteConfig = null;
   
   // Check for site config updates
@@ -2141,3 +1969,177 @@ function cleanupCanvasVideos() {
 // Cleanup on page unload
 window.addEventListener('beforeunload', cleanupCanvasVideos); 
 window.addEventListener('beforeunload', cleanupCanvasVideos); 
+
+// Simple site data loading
+const loadSiteData = async () => {
+  try {
+    let siteData;
+    
+    // Try Firebase first in production
+    if (window.APP_ENV === 'prod' && window.getSiteData) {
+      try {
+        console.log('🔥 Loading from Firebase...');
+        siteData = await window.getSiteData();
+      } catch (error) {
+        console.warn('🔥 Firebase failed, using local data:', error);
+        // Fallback to local file
+        const response = await fetch('data/site.json');
+        siteData = await response.json();
+      }
+    } else {
+      // Local environment - load from file
+      console.log('🔥 Loading from local file...');
+      const response = await fetch('data/site.json');
+      siteData = await response.json();
+    }
+    
+    console.log('✅ Site data loaded:', siteData);
+    return siteData;
+    
+  } catch (error) {
+    console.error('❌ Error loading site data:', error);
+    // Final fallback
+    return {
+      heroText: "VFXULO",
+      bio: "Portfolio di effetti visivi e animazioni",
+      version: "v1.0.0",
+      contacts: []
+    };
+  }
+};
+
+// Apply site data to the page
+const applySiteData = (site) => {
+  try {
+    // Hero text
+    if (site.heroText) {
+      document.querySelectorAll('.fa3io-text').forEach(el => {
+        el.textContent = site.heroText;
+        el.classList.remove('preload');
+      });
+    }
+
+    // Bio
+    const aboutTextEl = document.querySelector('.about-text');
+    if (aboutTextEl && site.bio) {
+      aboutTextEl.textContent = site.bio;
+    }
+
+    // Version
+    const versionEl = document.getElementById('version');
+    if (versionEl && site.version) {
+      versionEl.textContent = site.version;
+    }
+
+    // Contacts
+    const contactSection = document.getElementById('contact');
+    if (contactSection && Array.isArray(site.contacts)) {
+      const contactsContainer = document.createElement('div');
+      contactsContainer.className = 'contacts-container';
+      
+      site.contacts.forEach(c => {
+        if (c.visible === false) return;
+        
+        const contactItem = document.createElement('div');
+        contactItem.className = 'contact-item';
+        
+        let valueElement;
+        if (c.value.includes('@')) {
+          valueElement = `<a href="mailto:${c.value}" class="contact-link">${c.value}</a>`;
+        } else if (c.value.includes('http')) {
+          valueElement = `<a href="${c.value}" target="_blank" rel="noopener noreferrer" class="contact-link">${c.value}</a>`;
+        } else {
+          valueElement = `<span class="contact-text">${c.value}</span>`;
+        }
+        
+        contactItem.innerHTML = `
+          <div class="contact-info">
+            <div class="contact-label">${c.label}</div>
+            <div class="contact-value">${valueElement}</div>
+          </div>
+        `;
+        
+        contactsContainer.appendChild(contactItem);
+      });
+      
+      contactSection.innerHTML = '<h2 id="contact-heading">CONTACT</h2>';
+      contactSection.appendChild(contactsContainer);
+    }
+    
+  } catch (err) { 
+    console.error('❌ Error applying site data:', err); 
+  }
+};
+
+// Store current site data
+let currentSiteData = null;
+
+// Check for updates
+const checkForUpdates = async () => {
+  try {
+    const newSiteData = await loadSiteData();
+    
+    if (currentSiteData) {
+      // Simple comparison
+      const hasChanges = (
+        currentSiteData.heroText !== newSiteData.heroText ||
+        currentSiteData.bio !== newSiteData.bio ||
+        currentSiteData.version !== newSiteData.version ||
+        JSON.stringify(currentSiteData.contacts) !== JSON.stringify(newSiteData.contacts)
+      );
+      
+      if (hasChanges) {
+        console.log('🔄 Changes detected, updating site...');
+        applySiteData(newSiteData);
+        
+        // Show notification
+        if (currentSiteData.version !== newSiteData.version) {
+          showUpdateNotification(newSiteData.version);
+        } else {
+          showUpdateNotification('Contenuto aggiornato');
+        }
+      }
+    }
+    
+    currentSiteData = newSiteData;
+    
+  } catch (error) {
+    console.error('❌ Error checking for updates:', error);
+  }
+};
+
+// Listen for admin updates
+const listenForUpdates = () => {
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'site-updated') {
+      console.log('🔄 Admin update detected');
+      setTimeout(checkForUpdates, 1000);
+    }
+  });
+};
+
+// Initialize everything
+const init = async () => {
+  try {
+    console.log('🚀 Initializing site...');
+    
+    // Load initial data
+    const siteData = await loadSiteData();
+    currentSiteData = siteData;
+    applySiteData(siteData);
+    
+    // Listen for updates
+    listenForUpdates();
+    
+    // Check for updates every 30 seconds
+    setInterval(checkForUpdates, 30000);
+    
+    console.log('✅ Site initialized successfully');
+    
+  } catch (error) {
+    console.error('❌ Error initializing site:', error);
+  }
+};
+
+// Start initialization
+init();

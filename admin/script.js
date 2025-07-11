@@ -1284,11 +1284,14 @@ async function savePartialSiteConfig(displayName, partialPayload, formType) {
     
     const logMsg = `✅ ${displayName} salvato`;
     
-    if(window.APP_ENV === 'prod') {
-      await window.saveSiteProd(fullPayload);
-      alert(`${displayName} salvato in Firestore!`);
-      window.adminLog?.(logMsg + ' [Firestore]');
+    // Try simple Firebase save first
+    const firebaseSaved = await saveToFirebase(fullPayload);
+    
+    if (firebaseSaved) {
+      alert(`${displayName} salvato in Firebase!`);
+      window.adminLog?.(logMsg + ' [Firebase]');
     } else {
+      // Fallback to server save
       const token = prompt(`Token amministratore per salvare ${displayName}:`);
       if(!token) return;
       
@@ -1309,9 +1312,6 @@ async function savePartialSiteConfig(displayName, partialPayload, formType) {
     // Update original site config and clear unsaved state
     Object.assign(window._origSite, partialPayload);
     clearFormUnsaved(formType);
-    
-    // Trigger cache invalidation for connected clients
-    triggerCacheInvalidation(displayName, partialPayload);
     
   } catch(err) {
     console.error(err);
@@ -1366,4 +1366,25 @@ if (location.hostname === 'localhost' || location.hostname.startsWith('127.') ||
     window.adminLog(`✅ Log di prova #${_testCnt} - DOVREBBE ESSERE VERDE`);
     if (_testCnt >= 3) clearInterval(_testId);
   }, 2000);
+} 
+
+// Simple admin save function
+async function saveToFirebase(data) {
+  try {
+    if (window.APP_ENV === 'prod' && window.saveSiteData) {
+      await window.saveSiteData(data);
+      console.log('✅ Data saved to Firebase');
+      
+      // Trigger update on public site
+      localStorage.setItem('site-updated', Date.now().toString());
+      
+      return true;
+    } else {
+      console.log('❌ Firebase not available in this environment');
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Error saving to Firebase:', error);
+    return false;
+  }
 } 
