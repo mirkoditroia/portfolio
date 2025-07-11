@@ -101,11 +101,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }).catch(()=>fetch(fallbackUrl).then(r=>r.json()));
   }
 
+  const progressDiv = document.getElementById('upload-progress');
+  const hideLoading=()=>{ if(progressDiv) progressDiv.style.display='none'; };
+
   fetchJson('/api/galleries','../data/galleries.json')
-    .then(data=>renderGalleries(data))
+    .then(data=>{renderGalleries(data); hideLoading(); window.adminLog?.('Gallerie caricate');})
     .catch(err=>{
       console.error(err);
+      window.adminLog?.('Errore caricamento gallerie');
       container.innerHTML = '<p class="error">Impossibile caricare i dati. Controlla che il server sia in esecuzione.</p>';
+      hideLoading();
     });
 
   function renderGalleries(data){
@@ -224,15 +229,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // Additionally load site config (bio, contacts, sections)
   // Load site config - use Firestore in prod
   const loadSiteConfigAdmin = async () => {
-    if(window.APP_ENV === 'prod' && window.getSiteProd) {
-      try {
-        return await window.getSiteProd();
-      } catch(err) {
-        console.error('Firestore site load error:', err);
-        return await fetchJson('/api/site','../data/site.json');
-      }
+    try {
+      const site = await fetchJson('/api/site','../data/site.json');
+      renderSiteConfig(site);
+      window.adminLog?.('Site config caricata');
+    } catch (err) {
+      console.error(err);
+      window.adminLog?.('Errore caricamento site config');
     }
-    return await fetchJson('/api/site','../data/site.json');
   };
   
   loadSiteConfigAdmin()
