@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const hideLoading=()=>{ if(progressDiv) progressDiv.style.display='none'; };
 
   fetchJson('/api/galleries','../data/galleries.json')
-    .then(data=>{renderGalleries(data); hideLoading(); window.adminLog?.('Gallerie caricate');})
+    .then(data=>{renderGalleries(data); hideLoading(); window._origGalleries = JSON.parse(JSON.stringify(data)); window.adminLog?.('Gallerie caricate');})
     .catch(err=>{
       console.error(err);
       window.adminLog?.('Errore caricamento gallerie');
@@ -210,6 +210,26 @@ document.addEventListener('DOMContentLoaded', ()=>{
       galleriesData[key] = slidesArr;
     });
 
+    // ------- Diff descriptions vs original --------
+    const diffMsgs = [];
+    const orig = window._origGalleries || {};
+    Object.entries(galleriesData).forEach(([gKey,slides])=>{
+      const origSlides = orig[gKey] || [];
+      slides.forEach((sl,idx)=>{
+        const prev = origSlides[idx] || {};
+        if((prev.description||'') !== (sl.description||'')){
+          diffMsgs.push(`\n📌 Descrizione modificata [Gallery: ${gKey} | Slide #${idx+1} "${sl.title||'-'}"]\n   • Prima: "${(prev.description||'').substr(0,120)}"\n   • Dopo:  "${(sl.description||'').substr(0,120)}"`);
+        }
+      });
+    });
+    // Log diffs
+    diffMsgs.forEach(m=>window.adminLog?.(m));
+
+    // Detailed log information
+    const galleryCount = Object.keys(galleriesData).length;
+    const slideCount = Object.values(galleriesData).reduce((acc,arr)=>acc+arr.length,0);
+    const logMsgOk = `✅ Gallerie salvate (${galleryCount} gallery, ${slideCount} slide)`;
+
     if(window.APP_ENV==='prod'){
       // Check if user is authenticated
       if (!window.isAuthenticated || !window.isAuthenticated()) {
@@ -218,8 +238,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }
       
       window.saveGalleriesProd(galleriesData)
-        .then(()=>alert('Gallerie salvate su Firestore!'))
-        .catch(err=>{ console.error(err); alert('Errore salvataggio'); });
+        .then(()=>{ alert('Gallerie salvate su Firestore!'); window.adminLog?.(logMsgOk+' [Firestore]'); })
+        .catch(err=>{ console.error(err); alert('Errore salvataggio'); window.adminLog?.('❌ Errore salvataggio gallerie'); });
       return;
     }
 
@@ -230,10 +250,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify(galleriesData)
     }).then(r=>{
-      if(r.ok){ alert('Gallerie salvate!'); }
-      else{ alert('Errore nel salvataggio'); }
+      if(r.ok){ window.adminLog?.(logMsgOk); }
+      else{ alert('Errore nel salvataggio'); window.adminLog?.('❌ Errore salvataggio gallerie'); }
     }).catch(err=>{
-      alert('Errore di rete'); console.error(err);
+      alert('Errore di rete'); console.error(err); window.adminLog?.('❌ Errore rete salvataggio gallerie');
     });
   }
 
@@ -336,9 +356,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const versionVal = document.getElementById('version-input').value.trim();
       const payload = { bio: bioVal, heroText: heroVal, contacts, sections, apiBase: apiBaseVal, shaderUrl: shaderVal, version: versionVal };
 
+      const logSiteMsg = `✅ Site salvato (version ${versionVal||'n/a'}, contatti ${contacts.length}, sezioni ${sections.length})`;
+
       if(window.APP_ENV==='prod'){
         window.saveSiteProd(payload)
-          .then(()=>alert('Salvato in Firestore!'))
+          .then(()=>{ alert('Salvato in Firestore!'); window.adminLog?.(logSiteMsg+' [Firestore]'); })
           .catch(err=>{ console.error(err); alert('Errore salvataggio'); });
         return;
       }
@@ -352,12 +374,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }).then(r=>{
         if(r.ok){
           alert('Salvato con successo!');
+          window.adminLog?.(logSiteMsg);
         }else{
           alert('Errore nel salvataggio');
+          window.adminLog?.('❌ Errore salvataggio site');
         }
       }).catch(err=>{
         alert('Errore di rete');
         console.error(err);
+        window.adminLog?.('❌ Errore rete salvataggio site');
       });
     });
 
@@ -515,9 +540,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
         }
         hiddenInput.value = '';
         alert('Upload completato!');
+        window.adminLog?.(`✅ Upload completato (${paths.length} file): ${paths.join(', ')}`);
       }).catch(err => {
         alert('Errore upload: ' + err.message);
         console.error(err);
+        window.adminLog?.('❌ Errore upload');
         hiddenInput.value = '';
       });
       return;
@@ -586,6 +613,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         try {
           await window.saveSiteProd({ mobileShader: ta.value });
           alert('Shader salvato in Firestore!');
+          window.adminLog?.('Mobile shader salvato');
         } catch(err) {
           console.error(err);
           alert('Errore salvataggio shader');
@@ -600,9 +628,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
         headers:{'Content-Type':'text/plain'},
         body:ta.value
       }).then(r=>{
-        if(r.ok) alert('Shader salvato!'); 
-        else alert('Errore salvataggio');
-      }).catch(()=>alert('Errore rete'));
+        if(r.ok){
+          alert('Shader salvato!');
+          window.adminLog?.(`✅ Mobile shader salvato (${ta.value.length} caratteri)`);
+        }else{ alert('Errore salvataggio'); window.adminLog?.('❌ Errore salvataggio shader'); }
+      }).catch(()=>{alert('Errore rete'); window.adminLog?.('❌ Errore rete salvataggio shader');});
     });
   })(); 
 
@@ -637,3 +667,14 @@ selectNav('galleries');
 
 // expose addLog globally for other modules
 window.adminLog = addLog; 
+
+// --- Local testing helper ---
+if (location.hostname === 'localhost' || location.hostname.startsWith('127.') || location.hostname.includes('local')) {
+  window.adminLog('🔧 Sistema log inizializzato');
+  let _testCnt = 0;
+  const _testId = setInterval(() => {
+    _testCnt++;
+    window.adminLog(`Log di prova #${_testCnt}`);
+    if (_testCnt >= 3) clearInterval(_testId);
+  }, 2000);
+} 
