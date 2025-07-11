@@ -1975,20 +1975,52 @@ const loadSiteData = async () => {
   try {
     let siteData;
     
-    // Try Firebase first in production
-    if (window.APP_ENV === 'prod' && window.getSiteData) {
-      try {
-        console.log('🔥 Loading from Firebase...');
-        siteData = await window.getSiteData();
-      } catch (error) {
-        console.warn('🔥 Firebase failed, using local data:', error);
-        // Fallback to local file
-        const response = await fetch('data/site.json');
-        siteData = await response.json();
+    console.log('🔍 Environment check:', {
+      APP_ENV: window.APP_ENV,
+      getSiteData: typeof window.getSiteData
+    });
+    
+    // In production, FORCE loading from Firebase
+    if (window.APP_ENV === 'prod') {
+      console.log('🔥 PRODUCTION: Loading from Firebase...');
+      
+      // Wait for Firebase to be ready
+      let attempts = 0;
+      while (!window.getSiteData && attempts < 50) {
+        console.log(`⏳ Waiting for Firebase... (${attempts}/50)`);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      
+      if (window.getSiteData) {
+        try {
+          console.log('🔥 Loading from Firestore...');
+          siteData = await window.getSiteData();
+          console.log('✅ Firestore data loaded:', siteData);
+        } catch (error) {
+          console.error('❌ Firestore failed:', error);
+          // In production, if Firebase fails, use defaults instead of local file
+          console.log('🔥 Using default values since Firebase failed');
+          siteData = {
+            heroText: "VFXULO",
+            bio: "Portfolio di effetti visivi e animazioni",
+            version: "v1.0.0",
+            contacts: []
+          };
+        }
+      } else {
+        console.error('❌ Firebase not available after 5 seconds');
+        // Use defaults if Firebase never loads
+        siteData = {
+          heroText: "VFXULO",
+          bio: "Portfolio di effetti visivi e animazioni",
+          version: "v1.0.0",
+          contacts: []
+        };
       }
     } else {
       // Local environment - load from file
-      console.log('🔥 Loading from local file...');
+      console.log('🔥 LOCAL: Loading from local file...');
       const response = await fetch('data/site.json');
       siteData = await response.json();
     }

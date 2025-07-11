@@ -1372,8 +1372,29 @@ if (location.hostname === 'localhost' || location.hostname.startsWith('127.') ||
 async function saveToFirebase(data) {
   try {
     if (window.APP_ENV === 'prod' && window.saveSiteData) {
+      // Save to Firebase
       await window.saveSiteData(data);
       console.log('✅ Data saved to Firebase');
+      
+      // Also update local file for development
+      try {
+        const response = await fetch('/api/site', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('adminToken') || 'admin'}`
+          },
+          body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+          console.log('✅ Local file also updated');
+        } else {
+          console.log('⚠️ Local file update failed (normal in production)');
+        }
+      } catch (err) {
+        console.log('⚠️ Local file update not available (normal in production)');
+      }
       
       // Trigger update on public site
       localStorage.setItem('site-updated', Date.now().toString());
