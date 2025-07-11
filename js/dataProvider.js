@@ -25,7 +25,7 @@
     if(!window.db){
       await new Promise((resolve, reject) => {
         let attempts = 0;
-        const maxAttempts = 200; // 10 seconds timeout (increased from 5)
+        const maxAttempts = 600; // 30 seconds timeout
         const iv = setInterval(() => {
           attempts++;
           if(window.db){ 
@@ -39,11 +39,21 @@
       });
     }
     
-    // Use compat API (window.db is compat Firestore)
-    const snap = await window.db.collection('galleries').get();
-    const out = {};
-    snap.forEach(doc=>{ out[doc.id]=doc.data().items || []; });
-    return out;
+    // Try new schema: each gallery is a document in 'galleries' collection
+    const colSnap = await window.db.collection('galleries').get();
+    if(!colSnap.empty){
+      const out = {};
+      colSnap.forEach(doc=>{ out[doc.id]=doc.data().items || []; });
+      return out;
+    }
+
+    // Fallback to legacy schema: single document config/galleries
+    const legacyDoc = await window.db.collection('config').doc('galleries').get();
+    if(legacyDoc.exists){
+      return legacyDoc.data() || {};
+    }
+
+    throw new Error('No galleries found in Firestore');
   }
 
   async function getSiteFirestore(){
@@ -51,7 +61,7 @@
     if(!window.db){ 
       await new Promise((resolve, reject) => {
         let attempts = 0;
-        const maxAttempts = 200; // 10 seconds timeout (increased from 5)
+        const maxAttempts = 600; // 30 seconds timeout
         const iv = setInterval(() => {
           attempts++;
           if(window.db){ 
@@ -91,7 +101,7 @@
     if(!window.db){ 
       await new Promise((resolve, reject) => {
         let attempts = 0;
-        const maxAttempts = 200; // 10 seconds timeout (increased from 5)
+        const maxAttempts = 600; // 30 seconds timeout
         const iv = setInterval(() => {
           attempts++;
           if(window.db){ 
@@ -113,7 +123,7 @@
     if(!window.db){ 
       await new Promise((resolve, reject) => {
         let attempts = 0;
-        const maxAttempts = 200; // 10 seconds timeout (increased from 5)
+        const maxAttempts = 600; // 30 seconds timeout
         const iv = setInterval(() => {
           attempts++;
           if(window.db){ 
