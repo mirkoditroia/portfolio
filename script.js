@@ -359,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 16px Montserrat, Arial';
       ctx.fillText('INT', centerX, centerY);
-    } else if (title.includes('VFX')) {
+    } else if (title.includes('VFX') || title.includes('Motion')) {
       // Canvas VFX con gradiente
       const gradient = ctx.createLinearGradient(0, 0, width, height);
       gradient.addColorStop(0, '#FF0080');
@@ -416,6 +416,215 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  // 🎬 CANVAS VIDEO SYSTEM - Lightweight video textures
+  class CanvasVideoRenderer {
+    constructor(canvas, videoSrc, fallbackImageSrc) {
+      this.canvas = canvas;
+      this.ctx = canvas.getContext('2d');
+      this.videoSrc = videoSrc;
+      this.fallbackImageSrc = fallbackImageSrc;
+      this.video = null;
+      this.isPlaying = false;
+      this.isVisible = false;
+      this.animationId = null;
+      this.observer = null;
+      this.lastFrameTime = 0;
+      this.targetFPS = 15; // Limit FPS for performance
+      this.frameInterval = 1000 / this.targetFPS;
+      
+      this.init();
+    }
+
+    init() {
+      // Setup intersection observer for lazy loading and auto-pause
+      this.observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            this.onVisible();
+          } else {
+            this.onHidden();
+          }
+        });
+      }, { threshold: 0.1 });
+      
+      this.observer.observe(this.canvas);
+      
+      // Load fallback image first
+      if (this.fallbackImageSrc) {
+        this.loadFallbackImage();
+      }
+      
+      // Start loading video immediately for preview
+      if (this.videoSrc) {
+        this.loadVideo();
+      }
+    }
+
+    loadFallbackImage() {
+      const img = new Image();
+      img.onload = () => {
+        this.drawImageToCanvas(img);
+      };
+      img.onerror = () => {
+        // If fallback image fails, create procedural content
+        createCanvasContent(this.ctx, 'Canvas', this.canvas.width, this.canvas.height);
+      };
+      img.src = this.fallbackImageSrc;
+    }
+
+    drawImageToCanvas(img) {
+      const canvasW = this.canvas.width;
+      const canvasH = this.canvas.height;
+      const imgW = img.width;
+      const imgH = img.height;
+      
+      // Calculate scale to FILL canvas while maintaining aspect ratio (like object-fit: cover)
+      const scale = Math.max(canvasW / imgW, canvasH / imgH);
+      const drawW = imgW * scale;
+      const drawH = imgH * scale;
+      const offsetX = (canvasW - drawW) / 2;
+      const offsetY = (canvasH - drawH) / 2;
+      
+      this.ctx.clearRect(0, 0, canvasW, canvasH);
+      
+      // Add subtle background
+      this.ctx.fillStyle = '#1a1a2e';
+      this.ctx.fillRect(0, 0, canvasW, canvasH);
+      
+      // Draw image
+      this.ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+      
+      // Add subtle overlay effect
+      this.ctx.fillStyle = 'rgba(64, 224, 208, 0.1)';
+      this.ctx.fillRect(0, 0, canvasW, canvasH);
+    }
+
+    onVisible() {
+      this.isVisible = true;
+      // Resume video if it was paused
+      if (this.video && !this.isPlaying) {
+        this.startVideo();
+      }
+    }
+
+    onHidden() {
+      this.isVisible = false;
+      // Pause video to save resources when not visible
+      this.pauseVideo();
+    }
+
+    loadVideo() {
+      if (!this.videoSrc) return;
+      
+      this.video = document.createElement('video');
+      this.video.src = this.videoSrc;
+      this.video.loop = true;
+      this.video.muted = true;
+      this.video.playsInline = true;
+      this.video.preload = 'metadata';
+      
+      // Use very low resolution for performance
+      this.video.style.width = '240px';
+      this.video.style.height = '135px';
+      
+      this.video.addEventListener('loadeddata', () => {
+        // Start video immediately when loaded, regardless of visibility
+        this.startVideo();
+      });
+      
+      this.video.addEventListener('error', () => {
+        console.warn('⚠️ Canvas video failed to load:', this.videoSrc);
+        // Fallback to static image
+        if (this.fallbackImageSrc) {
+          this.loadFallbackImage();
+        }
+      });
+    }
+
+    startVideo() {
+      if (!this.video || this.isPlaying) return;
+      
+      this.video.play().then(() => {
+        this.isPlaying = true;
+        this.render();
+      }).catch(err => {
+        console.warn('⚠️ Canvas video play failed:', err);
+        // Keep fallback image
+      });
+    }
+
+    pauseVideo() {
+      if (this.video && this.isPlaying) {
+        this.video.pause();
+        this.isPlaying = false;
+      }
+      
+      if (this.animationId) {
+        cancelAnimationFrame(this.animationId);
+        this.animationId = null;
+      }
+    }
+
+    render(currentTime = 0) {
+      if (!this.isPlaying) return;
+      
+      // Throttle FPS for performance
+      if (currentTime - this.lastFrameTime >= this.frameInterval) {
+        this.drawVideoFrame();
+        this.lastFrameTime = currentTime;
+      }
+      
+      this.animationId = requestAnimationFrame((time) => this.render(time));
+    }
+
+    drawVideoFrame() {
+      if (!this.video || this.video.readyState < 2) return;
+      
+      const canvasW = this.canvas.width;
+      const canvasH = this.canvas.height;
+      const videoW = this.video.videoWidth;
+      const videoH = this.video.videoHeight;
+      
+      if (videoW === 0 || videoH === 0) return;
+      
+      // Calculate scale to FILL canvas (like object-fit: cover)
+      const scale = Math.max(canvasW / videoW, canvasH / videoH);
+      const drawW = videoW * scale;
+      const drawH = videoH * scale;
+      const offsetX = (canvasW - drawW) / 2;
+      const offsetY = (canvasH - drawH) / 2;
+      
+      this.ctx.clearRect(0, 0, canvasW, canvasH);
+      
+      // Add background
+      this.ctx.fillStyle = '#0a0a0a';
+      this.ctx.fillRect(0, 0, canvasW, canvasH);
+      
+      // Draw video frame
+      this.ctx.drawImage(this.video, offsetX, offsetY, drawW, drawH);
+      
+      // Add subtle video overlay effect
+      this.ctx.fillStyle = 'rgba(64, 224, 208, 0.05)';
+      this.ctx.fillRect(0, 0, canvasW, canvasH);
+    }
+
+    destroy() {
+      if (this.observer) {
+        this.observer.disconnect();
+      }
+      
+      this.pauseVideo();
+      
+      if (this.video) {
+        this.video.src = '';
+        this.video.load();
+      }
+    }
+  }
+
+  // Store canvas video renderers for cleanup
+  const canvasVideoRenderers = new Map();
+
   // Funzione per inizializzare una gallery
   function initGallery(sectionId, images) {
     const track = document.querySelector(`#${sectionId}-track`);
@@ -447,7 +656,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log(`📊 [${sectionId}] SPV=${realSPV}, Slide reali=${images.length}, placeholder=${fillersNeeded}, totali=${slidesData.length}`);
  
     // Genera dinamicamente gli item con Swiper slide
-    slidesData.forEach(img => {
+    slidesData.forEach((img, index) => {
       const item = document.createElement('div');
       item.className = 'gallery-item swiper-slide';
       item.setAttribute('role', 'listitem');
@@ -473,7 +682,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const ctx = mediaEl.getContext('2d');
-        if (img.src) {
+        
+        // 🎬 NEW: Check if this canvas should have video preview
+        // Only create video renderer if it's explicitly marked as canvas-video
+        if (img.canvasVideo && img.video) {
+          // Create canvas video renderer for dynamic preview
+          const canvasId = `${sectionId}-canvas-${index}`;
+          mediaEl.id = canvasId;
+          
+          const renderer = new CanvasVideoRenderer(mediaEl, img.video, img.src);
+          canvasVideoRenderers.set(canvasId, renderer);
+          
+          console.log(`🎬 Canvas video created: ${canvasId} (${img.video})`);
+        } else if (img.src) {
+          // Static image canvas (existing logic)
           const imageObj = new Image();
           imageObj.onload = function() {
             const canvasW = mediaEl.width;
@@ -501,6 +723,7 @@ document.addEventListener('DOMContentLoaded', function() {
           };
           imageObj.src = img.src;
         } else {
+          // Procedural canvas content
           createCanvasContent(ctx, img.title, mediaEl.width, mediaEl.height);
         }
       } else {
@@ -890,20 +1113,60 @@ document.addEventListener('DOMContentLoaded', function() {
                 const galleryTrack = document.createElement('div');
                 galleryTrack.className = 'modal-gallery-track';
                 
-                imgs.forEach((imgSrc, index) => {
-                  const imgEl = document.createElement('img');
-                  imgEl.src = imgSrc;
-                  imgEl.className = 'modal-gallery-img';
-                  imgEl.onload = function() {
-                    if (imgEl.naturalHeight > imgEl.naturalWidth) {
-                      imgEl.style.maxWidth = '60vw';
-                      imgEl.style.maxHeight = '80vh';
-                    } else {
-                      imgEl.style.maxWidth = '90vw';
-                      imgEl.style.maxHeight = '60vh';
-                    }
-                  };
-                  galleryTrack.appendChild(imgEl);
+                imgs.forEach((mediaSrc, index) => {
+                  // 🎬 NEW: Detect if media is video or image
+                  const isVideo = /\.(mp4|webm|mov|avi|mkv)$/i.test(mediaSrc);
+                  
+                  let mediaEl;
+                  if (isVideo) {
+                    // Create video element
+                    mediaEl = document.createElement('video');
+                    mediaEl.src = mediaSrc;
+                    mediaEl.className = 'modal-gallery-video';
+                    mediaEl.controls = true;
+                    mediaEl.muted = true;
+                    mediaEl.loop = true;
+                    mediaEl.preload = 'metadata';
+                    mediaEl.playsInline = true;
+                    
+                    // Optimized video sizing
+                    mediaEl.style.maxWidth = '90vw';
+                    mediaEl.style.maxHeight = '70vh';
+                    mediaEl.style.width = '100%';
+                    mediaEl.style.height = 'auto';
+                    mediaEl.style.objectFit = 'contain';
+                    
+                    // Auto-play when visible (with intersection observer)
+                    const videoObserver = new IntersectionObserver((entries) => {
+                      entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                          mediaEl.play().catch(e => console.warn('Video autoplay failed:', e));
+                        } else {
+                          mediaEl.pause();
+                        }
+                      });
+                    }, { threshold: 0.5 });
+                    
+                    videoObserver.observe(mediaEl);
+                    
+                    console.log(`🎬 Modal gallery video created: ${mediaSrc}`);
+                  } else {
+                    // Create image element (existing logic)
+                    mediaEl = document.createElement('img');
+                    mediaEl.src = mediaSrc;
+                    mediaEl.className = 'modal-gallery-img';
+                    mediaEl.onload = function() {
+                      if (mediaEl.naturalHeight > mediaEl.naturalWidth) {
+                        mediaEl.style.maxWidth = '60vw';
+                        mediaEl.style.maxHeight = '80vh';
+                      } else {
+                        mediaEl.style.maxWidth = '90vw';
+                        mediaEl.style.maxHeight = '60vh';
+                      }
+                    };
+                  }
+                  
+                  galleryTrack.appendChild(mediaEl);
                 });
                 
                 galleryContainer.appendChild(galleryTrack);
@@ -913,16 +1176,32 @@ document.addEventListener('DOMContentLoaded', function() {
                   prevButton.className = 'modal-gallery-btn prev';
                   prevButton.innerHTML = '&#8592;';
                   prevButton.addEventListener('click', () => {
+                    // Pause current video if playing
+                    const currentVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
+                    if (currentVideo) currentVideo.pause();
+                    
                     galleryIndex = (galleryIndex - 1 + imgs.length) % imgs.length;
                     galleryTrack.style.transform = `translateX(-${galleryIndex * 100}%)`;
+                    
+                    // Auto-play new video if it exists
+                    const newVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
+                    if (newVideo) newVideo.play().catch(e => console.warn('Video autoplay failed:', e));
                   });
                   
                   const nextButton = document.createElement('button');
                   nextButton.className = 'modal-gallery-btn next';
                   nextButton.innerHTML = '&#8594;';
                   nextButton.addEventListener('click', () => {
+                    // Pause current video if playing
+                    const currentVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
+                    if (currentVideo) currentVideo.pause();
+                    
                     galleryIndex = (galleryIndex + 1) % imgs.length;
                     galleryTrack.style.transform = `translateX(-${galleryIndex * 100}%)`;
+                    
+                    // Auto-play new video if it exists
+                    const newVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
+                    if (newVideo) newVideo.play().catch(e => console.warn('Video autoplay failed:', e));
                   });
                   
                   galleryContainer.appendChild(prevButton);
@@ -1001,14 +1280,38 @@ document.addEventListener('DOMContentLoaded', function() {
         // Contatti
         const contactSection = document.getElementById('contact');
         if(contactSection && Array.isArray(site.contacts)){
-          const list = document.createElement('ul');
+          const contactsContainer = document.createElement('div');
+          contactsContainer.className = 'contacts-container';
+          
           site.contacts.forEach(c=>{
-            const li = document.createElement('li');
-            li.innerHTML = `<strong>${c.label}:</strong> <a href="${c.value.startsWith('http')?'': 'mailto:'}${c.value}" target="_blank" rel="noopener">${c.value}</a>`;
-            list.appendChild(li);
+            // Skip hidden contacts
+            if(c.visible === false) return;
+            
+            const contactItem = document.createElement('div');
+            contactItem.className = 'contact-item';
+            
+            // Create clickable link if it's a URL or email
+            let valueElement;
+            if(c.value.includes('@')) {
+              valueElement = `<a href="mailto:${c.value}" class="contact-link">${c.value}</a>`;
+            } else if(c.value.includes('http')) {
+              valueElement = `<a href="${c.value}" target="_blank" rel="noopener noreferrer" class="contact-link">${c.value}</a>`;
+            } else {
+              valueElement = `<span class="contact-text">${c.value}</span>`;
+            }
+            
+            contactItem.innerHTML = `
+              <div class="contact-info">
+                <div class="contact-label">${c.label}</div>
+                <div class="contact-value">${valueElement}</div>
+              </div>
+            `;
+            
+            contactsContainer.appendChild(contactItem);
           });
+          
           contactSection.innerHTML = '<h2 id="contact-heading">CONTACT</h2>';
-          contactSection.appendChild(list);
+          contactSection.appendChild(contactsContainer);
         }
 
         // Sezioni
@@ -1229,3 +1532,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 console.log('Portfolio script loaded'); 
+
+// Cleanup function for canvas video renderers
+function cleanupCanvasVideos() {
+  canvasVideoRenderers.forEach((renderer, id) => {
+    renderer.destroy();
+  });
+  canvasVideoRenderers.clear();
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', cleanupCanvasVideos); 

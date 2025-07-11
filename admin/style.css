@@ -447,4 +447,139 @@ h1 {
 .config-form.unsaved-changes {
   border-color: #ffc107;
   background: rgba(255, 193, 7, 0.05);
+}
+
+/* Contact management styles */
+.contact-row {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
+}
+
+.contact-row:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: #007acc;
+}
+
+.contact-row-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.contact-row-fields {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.contact-visible {
+  margin: 0;
+  cursor: pointer;
+  transform: scale(1.2);
+}
+
+.contact-type {
+  background: #fff;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.contact-type:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+.contact-type option {
+  background: #fff;
+  color: #333;
+}
+
+.contact-label, .contact-value {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 0.9rem;
+}
+
+.contact-label:focus, .contact-value:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+/* Mobile responsive for contacts */
+@media (max-width: 768px) {
+  .contact-row-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  
+  .contact-row-fields {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .contact-label, .contact-value {
+    width: 100% !important;
+  }
+  
+  .contact-type {
+    width: 100%;
+  }
+}
+
+/* Social media quick add buttons */
+.social-quick-add {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.social-btn {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.social-btn:hover {
+  background: #e9ecef;
+  border-color: #007acc;
+  transform: translateY(-1px);
+}
+
+.social-btn:active {
+  transform: translateY(0);
+}
+
+/* Mobile responsive for social buttons */
+@media (max-width: 768px) {
+  .social-quick-add {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .social-btn {
+    flex: 1;
+    text-align: center;
+    min-width: 0;
+    font-size: 0.75rem;
+    padding: 6px 4px;
+  }
 } 

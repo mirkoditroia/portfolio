@@ -231,8 +231,36 @@ firebase deploy
 #### **Tipi di Contenuto**
 - **Video**: `.mp4`, `.mov`, `.webm`
 - **Immagini**: `.jpg`, `.png`, `.gif`, `.webp`
-- **Canvas**: Rendering 3D con Three.js
-- **Gallerie**: Collezioni di immagini
+- **Canvas**: Rendering 2D con pattern procedurali
+- **Canvas Video**: 🆕 Video leggeri come texture su canvas (senza bordi blu)
+- **Gallerie**: Collezioni di immagini e video
+- **Mixed Media**: 🆕 Gallerie con supporto combinato immagini/video
+
+### **Canvas Video System** 🆕
+- **Video Texture**: Video riprodotti come texture su canvas 2D
+- **Performance Ottimizzate**: FPS limitati (15fps) e risoluzione ridotta
+- **Lazy Loading**: Caricamento solo quando visibile
+- **Auto-Pause**: Pausa automatica quando fuori schermo
+- **Fallback Intelligente**: Immagine statica se video non disponibile
+- **Intersection Observer**: Gestione visibilità automatica
+- **Clean Design**: Rimossi bordi blu e animazioni pulse per design minimalista
+
+### **Advanced Contact System** 🆕
+- **Modern Layout**: Design card-based senza icone per look pulito
+- **Responsive Design**: Layout orizzontale su desktop, colonna su mobile
+- **Social Media Management**: Sistema completo per gestione social
+- **Quick-Add Buttons**: Pulsanti one-click per social comuni (📧 💼 📸 📺 💻 🎵)
+- **Smart Recognition**: Riconoscimento automatico tipo social da URL
+- **Visibility Control**: Mostra/nascondi ogni contatto individualmente
+- **Admin Integration**: Pannello admin con dropdown intelligente e placeholder dinamici
+
+### **Mixed Media Galleries** 🆕
+- **Video + Image Support**: Supporto completo per video e immagini in gallerie modali
+- **Responsive Video Player**: Player ottimizzato per desktop (90vw x 70vh) e mobile (90vw x 60vh)
+- **Smart Controls**: Auto-play/pause basato su visibilità, controlli touch-friendly
+- **File Type Detection**: Riconoscimento automatico tipo file (🎬 video, 🖼️ immagini)
+- **Smooth Navigation**: Transizioni fluide tra media diversi
+- **Performance Optimized**: Gestione memoria e cleanup automatico
 
 ### **Struttura Dati**
 
@@ -257,7 +285,12 @@ firebase deploy
   "heroText": "vfxulo",
   "bio": "Artista VFX e 3D...",
   "contacts": [
-    {"label": "Email", "value": "info@vfxulo.com"}
+    {"label": "Email", "value": "info@vfxulo.com", "visible": true},
+    {"label": "LinkedIn", "value": "https://linkedin.com/in/username", "visible": true},
+    {"label": "Instagram", "value": "https://instagram.com/username", "visible": true},
+    {"label": "GitHub", "value": "https://github.com/username", "visible": true},
+    {"label": "YouTube", "value": "https://youtube.com/@username", "visible": false},
+    {"label": "TikTok", "value": "https://tiktok.com/@username", "visible": false}
   ],
   "sections": [
     {"key": "vfx", "label": "VFX", "status": "show"}
@@ -357,14 +390,23 @@ localStorage.setItem('debug', 'true');
 - [x] **Upload Animation System** - Overlay completo con spinner e progress bar
 - [x] **Partial Site Config** - Salvataggio indipendente per ogni sezione
 
-### **v1.2.0** 🚧 **IN SVILUPPO**
+### **v1.2.0** ✅ **COMPLETATO**
+- [x] **Canvas Video System** - Video leggeri come texture su canvas 2D
+- [x] **Mixed Media Galleries** - Supporto immagini e video in gallerie modali
+- [x] **Contact System Redesign** - Layout moderno senza icone, responsive ottimizzato
+- [x] **Social Media Management** - Sistema completo per gestione social dal pannello admin
+- [x] **Advanced Contact Admin** - Dropdown intelligente, quick-add social, controllo visibilità
+- [x] **Performance Optimization** - Rimozione elementi non necessari, ottimizzazioni mobile
+- [x] **UI/UX Improvements** - Layout orizzontale desktop, colonna mobile, design pulito
+
+### **v1.3.0** 🚧 **IN SVILUPPO**
 - [ ] Image optimization automatica
 - [ ] Video thumbnails generation
 - [ ] Bulk operations per gallerie
 - [ ] Export/Import configurazioni
 - [ ] Backup automatico dati
 
-### **v1.3.0** 📋 **PIANIFICATO**
+### **v1.4.0** 📋 **PIANIFICATO**
 - [ ] Multi-user support
 - [ ] Permissions system granulare
 - [ ] Analytics integration
@@ -398,4 +440,4 @@ MIT License - Vedi `LICENSE` file per dettagli.
 
 ---
 
-*Ultimo aggiornamento: Luglio 2025 - v1.1.0-release* 
+*Ultimo aggiornamento: Gennaio 2025 - v1.2.0-release* 

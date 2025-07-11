@@ -108,9 +108,19 @@
 
         <!-- Contacts Form -->
         <div class="config-form" id="contacts-form">
-          <h2>Contatti</h2>
+          <h2>Contatti & Social Media</h2>
           <div id="contacts-list"></div>
-          <button id="add-contact-btn" class="secondary">+ Aggiungi contatto</button>
+          <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;">
+            <button id="add-contact-btn" class="secondary">+ Contatto personalizzato</button>
+            <div class="social-quick-add">
+              <button class="social-btn" data-type="Email">📧 Email</button>
+              <button class="social-btn" data-type="LinkedIn">💼 LinkedIn</button>
+              <button class="social-btn" data-type="Instagram">📸 Instagram</button>
+              <button class="social-btn" data-type="YouTube">📺 YouTube</button>
+              <button class="social-btn" data-type="GitHub">💻 GitHub</button>
+              <button class="social-btn" data-type="TikTok">🎵 TikTok</button>
+            </div>
+          </div>
           <div style="margin-top:1rem">
             <button id="save-contacts-btn" class="add-slide-btn">Salva Contatti</button>
           </div>
@@ -225,15 +235,18 @@
         <input id="se-title" type="text" style="width:100%" />
       </label>
       <label class="block-label">Immagine Canvas / Thumbnail
-        <input id="se-src" type="text" style="width:80%" />
+        <input id="se-src" type="text" style="width:80%" placeholder="images/thumbnail.jpg" />
         <button class="upload-btn" data-target="se-src">Upload</button>
       </label>
-      <label class="block-label">Canvas <input id="se-canvas" type="checkbox" /></label>
+      <label class="block-label">Canvas <input id="se-canvas" type="checkbox" />
+        <small style="color:#666;margin-left:8px;">Attiva per rendering canvas (statico o procedurale)</small>
+      </label>
       <label class="block-label">Tipo
         <select id="se-type">
           <option value="video">video</option>
           <option value="image">image</option>
           <option value="gallery">gallery</option>
+          <option value="canvas-video">canvas video</option>
         </select>
       </label>
 
@@ -252,9 +265,34 @@
       </div>
 
       <div id="field-gallery" class="type-field">
-        <h4>Immagini della gallery</h4>
+        <h4>Media della gallery (immagini e video)</h4>
         <ul id="se-gallery-list" class="gallery-list"></ul>
-        <button class="upload-btn" data-target="se-gallery-list" data-multiple="true">Upload immagini</button>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="upload-btn" data-target="se-gallery-list" data-multiple="true">Upload immagini</button>
+          <button class="upload-btn" data-target="se-gallery-list" data-multiple="true" data-accept="video/*">Upload video</button>
+        </div>
+        <p style="font-size:0.8rem;color:#666;margin:8px 0;">
+          🎬 Supporta sia immagini che video. I video saranno ottimizzati automaticamente nel carosello modale.
+        </p>
+      </div>
+
+      <div id="field-canvas-video" class="type-field">
+        <label class="block-label">Video per Canvas (texture) *
+          <input id="se-canvas-video" type="text" style="width:80%" placeholder="video/demo.mp4" />
+          <button class="upload-btn" data-target="se-canvas-video" data-accept="video/*">Upload</button>
+        </label>
+        <label class="block-label">Immagine Fallback (opzionale)
+          <input id="se-canvas-fallback" type="text" style="width:80%" placeholder="images/thumbnail.jpg" />
+          <button class="upload-btn" data-target="se-canvas-fallback">Upload</button>
+        </label>
+        <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin:8px 0;border-left:4px solid #40e0d0;">
+          <p style="font-size:0.85rem;color:#333;margin:0;"><strong>🎬 Canvas Video:</strong></p>
+          <ul style="font-size:0.8rem;color:#666;margin:8px 0 0 0;padding-left:16px;">
+            <li><strong>Video:</strong> Riprodotto come anteprima nel canvas della galleria</li>
+            <li><strong>Fallback:</strong> Mostrato solo se il video non si carica (opzionale)</li>
+            <li><strong>Performance:</strong> Usa video leggeri (max 10MB) per prestazioni ottimali</li>
+          </ul>
+        </div>
       </div>
 
       <label class="block-label">Descrizione

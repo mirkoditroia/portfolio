@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const row   = sTpl.content.cloneNode(true);
         row.querySelector('.slide-index').textContent = i+1;
         row.querySelector('.slide-title').textContent = slide.title || '-';
-        const type = slide.video ? 'video' : slide.modalGallery ? 'gallery' : slide.modalImage ? 'image' : slide.canvas ? 'canvas' : 'unknown';
+        const type = slide.canvasVideo ? 'canvas-video' : slide.video ? 'video' : slide.modalGallery ? 'gallery' : slide.modalImage ? 'image' : slide.canvas ? 'canvas' : 'unknown';
         row.querySelector('.slide-type').textContent = type;
         tbody.appendChild(row);
       });
@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
           tr.querySelector('.slide-index').textContent = index+1;
           tr.querySelector('.slide-title').textContent = slide.title || '-';
-          const type = slide.video ? 'video' : slide.modalGallery ? 'gallery' : slide.modalImage ? 'image' : slide.canvas ? 'canvas' : 'unknown';
+          const type = slide.canvasVideo ? 'canvas-video' : slide.video ? 'video' : slide.modalGallery ? 'gallery' : slide.modalImage ? 'image' : slide.canvas ? 'canvas' : 'unknown';
           tr.querySelector('.slide-type').textContent = type;
           tr.dataset.slide = JSON.stringify(slide);
 
@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
             openSlideEditor(current, (updated)=> {
               tr.dataset.slide = JSON.stringify(updated);
               tr.querySelector('.slide-title').textContent = updated.title || '-';
-              const newType = updated.video ? 'video' : updated.modalGallery ? 'gallery' : updated.modalImage ? 'image' : updated.canvas ? 'canvas' : 'unknown';
+              const newType = updated.canvasVideo ? 'canvas-video' : updated.video ? 'video' : updated.modalGallery ? 'gallery' : updated.modalImage ? 'image' : updated.canvas ? 'canvas' : 'unknown';
               tr.querySelector('.slide-type').textContent = newType;
             });
           });
@@ -402,7 +402,66 @@ document.addEventListener('DOMContentLoaded', ()=>{
     site.contacts?.forEach((c,i)=>{
       const row = document.createElement('div');
       row.className = 'contact-row';
-      row.innerHTML = `<input type="text" class="contact-label" value="${c.label}" placeholder="etichetta" style="width:100px"> <input type="text" class="contact-value" value="${c.value}" placeholder="valore" style="width:300px"> <button class="delete contact-del">X</button>`;
+      const visible = c.visible !== false;
+      row.innerHTML = `
+        <div class="contact-row-header">
+          <input type="checkbox" class="contact-visible" ${visible ? 'checked' : ''}>
+          <select class="contact-type" style="width:120px">
+            <option value="">Personalizzato</option>
+            <option value="Email">📧 Email</option>
+            <option value="LinkedIn">💼 LinkedIn</option>
+            <option value="Instagram">📸 Instagram</option>
+            <option value="Twitter">🐦 Twitter</option>
+            <option value="GitHub">💻 GitHub</option>
+            <option value="YouTube">📺 YouTube</option>
+            <option value="Vimeo">🎬 Vimeo</option>
+            <option value="TikTok">🎵 TikTok</option>
+            <option value="Phone">📱 Telefono</option>
+            <option value="Website">🌐 Website</option>
+          </select>
+          <button class="delete contact-del">X</button>
+        </div>
+        <div class="contact-row-fields">
+          <input type="text" class="contact-label" value="${c.label}" placeholder="etichetta" style="width:140px">
+          <input type="text" class="contact-value" value="${c.value}" placeholder="valore" style="width:280px">
+        </div>
+      `;
+      
+      // Set the selected type based on label
+      const typeSelect = row.querySelector('.contact-type');
+      const knownTypes = ['Email', 'LinkedIn', 'Instagram', 'Twitter', 'GitHub', 'YouTube', 'Vimeo', 'TikTok', 'Phone', 'Website'];
+      const matchedType = knownTypes.find(type => c.label.toLowerCase().includes(type.toLowerCase()));
+      if(matchedType) {
+        typeSelect.value = matchedType;
+      }
+      
+      // Handle type selection
+      typeSelect.addEventListener('change', ()=>{
+        const labelInput = row.querySelector('.contact-label');
+        const valueInput = row.querySelector('.contact-value');
+        if(typeSelect.value && !labelInput.value) {
+          labelInput.value = typeSelect.value;
+        }
+        // Add placeholder for common social media URLs
+        if(typeSelect.value === 'LinkedIn' && !valueInput.value) {
+          valueInput.placeholder = 'https://linkedin.com/in/username';
+        } else if(typeSelect.value === 'Instagram' && !valueInput.value) {
+          valueInput.placeholder = 'https://instagram.com/username';
+        } else if(typeSelect.value === 'Twitter' && !valueInput.value) {
+          valueInput.placeholder = 'https://twitter.com/username';
+        } else if(typeSelect.value === 'GitHub' && !valueInput.value) {
+          valueInput.placeholder = 'https://github.com/username';
+        } else if(typeSelect.value === 'YouTube' && !valueInput.value) {
+          valueInput.placeholder = 'https://youtube.com/@username';
+        } else if(typeSelect.value === 'Vimeo' && !valueInput.value) {
+          valueInput.placeholder = 'https://vimeo.com/username';
+        } else if(typeSelect.value === 'TikTok' && !valueInput.value) {
+          valueInput.placeholder = 'https://tiktok.com/@username';
+        } else if(typeSelect.value === 'Email' && !valueInput.value) {
+          valueInput.placeholder = 'nome@email.com';
+        }
+      });
+      
       row.querySelector('.contact-del').addEventListener('click', ()=>{
         row.remove();
       });
@@ -412,9 +471,148 @@ document.addEventListener('DOMContentLoaded', ()=>{
     document.getElementById('add-contact-btn').addEventListener('click',()=>{
       const row = document.createElement('div');
       row.className = 'contact-row';
-      row.innerHTML = `<input type="text" class="contact-label" placeholder="etichetta" style="width:100px"> <input type="text" class="contact-value" placeholder="valore" style="width:300px"> <button class="delete contact-del">X</button>`;
+      row.innerHTML = `
+        <div class="contact-row-header">
+          <input type="checkbox" class="contact-visible" checked>
+          <select class="contact-type" style="width:120px">
+            <option value="">Personalizzato</option>
+            <option value="Email">📧 Email</option>
+            <option value="LinkedIn">💼 LinkedIn</option>
+            <option value="Instagram">📸 Instagram</option>
+            <option value="Twitter">🐦 Twitter</option>
+            <option value="GitHub">💻 GitHub</option>
+            <option value="YouTube">📺 YouTube</option>
+            <option value="Vimeo">🎬 Vimeo</option>
+            <option value="TikTok">🎵 TikTok</option>
+            <option value="Phone">📱 Telefono</option>
+            <option value="Website">🌐 Website</option>
+          </select>
+          <button class="delete contact-del">X</button>
+        </div>
+        <div class="contact-row-fields">
+          <input type="text" class="contact-label" placeholder="etichetta" style="width:140px">
+          <input type="text" class="contact-value" placeholder="valore" style="width:280px">
+        </div>
+      `;
+      
+      // Handle type selection for new row
+      const typeSelect = row.querySelector('.contact-type');
+      typeSelect.addEventListener('change', ()=>{
+        const labelInput = row.querySelector('.contact-label');
+        const valueInput = row.querySelector('.contact-value');
+        if(typeSelect.value && !labelInput.value) {
+          labelInput.value = typeSelect.value;
+        }
+        // Add placeholder for common social media URLs
+        if(typeSelect.value === 'LinkedIn' && !valueInput.value) {
+          valueInput.placeholder = 'https://linkedin.com/in/username';
+        } else if(typeSelect.value === 'Instagram' && !valueInput.value) {
+          valueInput.placeholder = 'https://instagram.com/username';
+        } else if(typeSelect.value === 'Twitter' && !valueInput.value) {
+          valueInput.placeholder = 'https://twitter.com/username';
+        } else if(typeSelect.value === 'GitHub' && !valueInput.value) {
+          valueInput.placeholder = 'https://github.com/username';
+        } else if(typeSelect.value === 'YouTube' && !valueInput.value) {
+          valueInput.placeholder = 'https://youtube.com/@username';
+        } else if(typeSelect.value === 'Vimeo' && !valueInput.value) {
+          valueInput.placeholder = 'https://vimeo.com/username';
+        } else if(typeSelect.value === 'TikTok' && !valueInput.value) {
+          valueInput.placeholder = 'https://tiktok.com/@username';
+        } else if(typeSelect.value === 'Email' && !valueInput.value) {
+          valueInput.placeholder = 'nome@email.com';
+        }
+      });
+      
       row.querySelector('.contact-del').addEventListener('click', ()=> row.remove());
       contactsDiv.appendChild(row);
+    });
+
+    // Social media quick add buttons
+    document.querySelectorAll('.social-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const type = btn.dataset.type;
+        const row = document.createElement('div');
+        row.className = 'contact-row';
+        row.innerHTML = `
+          <div class="contact-row-header">
+            <input type="checkbox" class="contact-visible" checked>
+            <select class="contact-type" style="width:120px">
+              <option value="">Personalizzato</option>
+              <option value="Email">📧 Email</option>
+              <option value="LinkedIn">💼 LinkedIn</option>
+              <option value="Instagram">📸 Instagram</option>
+              <option value="Twitter">🐦 Twitter</option>
+              <option value="GitHub">💻 GitHub</option>
+              <option value="YouTube">📺 YouTube</option>
+              <option value="Vimeo">🎬 Vimeo</option>
+              <option value="TikTok">🎵 TikTok</option>
+              <option value="Phone">📱 Telefono</option>
+              <option value="Website">🌐 Website</option>
+            </select>
+            <button class="delete contact-del">X</button>
+          </div>
+          <div class="contact-row-fields">
+            <input type="text" class="contact-label" placeholder="etichetta" style="width:140px">
+            <input type="text" class="contact-value" placeholder="valore" style="width:280px">
+          </div>
+        `;
+        
+        // Pre-fill based on type
+        const typeSelect = row.querySelector('.contact-type');
+        const labelInput = row.querySelector('.contact-label');
+        const valueInput = row.querySelector('.contact-value');
+        
+        typeSelect.value = type;
+        labelInput.value = type;
+        
+        // Set appropriate placeholder
+        if(type === 'Email') {
+          valueInput.placeholder = 'nome@email.com';
+        } else if(type === 'LinkedIn') {
+          valueInput.placeholder = 'https://linkedin.com/in/username';
+        } else if(type === 'Instagram') {
+          valueInput.placeholder = 'https://instagram.com/username';
+        } else if(type === 'YouTube') {
+          valueInput.placeholder = 'https://youtube.com/@username';
+        } else if(type === 'GitHub') {
+          valueInput.placeholder = 'https://github.com/username';
+        } else if(type === 'TikTok') {
+          valueInput.placeholder = 'https://tiktok.com/@username';
+        }
+        
+        // Add event handlers
+        typeSelect.addEventListener('change', ()=>{
+          const labelInput = row.querySelector('.contact-label');
+          const valueInput = row.querySelector('.contact-value');
+          if(typeSelect.value && !labelInput.value) {
+            labelInput.value = typeSelect.value;
+          }
+          // Update placeholder based on selection
+          if(typeSelect.value === 'LinkedIn' && !valueInput.value) {
+            valueInput.placeholder = 'https://linkedin.com/in/username';
+          } else if(typeSelect.value === 'Instagram' && !valueInput.value) {
+            valueInput.placeholder = 'https://instagram.com/username';
+          } else if(typeSelect.value === 'Twitter' && !valueInput.value) {
+            valueInput.placeholder = 'https://twitter.com/username';
+          } else if(typeSelect.value === 'GitHub' && !valueInput.value) {
+            valueInput.placeholder = 'https://github.com/username';
+          } else if(typeSelect.value === 'YouTube' && !valueInput.value) {
+            valueInput.placeholder = 'https://youtube.com/@username';
+          } else if(typeSelect.value === 'Vimeo' && !valueInput.value) {
+            valueInput.placeholder = 'https://vimeo.com/username';
+          } else if(typeSelect.value === 'TikTok' && !valueInput.value) {
+            valueInput.placeholder = 'https://tiktok.com/@username';
+          } else if(typeSelect.value === 'Email' && !valueInput.value) {
+            valueInput.placeholder = 'nome@email.com';
+          }
+        });
+        
+        row.querySelector('.contact-del').addEventListener('click', ()=> row.remove());
+        contactsDiv.appendChild(row);
+        
+        // Focus on the value input for immediate editing
+        valueInput.focus();
+      });
     });
 
     // sections
@@ -496,12 +694,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
     src: document.getElementById('se-src'),
     video: document.getElementById('se-video'),
     image: document.getElementById('se-image'),
+    canvasVideo: document.getElementById('se-canvas-video'),
+    canvasFallback: document.getElementById('se-canvas-fallback'),
     desc: document.getElementById('se-description')
   };
   const typeFields = {
     video: document.getElementById('field-video'),
     image: document.getElementById('field-image'),
-    gallery: document.getElementById('field-gallery')
+    gallery: document.getElementById('field-gallery'),
+    'canvas-video': document.getElementById('field-canvas-video')
   };
 
   function showTypeFields(t){
@@ -520,7 +721,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
     galleryListEl.innerHTML='';
     galleryArr.forEach((p,idx)=>{
       const li=document.createElement('li');
-      li.innerHTML=`<span>${p}</span> <button class="delete small">X</button>`;
+      // 🎬 NEW: Add media type indicator
+      const isVideo = /\.(mp4|webm|mov|avi|mkv)$/i.test(p);
+      const mediaIcon = isVideo ? '🎬' : '🖼️';
+      const fileName = p.split('/').pop();
+      
+      li.innerHTML=`<span>${mediaIcon} ${fileName}</span> <button class="delete small">X</button>`;
       li.querySelector('button').addEventListener('click',()=>{
         galleryArr.splice(idx,1);
         renderGallery();
@@ -537,6 +743,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
       canvas: F.canvas.checked,
       description: F.desc.value
     };
+    
+    // Validation for canvas video
+    if(F.type.value==='canvas-video' && !F.canvasVideo.value.trim()){
+      alert('⚠️ Il campo Video è obbligatorio per i Canvas Video');
+      return;
+    }
+    
     if(F.type.value==='video'){
       slideData.src = F.src.value;
       slideData.video = F.video.value;
@@ -544,6 +757,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
       slideData.modalImage = F.image.value;
     }else if(F.type.value==='gallery'){
       slideData.modalGallery = [...galleryArr];
+    }else if(F.type.value==='canvas-video'){
+      slideData.src = F.canvasFallback.value || ''; // Optional fallback image
+      slideData.video = F.canvasVideo.value;
+      slideData.canvas = true; // Force canvas mode
+      slideData.canvasVideo = true; // Flag to distinguish from regular canvas+video
     }
     editorCb(slideData);
     
@@ -560,11 +778,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function openSlideEditor(slide, cb){
     editorCb = cb;
     document.getElementById('se-heading').textContent = slide ? 'Modifica Slide' : 'Nuova Slide';
-    F.title.value='';F.canvas.checked=false;F.type.value='video';F.src.value='';F.video.value='';F.image.value='';F.desc.value='';
+    F.title.value='';F.canvas.checked=false;F.type.value='video';F.src.value='';F.video.value='';F.image.value='';F.canvasVideo.value='';F.canvasFallback.value='';F.desc.value='';
     if(slide){
       F.title.value = slide.title || '';
       F.canvas.checked = !!slide.canvas;
-      if(slide.video){
+      if(slide.canvasVideo && slide.video){
+        F.type.value='canvas-video'; F.canvasFallback.value=slide.src||''; F.canvasVideo.value=slide.video||'';
+      }else if(slide.video){
         F.type.value='video'; F.src.value=slide.src||''; F.video.value=slide.video||'';
       }else if(slide.modalImage){
         F.type.value='image'; F.image.value=slide.modalImage;
@@ -942,7 +1162,8 @@ function setupIndividualSaveFunctions() {
   document.getElementById('save-contacts-btn')?.addEventListener('click', () => {
     const contacts = Array.from(document.querySelectorAll('.contact-row')).map(r=>({
       label: r.querySelector('.contact-label').value,
-      value: r.querySelector('.contact-value').value
+      value: r.querySelector('.contact-value').value,
+      visible: r.querySelector('.contact-visible').checked
     })).filter(c=>c.label||c.value);
     const payload = { contacts };
     savePartialSiteConfig('Contatti', payload, 'contacts');

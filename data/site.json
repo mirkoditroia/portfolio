@@ -4,11 +4,33 @@
   "contacts": [
     {
       "label": "Email",
-      "value": "mierkos@gmail.com"
+      "value": "mierkos@gmail.com",
+      "visible": true
     },
     {
       "label": "LinkedIn",
-      "value": "https://linkedin.com/in/username"
+      "value": "https://linkedin.com/in/username",
+      "visible": true
+    },
+    {
+      "label": "Instagram",
+      "value": "https://instagram.com/vfxulo",
+      "visible": true
+    },
+    {
+      "label": "GitHub",
+      "value": "https://github.com/vfxulo",
+      "visible": true
+    },
+    {
+      "label": "YouTube",
+      "value": "https://youtube.com/@vfxulo",
+      "visible": false
+    },
+    {
+      "label": "TikTok",
+      "value": "https://tiktok.com/@vfxulo",
+      "visible": false
     }
   ],
   "sections": [

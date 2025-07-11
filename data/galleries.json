@@ -32,14 +32,22 @@
         "images/art_2k_end.png"
       ],
       "description": "Tecniche di compositing digitale."
+    },
+    {
+      "canvas": true,
+      "canvasVideo": true,
+      "title": "Canvas Video Demo",
+      "src": "images/art_2k_end.png",
+      "video": "video/ART.mp4",
+      "description": "Demo canvas video con texture leggera."
     }
   ],
   "art3d": [
     {
-      "src": "images/Umberto_Boccioni_1912_Elasticity_Elasticit_oil_on_canvas_100_x_100_cm_Museo_del_Novecento-1752186653670.jpg",
-      "canvas": true,
       "title": "boccionis",
-      "description": "Lorem ipsum dolor sit amet, Frame 1040.",
+      "canvas": true,
+      "description": "Canvas video leggero con texture video.",
+      "src": "images/rhythm_v004.karmarendersettings.1052.png",
       "video": "video/1.mp4"
     },
     {
@@ -64,31 +72,31 @@
       "video": "video/2.mp4"
     },
     {
-      "canvas": true,
       "title": "Canvas -> Immagine",
-      "modalImage": "images/frame_1040.jpg",
-      "description": "Questo canvas apre un'immagine."
+      "canvas": true,
+      "description": "Questo canvas apre un'immagine.",
+      "modalImage": "images/frame_1040.jpg"
     },
     {
-      "canvas": true,
       "title": "Canvas -> Carosello",
+      "canvas": true,
+      "description": "Questo canvas apre un carosello di immagini.",
       "modalGallery": [
         "images/art_2k2.png",
         "images/frame_1040.jpg",
-        "images/boccioni.png"
-      ],
-      "description": "Questo canvas apre un carosello di immagini."
+        "images/boccioni.png",
+        "video/AnimateDiff_00007-1752249943259.mp4"
+      ]
     }
   ],
   "interactive": [
     {
+      "title": "demo video canvas",
       "canvas": true,
-      "title": "Interactive Canvas",
-      "modalGallery": [
-        "images/boccioni.png",
-        "images/art_2k2.png"
-      ],
-      "description": "Canvas interattivo con animazioni."
+      "canvasVideo": true,
+      "description": "Canvas interattivo con animazioni.",
+      "src": "images/AnimateDiff_00003-1752248997903.png",
+      "video": "video/AnimateDiff_00002-1752248687141.mp4"
     },
     {
       "canvas": true,
@@ -103,6 +111,18 @@
       "modalGallery": [
         "images/frame_1040.jpg",
         "images/art_2k_end.png"
+      ]
+    },
+    {
+      "title": "Mixed Media Gallery",
+      "canvas": true,
+      "description": "Galleria con immagini e video ottimizzati.",
+      "modalGallery": [
+        "images/art_2k2.png",
+        "video/1.mp4",
+        "images/boccioni.png",
+        "video/2.mp4",
+        "images/frame_1040.jpg"
       ]
     },
     {
