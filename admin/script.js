@@ -4,15 +4,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const container = document.getElementById('galleries');
   if(!container) return;
 
+  // Determine environment once
+  const isLocalhost = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1' || 
+                      window.location.hostname.includes('localhost');
+
+  const env = isLocalhost ? 'local' : (window.APP_ENV || 'prod');
+
   // Update admin footer with environment info
   const adminEnvSpan = document.getElementById('admin-environment');
   if (adminEnvSpan) {
-    // Auto-detect environment based on hostname
-    const isLocalhost = window.location.hostname === 'localhost' || 
-                       window.location.hostname === '127.0.0.1' || 
-                       window.location.hostname.includes('localhost');
-    
-    const env = isLocalhost ? 'local' : (window.APP_ENV || 'prod');
     const envColors = {
       local: '#28a745',     // green
       preprod: '#ffc107',   // yellow  
