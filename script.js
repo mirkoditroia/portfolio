@@ -999,8 +999,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Carica dati dinamici e inizializza
   console.log('🌍 Environment:', window.APP_ENV);
   
-  // Use the dataProvider's fetchJson which handles fallbacks correctly
-  window.fetchJson('/api/galleries', 'data/galleries.json')
+  // Use listGalleries helper (Firestore in prod, fallback JSON altrove)
+  window.listGalleries()
     .then(data => {
       console.log('📁 Galleries loaded:', Object.keys(data));
       galleries = data;
@@ -1967,7 +1967,7 @@ const loadSiteData = async () => {
       // Wait max 15s for Firebase helpers
       if (!window.getSiteData) {
         await new Promise(res => {
-          const t = setTimeout(res, 15000);
+          const t = setTimeout(res, 30000);
           window.addEventListener('firebase-ready', () => { clearTimeout(t); res(); }, { once:true });
         });
       }
