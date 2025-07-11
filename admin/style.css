@@ -86,5 +86,10 @@ h1 {
 .btn:hover{opacity:0.9;}
 
 /* Log area */
-.logs .log-output{background:#111;color:#0f0;font-family:"SFMono-Regular",monospace;padding:1rem;border-radius:6px;max-height:400px;overflow:auto;font-size:0.8rem;}
+.logs .log-output{background:#111;font-family:"SFMono-Regular",monospace;padding:1rem;border-radius:6px;max-height:400px;overflow:auto;font-size:0.8rem;}
+.log-line{display:block;margin:2px 0;}
+.log-success{color:#28a745 !important;}
+.log-info{color:#17a2b8 !important;}
+.log-diff{color:#ffc107 !important;}
+.log-error{color:#dc3545 !important;}
 .logs h2{margin-top:0;} 
