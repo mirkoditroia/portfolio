@@ -861,6 +861,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
       slideData.canvas = true; // Force canvas mode
       slideData.canvasVideo = true; // Flag to distinguish from regular canvas+video
     }
+
+    // ----- Canvas thumbnail fallback -----
+    if(F.canvas.checked){
+      slideData.canvas = true;
+      if(!slideData.src){
+        slideData.src = F.image.value || F.canvasFallback.value || '';
+      }
+    }
     else if(F.type.value==='canvas'){
       slideData.src = F.image.value || F.canvasFallback.value || '';
       slideData.canvas = true;
