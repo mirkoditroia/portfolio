@@ -1717,12 +1717,14 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       console.log('🔍 Checking for site configuration updates...');
       
-      // Load fresh data from Firestore
+      // Load fresh data DIRECTLY from Firestore
       let newSiteConfig;
       if (window.APP_ENV === 'prod' && window.getSiteProd) {
-        console.log('🔥 Loading fresh site data from Firestore...');
+        console.log('🔥 Loading fresh site data DIRECTLY from Firestore...');
         newSiteConfig = await window.getSiteProd();
+        console.log('🔥 Raw Firestore data received:', newSiteConfig);
       } else {
+        console.log('🔥 Loading site data from local/dev environment...');
         newSiteConfig = await loadSiteConfig(true);
       }
       
@@ -1899,9 +1901,27 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('focus', checkForRefreshFlag);
   };
   
-  // Initial load
-  loadSiteConfig()
-    .then(site => {
+  // Initial load - use direct Firestore in production
+  const initialLoad = async () => {
+    try {
+      // Debug environment and available functions
+      console.log('🔍 Environment check:', {
+        APP_ENV: window.APP_ENV,
+        getSiteProd: typeof window.getSiteProd,
+        fetchJson: typeof window.fetchJson,
+        db: typeof window.db
+      });
+      
+      let site;
+      if (window.APP_ENV === 'prod' && window.getSiteProd) {
+        console.log('🔥 Initial load: Loading site data DIRECTLY from Firestore...');
+        site = await window.getSiteProd();
+        console.log('🔥 Initial Firestore data loaded:', site);
+      } else {
+        console.log('🔥 Initial load: Loading site data from local/dev environment...');
+        site = await loadSiteConfig();
+      }
+      
       currentSiteConfig = site;
       applySiteConfig(site);
       
@@ -1924,8 +1944,13 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Listen for admin updates
       listenForAdminUpdates();
-    })
-    .catch(err => console.error('Errore fetch site meta', err)); 
+      
+    } catch (err) {
+      console.error('❌ Errore initial site load:', err);
+    }
+  };
+  
+  initialLoad(); 
 
 document.addEventListener('DOMContentLoaded',()=>{
   // Apply pulse animation to gallery cards until first interaction
