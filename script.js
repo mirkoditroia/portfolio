@@ -694,7 +694,7 @@ document.addEventListener('DOMContentLoaded', function() {
           canvasVideoRenderers.set(canvasId, renderer);
           
           console.log(`🎬 Canvas video created: ${canvasId} (${img.video})`);
-        } else if (img.src) {
+        } else if (img.src || img.modalImage) {
           // Static image canvas (existing logic)
           const imageObj = new Image();
           imageObj.onload = function() {
@@ -721,7 +721,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.warn('⚠️ Canvas fallback, immagine non trovata:', imageObj.src);
             createCanvasContent(ctx, img.title, mediaEl.width, mediaEl.height);
           };
-          imageObj.src = img.src;
+          imageObj.src = img.src || img.modalImage;
         } else {
           // Procedural canvas content
           createCanvasContent(ctx, img.title, mediaEl.width, mediaEl.height);
