@@ -1000,26 +1000,29 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('🌍 Environment:', window.APP_ENV);
   
   // Use listGalleries helper (Firestore in prod, fallback JSON altrove)
-  window.listGalleries()
-    .then(data => {
-      console.log('📁 Galleries loaded:', Object.keys(data));
-      galleries = data;
-      Object.entries(data).forEach(([k, v]) => initGallery(k, v));
-      afterGalleryInit();
-    })
-    .catch(err => {
-      console.error('❌ Errore fetch galleries:', err);
-      // Fallback to local file directly
-      fetch('data/galleries.json')
-        .then(r => r.json())
-        .then(data => {
-          console.log('📁 Galleries loaded from fallback:', Object.keys(data));
-          galleries = data;
-          Object.entries(data).forEach(([k, v]) => initGallery(k, v));
-          afterGalleryInit();
-        })
-        .catch(err2 => console.error('❌ Errore fetch galleries fallback:', err2));
-    });
+  const galleriesPromise = (window.APP_ENV==='prod' && window.listGalleries)
+      ? window.listGalleries() // preferisci Firestore in produzione
+      : window.fetchJson('/api/galleries', 'data/galleries.json'); // altri ambienti
+
+  galleriesPromise.then(data => {
+    console.log('📁 Galleries loaded:', Object.keys(data));
+    galleries = data;
+    Object.entries(data).forEach(([k, v]) => initGallery(k, v));
+    afterGalleryInit();
+  })
+  .catch(err => {
+    console.error('❌ Errore fetch galleries:', err);
+    // Fallback to local file directly
+    fetch('data/galleries.json')
+      .then(r => r.json())
+      .then(data => {
+        console.log('📁 Galleries loaded from fallback:', Object.keys(data));
+        galleries = data;
+        Object.entries(data).forEach(([k, v]) => initGallery(k, v));
+        afterGalleryInit();
+      })
+      .catch(err2 => console.error('❌ Errore fetch galleries fallback:', err2));
+  });
 
   function afterGalleryInit() {
     // Lazy-loading: inizializza ImageOptimizer una sola volta
