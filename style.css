@@ -23,9 +23,7 @@ body {
   max-width: 100vw; /* Ensure body doesn't exceed viewport width */
 }
 
-body.modal-open .scroll-indicator {
-  display: none !important;
-}
+
 
 .banner {
   width: 100%;
@@ -1904,4 +1902,29 @@ main{margin-top:0 !important;}
     margin-left:16px!important;
     justify-content:flex-start!important;
   }
+}
+
+/* Elimina qualsiasi bordo o linea sotto la descrizione del modale */
+.modal-video-content,
+#modalGallery,
+#modalGallery *,
+#modalDescription {
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+.modal-video-content::after,
+.modal-video-content::before,
+#modalGallery::after,
+#modalGallery::before,
+#modalDescription::after,
+#modalDescription::before {
+  display: none !important;
+  border: none !important;
+  background: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }

@@ -1826,6 +1826,7 @@ class ModalGallerySwiper {
 
   renderSlides() {
     this.track.innerHTML = '';
+   
     this.slideEls = this.slides.map(src => {
       const slide = document.createElement('div');
       slide.className = 'modal-gallery-slide';
