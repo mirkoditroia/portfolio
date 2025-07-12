@@ -1085,7 +1085,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalImg.onload = function() {
                   if (modalImg.naturalHeight > modalImg.naturalWidth) {
                     // Vertical image - limit width more aggressively
-                    modalImg.style.maxWidth = '40vw';
+                    modalImg.style.maxWidth = '90vw';
                     modalImg.style.maxHeight = '85vh';
                     modalImg.style.width = 'auto';
                     modalImg.style.height = 'auto';
@@ -1108,388 +1108,7 @@ document.addEventListener('DOMContentLoaded', function() {
               if (modalGallery) {
                 modalGallery.innerHTML = '';
                 modalGallery.style.display = '';
-                
-                const imgs = imgData.modalGallery;
-                let galleryIndex = 0;
-                
-                const galleryContainer = document.createElement('div');
-                galleryContainer.className = 'modal-gallery-container';
-                
-                const galleryTrack = document.createElement('div');
-                galleryTrack.className = 'modal-gallery-track';
-                
-                // Add touch gesture support for mobile navigation
-                let touchStartX = 0;
-                let touchStartY = 0;
-                let touchEndX = 0;
-                let touchEndY = 0;
-                let isDragging = false;
-                const minSwipeDistance = 50; // Minimum distance for swipe
-                
-                const handleTouchStart = (e) => {
-                  touchStartX = e.touches[0].clientX;
-                  touchStartY = e.touches[0].clientY;
-                  isDragging = true;
-                };
-                
-                const handleTouchMove = (e) => {
-                  if (!isDragging) return;
-                  
-                  touchEndX = e.touches[0].clientX;
-                  touchEndY = e.touches[0].clientY;
-                  
-                  // Calculate distances
-                  const deltaX = touchEndX - touchStartX;
-                  const deltaY = touchEndY - touchStartY;
-                  
-                  // Only prevent default if horizontal swipe is dominant
-                  if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                    e.preventDefault();
-                    
-                    // Add visual feedback during swipe - only for valid directions
-                    const progress = Math.min(Math.abs(deltaX) / minSwipeDistance, 1);
-                    const opacity = 0.1 + (progress * 0.2);
-                    
-                    // Only show feedback if swipe is valid
-                    if (deltaX > 0 && galleryIndex > 0) {
-                      // Swiping right - show left area (only if not at start)
-                      const leftArea = galleryContainer.querySelector('div[style*="left: 0"]');
-                      if (leftArea) leftArea.style.opacity = opacity;
-                    } else if (deltaX < 0 && galleryIndex < imgs.length - 1) {
-                      // Swiping left - show right area (only if not at end)
-                      const rightArea = galleryContainer.querySelector('div[style*="right: 0"]');
-                      if (rightArea) rightArea.style.opacity = opacity;
-                    }
-                  }
-                };
-                
-                const handleTouchEnd = (e) => {
-                  if (!isDragging) return;
-                  isDragging = false;
-                  
-                  // Reset visual feedback
-                  const leftArea = galleryContainer.querySelector('div[style*="left: 0"]');
-                  const rightArea = galleryContainer.querySelector('div[style*="right: 0"]');
-                  if (leftArea) leftArea.style.opacity = '0';
-                  if (rightArea) rightArea.style.opacity = '0';
-                  
-                  const deltaX = touchEndX - touchStartX;
-                  const deltaY = touchEndY - touchStartY;
-                  
-                  // Only process horizontal swipes
-                  if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
-                    if (deltaX > 0) {
-                      // Swipe right - go to previous (only if not at start)
-                      if (galleryIndex > 0) {
-                        const currentVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
-                        if (currentVideo) currentVideo.pause();
-                        
-                        galleryIndex = galleryIndex - 1;
-                        // Ensure we don't go below 0
-                        galleryIndex = Math.max(0, galleryIndex);
-                        
-                        // Calculate precise transform with container width
-                        const containerWidth = galleryContainer.offsetWidth;
-                        const translateX = -galleryIndex * containerWidth;
-                        galleryTrack.style.transform = `translateX(${translateX}px)`;
-                        
-                        const newVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
-                        if (newVideo) newVideo.play().catch(e => console.warn('Video autoplay failed:', e));
-                        
-                        // Update swipe hint
-                        updateSwipeHint();
-                      }
-                    } else {
-                      // Swipe left - go to next (only if not at end)
-                      if (galleryIndex < imgs.length - 1) {
-                        const currentVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
-                        if (currentVideo) currentVideo.pause();
-                        
-                        galleryIndex = galleryIndex + 1;
-                        // Ensure we don't exceed array bounds
-                        galleryIndex = Math.min(imgs.length - 1, galleryIndex);
-                        
-                        // Calculate precise transform with container width
-                        const containerWidth = galleryContainer.offsetWidth;
-                        const translateX = -galleryIndex * containerWidth;
-                        galleryTrack.style.transform = `translateX(${translateX}px)`;
-                        
-                        const newVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
-                        if (newVideo) newVideo.play().catch(e => console.warn('Video autoplay failed:', e));
-                        
-                        // Update swipe hint
-                        updateSwipeHint();
-                      }
-                    }
-                  }
-                  
-                  // Force alignment to prevent drift
-                  setTimeout(() => {
-                    const containerWidth = galleryContainer.offsetWidth;
-                    const translateX = -galleryIndex * containerWidth;
-                    galleryTrack.style.transform = `translateX(${translateX}px)`;
-                  }, 50);
-                };
-                
-                // Function to ensure proper alignment and prevent over-scrolling
-                const ensureProperAlignment = () => {
-                  // Clamp galleryIndex to valid bounds
-                  galleryIndex = Math.max(0, Math.min(galleryIndex, imgs.length - 1));
-                  
-                  const containerWidth = galleryContainer.offsetWidth;
-                  const translateX = -galleryIndex * containerWidth;
-                  galleryTrack.style.transform = `translateX(${translateX}px)`;
-                  
-                  // Prevent any CSS transitions that might cause drift
-                  galleryTrack.style.transition = 'transform 0.3s ease';
-                };
-                
-                // Add touch event listeners to gallery container
-                galleryContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
-                galleryContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
-                galleryContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
-                
-                // Ensure proper alignment on window resize
-                window.addEventListener('resize', () => {
-                  setTimeout(ensureProperAlignment, 100);
-                });
-                
-                // Update swipe hint visibility based on gallery position
-                const updateSwipeHint = () => {
-                  const swipeHintText = galleryContainer.querySelector('.swipe-hint-text');
-                  if (swipeHintText && galleryIndex === imgs.length - 1) {
-                    // At the end - show hint
-                    swipeHintText.style.opacity = '1';
-                    setTimeout(() => {
-                      if (galleryIndex === imgs.length - 1) {
-                        swipeHintText.style.opacity = '0.7';
-                      }
-                    }, 2000);
-                  } else if (swipeHintText) {
-                    swipeHintText.style.opacity = '0';
-                  }
-                };
-                
-                // Add visual feedback for swipe areas on mobile
-                if (window.innerWidth <= 900) {
-                  galleryContainer.style.position = 'relative';
-                  
-                  // Create invisible swipe areas for better UX
-                  const leftSwipeArea = document.createElement('div');
-                  leftSwipeArea.style.cssText = `
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    width: 30%;
-                    height: 100%;
-                    z-index: 15;
-                    background: rgba(255,255,255,0.05);
-                    opacity: 0;
-                    transition: opacity 0.2s;
-                    pointer-events: none;
-                  `;
-                  
-                  const rightSwipeArea = document.createElement('div');
-                  rightSwipeArea.style.cssText = `
-                    position: absolute;
-                    right: 0;
-                    top: 0;
-                    width: 30%;
-                    height: 100%;
-                    z-index: 15;
-                    background: rgba(255,255,255,0.05);
-                    opacity: 0;
-                    transition: opacity 0.2s;
-                    pointer-events: none;
-                  `;
-                  
-                  // Add swipe hint text at the end
-                  const swipeHintText = document.createElement('div');
-                  swipeHintText.className = 'swipe-hint-text';
-                  swipeHintText.style.cssText = `
-                    position: absolute;
-                    bottom: 20px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    color: rgba(255,255,255,0.7);
-                    font-size: 0.9rem;
-                    text-align: center;
-                    z-index: 20;
-                    opacity: 0;
-                    transition: opacity 0.3s;
-                    pointer-events: none;
-                    background: rgba(0,0,0,0.5);
-                    padding: 8px 12px;
-                    border-radius: 20px;
-                    backdrop-filter: blur(10px);
-                  `;
-                  swipeHintText.innerHTML = '← Swipe indietro';
-                  
-                  // Show swipe areas briefly on touch
-                  const showSwipeHint = () => {
-                    if (galleryIndex > 0) {
-                      leftSwipeArea.style.opacity = '1';
-                      setTimeout(() => leftSwipeArea.style.opacity = '0', 200);
-                    }
-                    if (galleryIndex < imgs.length - 1) {
-                      rightSwipeArea.style.opacity = '1';
-                      setTimeout(() => rightSwipeArea.style.opacity = '0', 200);
-                    }
-                    updateSwipeHint();
-                  };
-                  
-                  galleryContainer.addEventListener('touchstart', showSwipeHint);
-                  galleryContainer.appendChild(leftSwipeArea);
-                  galleryContainer.appendChild(rightSwipeArea);
-                  galleryContainer.appendChild(swipeHintText);
-                  
-                  // Initial hint update and show when reaching the end
-                  setTimeout(updateSwipeHint, 500);
-                  
-                  // Show hint when user reaches the end for the first time
-                  let hasShownEndHint = false;
-                  const originalUpdateSwipeHint = updateSwipeHint;
-                  updateSwipeHint = () => {
-                    originalUpdateSwipeHint();
-                    if (galleryIndex === imgs.length - 1 && !hasShownEndHint) {
-                      hasShownEndHint = true;
-                      const swipeHintText = galleryContainer.querySelector('.swipe-hint-text');
-                      if (swipeHintText) {
-                        swipeHintText.style.opacity = '1';
-                        setTimeout(() => {
-                          if (swipeHintText) swipeHintText.style.opacity = '0.7';
-                        }, 3000);
-                      }
-                    }
-                  };
-                }
-                
-                imgs.forEach((mediaSrc, index) => {
-                  // 🎬 NEW: Detect if media is video or image
-                  const isVideo = /\.(mp4|webm|mov|avi|mkv)$/i.test(mediaSrc);
-                  
-                  let mediaEl;
-                  if (isVideo) {
-                    // Create video element
-                    mediaEl = document.createElement('video');
-                    mediaEl.src = mediaSrc;
-                    mediaEl.className = 'modal-gallery-video';
-                    mediaEl.controls = true;
-                    mediaEl.muted = true;
-                    mediaEl.loop = true;
-                    mediaEl.preload = 'metadata';
-                    mediaEl.playsInline = true;
-                    
-                    // Optimized video sizing
-                    mediaEl.style.maxWidth = '90vw';
-                    mediaEl.style.maxHeight = '70vh';
-                    mediaEl.style.width = '100%';
-                    mediaEl.style.height = 'auto';
-                    mediaEl.style.objectFit = 'contain';
-                    
-                    // Auto-play when visible (with intersection observer)
-                    const videoObserver = new IntersectionObserver((entries) => {
-                      entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                          mediaEl.play().catch(e => console.warn('Video autoplay failed:', e));
-                        } else {
-                          mediaEl.pause();
-                        }
-                      });
-                    }, { threshold: 0.5 });
-                    
-                    videoObserver.observe(mediaEl);
-                    
-                    console.log(`🎬 Modal gallery video created: ${mediaSrc}`);
-                  } else {
-                    // Create image element (existing logic)
-                    mediaEl = document.createElement('img');
-                    mediaEl.src = mediaSrc;
-                    mediaEl.className = 'modal-gallery-img';
-                    mediaEl.onload = function() {
-                      if (mediaEl.naturalHeight > mediaEl.naturalWidth) {
-                        // Vertical image - limit width more aggressively
-                        mediaEl.style.maxWidth = '40vw';
-                        mediaEl.style.maxHeight = '85vh';
-                        mediaEl.style.width = 'auto';
-                        mediaEl.style.height = 'auto';
-                      } else {
-                        // Horizontal image
-                        mediaEl.style.maxWidth = '85vw';
-                        mediaEl.style.maxHeight = '70vh';
-                        mediaEl.style.width = 'auto';
-                        mediaEl.style.height = 'auto';
-                      }
-                    };
-                  }
-                  
-                  galleryTrack.appendChild(mediaEl);
-                });
-                
-                galleryContainer.appendChild(galleryTrack);
-                
-                if (imgs.length > 1) {
-                  const prevButton = document.createElement('button');
-                  prevButton.className = 'modal-gallery-btn prev';
-                  prevButton.innerHTML = '&#8592;';
-                  prevButton.addEventListener('click', () => {
-                    // Only proceed if not at start
-                    if (galleryIndex <= 0) return;
-                    
-                    // Pause current video if playing
-                    const currentVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
-                    if (currentVideo) currentVideo.pause();
-                    
-                    galleryIndex = galleryIndex - 1;
-                    // Ensure we don't go below 0
-                    galleryIndex = Math.max(0, galleryIndex);
-                    
-                    // Calculate precise transform with container width
-                    const containerWidth = galleryContainer.offsetWidth;
-                    const translateX = -galleryIndex * containerWidth;
-                    galleryTrack.style.transform = `translateX(${translateX}px)`;
-                    
-                    // Auto-play new video if it exists
-                    const newVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
-                    if (newVideo) newVideo.play().catch(e => console.warn('Video autoplay failed:', e));
-                    
-                    // Update swipe hint if function exists
-                    if (typeof updateSwipeHint === 'function') updateSwipeHint();
-                  });
-                  
-                  const nextButton = document.createElement('button');
-                  nextButton.className = 'modal-gallery-btn next';
-                  nextButton.innerHTML = '&#8594;';
-                  nextButton.addEventListener('click', () => {
-                    // Only proceed if not at end
-                    if (galleryIndex >= imgs.length - 1) return;
-                    
-                    // Pause current video if playing
-                    const currentVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
-                    if (currentVideo) currentVideo.pause();
-                    
-                    galleryIndex = galleryIndex + 1;
-                    // Ensure we don't exceed array bounds
-                    galleryIndex = Math.min(imgs.length - 1, galleryIndex);
-                    
-                    // Calculate precise transform with container width
-                    const containerWidth = galleryContainer.offsetWidth;
-                    const translateX = -galleryIndex * containerWidth;
-                    galleryTrack.style.transform = `translateX(${translateX}px)`;
-                    
-                    // Auto-play new video if it exists
-                    const newVideo = galleryTrack.children[galleryIndex]?.querySelector('video');
-                    if (newVideo) newVideo.play().catch(e => console.warn('Video autoplay failed:', e));
-                    
-                    // Update swipe hint if function exists
-                    if (typeof updateSwipeHint === 'function') updateSwipeHint();
-                  });
-                  
-                  galleryContainer.appendChild(prevButton);
-                  galleryContainer.appendChild(nextButton);
-                }
-                
-                modalGallery.appendChild(galleryContainer);
+                new ModalGallerySwiper(modalGallery, imgData.modalGallery);
               }
             }
             else if (imgData.video || videoSrc) {
@@ -2125,3 +1744,271 @@ const init = async () => {
 
 // Start initialization
 init();
+
+// --- ModalGallerySwiper: Modal Carousel Logic ---
+class ModalGallerySwiper {
+  constructor(container, slides) {
+    this.container = container;
+    this.slides = slides;
+    this.current = 0;
+    this.isMobile = window.innerWidth <= 600;
+    this.applyResponsiveStyles();
+    // Track
+    this.track = document.createElement('div');
+    this.track.className = 'modal-gallery-track';
+    this.track.style.display = 'flex';
+    this.track.style.height = '100%';
+    this.track.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.2,1)';
+    this.track.style.willChange = 'transform';
+    this.track.style.touchAction = 'pan-y'; // Allow vertical scroll, block horizontal
+    if (this.isMobile) {
+      this.track.style.width = (this.slides.length * 100) + 'vw';
+    }
+    this.container.appendChild(this.track);
+    // Buttons
+    this.btnPrev = document.createElement('button');
+    this.btnPrev.className = 'modal-gallery-btn prev';
+    this.btnPrev.innerHTML = '&#8592;';
+    this.btnPrev.setAttribute('aria-label', 'Precedente');
+    this.btnPrev.style.position = 'absolute';
+    this.btnPrev.style.left = '8px';
+    this.btnPrev.style.top = '50%';
+    this.btnPrev.style.transform = 'translateY(-50%)';
+    this.btnPrev.style.zIndex = '10';
+    this.btnNext = document.createElement('button');
+    this.btnNext.className = 'modal-gallery-btn next';
+    this.btnNext.innerHTML = '&#8594;';
+    this.btnNext.setAttribute('aria-label', 'Successivo');
+    this.btnNext.style.position = 'absolute';
+    this.btnNext.style.right = '8px';
+    this.btnNext.style.top = '50%';
+    this.btnNext.style.transform = 'translateY(-50%)';
+    this.btnNext.style.zIndex = '10';
+    this.container.appendChild(this.btnPrev);
+    this.container.appendChild(this.btnNext);
+    this.renderSlides();
+    this.update();
+    this.attachEvents();
+    // Add modal-open class to body to hide scroll-indicator
+    document.body.classList.add('modal-open');
+    window.addEventListener('resize', this.onResize = () => {
+      const wasMobile = this.isMobile;
+      this.isMobile = window.innerWidth <= 600;
+      this.applyResponsiveStyles();
+      if (this.isMobile) {
+        this.track.style.width = (this.slides.length * 100) + 'vw';
+      } else {
+        this.track.style.width = '';
+      }
+      if (this.isMobile !== wasMobile) {
+        this.renderSlides();
+        this.update();
+      }
+      this.adjustContainerToCurrentSlide();
+    });
+  }
+
+  applyResponsiveStyles() {
+    if (window.innerWidth <= 600) {
+      this.container.style.overflow = 'hidden';
+      this.container.style.width = '100vw';
+      this.container.style.maxWidth = '100vw';
+      this.container.style.height = '60vh'; // default, will be adjusted
+      this.container.style.position = 'relative';
+    } else {
+      this.container.style.overflow = 'hidden';
+      this.container.style.width = '100%';
+      this.container.style.maxWidth = '90vw';
+      this.container.style.height = '65vh'; // default, will be adjusted
+      this.container.style.position = 'relative';
+    }
+  }
+
+  renderSlides() {
+    this.track.innerHTML = '';
+    this.slideEls = this.slides.map(src => {
+      const slide = document.createElement('div');
+      slide.className = 'modal-gallery-slide';
+      let slideStyle = '';
+      if (this.isMobile) {
+        slideStyle += 'flex:0 0 100vw !important;width:100vw !important;';
+      } else {
+        slideStyle += 'flex:0 0 100% !important;width:100% !important;';
+      }
+      slideStyle += 'display:flex !important;align-items:center !important;justify-content:center !important;height:100% !important;overflow:hidden !important;box-sizing:border-box !important;padding:0 !important;margin:0 !important;background:#000 !important;';
+      slide.setAttribute('style', slideStyle);
+      let el;
+      if (src.endsWith('.mp4')) {
+        el = document.createElement('video');
+        el.src = src;
+        el.className = 'modal-gallery-video';
+        el.controls = true;
+        el.setAttribute('tabindex', '0');
+        let elStyle = 'display:block !important;margin:0 auto !important;object-fit:contain !important;background:#000 !important;box-sizing:border-box !important;padding:0 !important;border:none !important;max-width:100% !important;max-height:100% !important;width:auto !important;height:auto !important;';
+        el.setAttribute('style', elStyle);
+        el.addEventListener('loadedmetadata', () => {
+          if (this.slideEls && this.slideEls[this.current] === slide) {
+            this.adjustContainerToCurrentSlide(el.videoWidth, el.videoHeight);
+          }
+        });
+      } else {
+        el = document.createElement('img');
+        el.src = src;
+        el.className = 'modal-gallery-img';
+        el.alt = '';
+        el.setAttribute('tabindex', '0');
+        let elStyle = 'display:block !important;margin:0 auto !important;object-fit:contain !important;background:#000 !important;box-sizing:border-box !important;padding:0 !important;border:none !important;max-width:100% !important;max-height:100% !important;width:auto !important;height:auto !important;';
+        el.setAttribute('style', elStyle);
+        el.addEventListener('load', () => {
+          if (this.slideEls && this.slideEls[this.current] === slide) {
+            this.adjustContainerToCurrentSlide(el.naturalWidth, el.naturalHeight);
+          }
+        });
+      }
+      slide.appendChild(el);
+      this.track.appendChild(slide);
+      return slide;
+    });
+  }
+
+  attachEvents() {
+    this.btnPrev.addEventListener('click', () => this.goTo(this.current - 1));
+    this.btnNext.addEventListener('click', () => this.goTo(this.current + 1));
+    this.track.addEventListener('touchstart', this.onTouchStart.bind(this), {passive: true});
+    this.track.addEventListener('touchmove', this.onTouchMove.bind(this), {passive: false}); // passive: false to allow preventDefault
+    this.track.addEventListener('touchend', this.onTouchEnd.bind(this));
+    this.track.addEventListener('mousedown', this.onMouseDown.bind(this));
+    window.addEventListener('keydown', this.onKeyDown = (e) => {
+      if (this.container.style.display === 'none') return;
+      if (e.key === 'ArrowLeft') this.goTo(this.current - 1);
+      if (e.key === 'ArrowRight') this.goTo(this.current + 1);
+    });
+  }
+
+  goTo(idx) {
+    // Clamp index
+    const clamped = Math.max(0, Math.min(idx, this.slides.length - 1));
+    if (clamped !== this.current) {
+      this.current = clamped;
+      this.update();
+    }
+  }
+
+  update() {
+    // Move track so current slide is centered
+    let offset;
+    if (this.isMobile) {
+      offset = -this.current * 100;
+      // Clamp offset to valid range
+      if (offset < -((this.slides.length - 1) * 100)) offset = -((this.slides.length - 1) * 100);
+      if (offset > 0) offset = 0;
+      this.track.style.transform = `translateX(${offset}vw)`;
+    } else {
+      offset = -this.current * 100;
+      if (offset < -((this.slides.length - 1) * 100)) offset = -((this.slides.length - 1) * 100);
+      if (offset > 0) offset = 0;
+      this.track.style.transform = `translateX(${offset}%)`;
+    }
+    // Update buttons
+    this.btnPrev.style.opacity = this.current === 0 ? '0.3' : '1';
+    this.btnPrev.style.pointerEvents = this.current === 0 ? 'none' : 'auto';
+    this.btnNext.style.opacity = this.current === this.slides.length - 1 ? '0.3' : '1';
+    this.btnNext.style.pointerEvents = this.current === this.slides.length - 1 ? 'none' : 'auto';
+    this.adjustContainerToCurrentSlide();
+  }
+
+  adjustContainerToCurrentSlide(forceW, forceH) {
+    const slide = this.slideEls[this.current];
+    if (!slide) return;
+    const media = slide.querySelector('img,video');
+    if (!media) return;
+    let w = forceW, h = forceH;
+    if (!w || !h) {
+      if (media.tagName === 'IMG') {
+        w = media.naturalWidth;
+        h = media.naturalHeight;
+      } else if (media.tagName === 'VIDEO') {
+        w = media.videoWidth;
+        h = media.videoHeight;
+      }
+    }
+    if (!w || !h) return;
+    const aspect = w / h;
+    // MOBILE: se verticale (immagine o video), usa quasi tutto lo schermo
+    if (this.isMobile && h > w) {
+      const maxH = window.innerHeight * 0.9;
+      let newH = maxH;
+      let newW = newH * aspect;
+      if (newW > window.innerWidth) {
+        newW = window.innerWidth;
+        newH = newW / aspect;
+      }
+      this.container.style.height = newH + 'px';
+      this.container.style.width = newW + 'px';
+    } else {
+      // logica attuale
+      const maxW = this.container.offsetWidth;
+      const maxH = window.innerHeight * 0.65;
+      let newW = maxW, newH = maxW / aspect;
+      if (newH > maxH) {
+        newH = maxH;
+        newW = newH * aspect;
+      }
+      this.container.style.height = newH + 'px';
+      this.container.style.width = newW + 'px';
+    }
+    this.container.style.maxWidth = '100vw';
+    this.container.style.maxHeight = '95vh';
+    this.container.style.margin = '0 auto';
+  }
+
+  // Touch/drag support
+  onTouchStart(e) {
+    if (e.touches.length > 1) return;
+    this.touchStartX = e.touches[0].clientX;
+    this.touchStartY = e.touches[0].clientY;
+    this.touchMoved = false;
+  }
+  onTouchMove(e) {
+    if (!this.touchStartX || !this.touchStartY) return;
+    const dx = e.touches[0].clientX - this.touchStartX;
+    const dy = e.touches[0].clientY - this.touchStartY;
+    // Only preventDefault if horizontal movement is dominant
+    if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
+      this.touchMoved = true;
+      e.preventDefault();
+    }
+  }
+  onTouchEnd(e) {
+    if (!this.touchStartX || !this.touchMoved) return;
+    const dx = e.changedTouches[0].clientX - this.touchStartX;
+    if (dx > 40 && this.current > 0) this.goTo(this.current - 1);
+    else if (dx < -40 && this.current < this.slides.length - 1) this.goTo(this.current + 1);
+    // If at the edge, do not move further
+    this.touchStartX = null;
+    this.touchMoved = false;
+  }
+  onMouseDown(e) {
+    this.mouseStartX = e.clientX;
+    document.addEventListener('mousemove', this.onMouseMove = (ev) => {
+      const dx = ev.clientX - this.mouseStartX;
+      if (Math.abs(dx) > 30) {
+        if (dx > 0 && this.current > 0) this.goTo(this.current - 1);
+        else if (dx < 0 && this.current < this.slides.length - 1) this.goTo(this.current + 1);
+        this.mouseStartX = ev.clientX;
+      }
+    });
+    document.addEventListener('mouseup', this.onMouseUp = () => {
+      document.removeEventListener('mousemove', this.onMouseMove);
+      document.removeEventListener('mouseup', this.onMouseUp);
+    });
+  }
+  destroy() {
+    window.removeEventListener('keydown', this.onKeyDown);
+    window.removeEventListener('resize', this.onResize);
+    this.container.innerHTML = '';
+    // Remove modal-open class from body to show scroll-indicator again
+    document.body.classList.remove('modal-open');
+  }
+}
+// --- End ModalGallerySwiper ---

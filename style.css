@@ -23,6 +23,10 @@ body {
   max-width: 100vw; /* Ensure body doesn't exceed viewport width */
 }
 
+body.modal-open .scroll-indicator {
+  display: none !important;
+}
+
 .banner {
   width: 100%;
   max-width: 100vw; /* Ensure it doesn't exceed viewport width */
