@@ -661,13 +661,20 @@ document.addEventListener('DOMContentLoaded', function() {
       item.className = 'gallery-item swiper-slide';
       item.setAttribute('role', 'listitem');
       item.setAttribute('tabindex', '0');
+      // --- AGGIUNTA: Attributi per la modern modal gallery ---
+      if (img.modalGallery) {
+        item.setAttribute('data-modal-gallery', JSON.stringify(img.modalGallery));
+      }
+      if (img.description) {
+        item.setAttribute('data-description', img.description);
+      }
       if (img.placeholder) {
         item.classList.add('placeholder-slide');
         track.appendChild(item);
         return;
       }
+      
       if (img.video) item.setAttribute('data-video', img.video);
-      if (img.description) item.setAttribute('data-description', img.description);
 
       let mediaEl;
       if (img.canvas) {
@@ -753,7 +760,7 @@ document.addEventListener('DOMContentLoaded', function() {
       item.appendChild(titleEl);
       track.appendChild(item);
     });
-
+     
     // Inizializza Swiper per questa gallery
     const swiperContainer = section.querySelector('.gallery-carousel');
     const totalSlides = slidesData.length;
@@ -1009,6 +1016,10 @@ document.addEventListener('DOMContentLoaded', function() {
     galleries = data;
     Object.entries(data).forEach(([k, v]) => initGallery(k, v));
     afterGalleryInit();
+    if (window.innerWidth <= 900 && typeof enableModernMobileCanvasGallery === 'function') {
+      console.log('[MODERN MODAL] enableModernMobileCanvasGallery chiamata DOPO tutte le gallery');
+      enableModernMobileCanvasGallery();
+    }
   })
   .catch(err => {
     console.error('❌ Errore fetch galleries:', err);
@@ -1108,7 +1119,7 @@ document.addEventListener('DOMContentLoaded', function() {
               if (modalGallery) {
                 modalGallery.innerHTML = '';
                 modalGallery.style.display = '';
-                new ModalGallerySwiper(modalGallery, imgData.modalGallery);
+                showModernModalGallery(imgData.modalGallery, 0, description);
               }
             }
             else if (imgData.video || videoSrc) {
@@ -1148,6 +1159,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
   console.log('🎉 Portfolio: Inizializzazione completata con successo!');
 }); 
+
+
+const loadSiteData = async () => {
+  try {
+    let siteData;
+    if (window.APP_ENV === 'prod') {
+      // Wait max 15s for Firebase helpers
+      if (!window.getSiteData) {
+        await new Promise(res => {
+          const t = setTimeout(res, 30000);
+          window.addEventListener('firebase-ready', () => { clearTimeout(t); res(); }, { once:true });
+        });
+      }
+      if (!window.getSiteData) throw new Error('Firebase not ready');
+      siteData = await window.getSiteData();
+      console.log('[Site] Data from Firestore', siteData);
+    } else {
+      // dev/local
+      const resp = await fetch('data/site.json');
+      siteData = await resp.json();
+      console.log('[Site] Data from local file', siteData);
+    }
+    return siteData;
+  } catch(err){
+    console.error('[Site] loadSiteData error', err);
+    return { heroText:'VFXULO', bio:'Portfolio', version:'v1.0.0', contacts:[] };
+  }
+};
 
   // Legacy function - kept for compatibility
   const loadSiteConfig = async () => {
@@ -1582,32 +1621,7 @@ window.addEventListener('beforeunload', cleanupCanvasVideos);
 window.addEventListener('beforeunload', cleanupCanvasVideos); 
 
 // Simple site data loading
-const loadSiteData = async () => {
-  try {
-    let siteData;
-    if (window.APP_ENV === 'prod') {
-      // Wait max 15s for Firebase helpers
-      if (!window.getSiteData) {
-        await new Promise(res => {
-          const t = setTimeout(res, 30000);
-          window.addEventListener('firebase-ready', () => { clearTimeout(t); res(); }, { once:true });
-        });
-      }
-      if (!window.getSiteData) throw new Error('Firebase not ready');
-      siteData = await window.getSiteData();
-      console.log('[Site] Data from Firestore', siteData);
-    } else {
-      // dev/local
-      const resp = await fetch('data/site.json');
-      siteData = await resp.json();
-      console.log('[Site] Data from local file', siteData);
-    }
-    return siteData;
-  } catch(err){
-    console.error('[Site] loadSiteData error', err);
-    return { heroText:'VFXULO', bio:'Portfolio', version:'v1.0.0', contacts:[] };
-  }
-};
+
 
 // Apply site data to the page
 const applySiteData = (site) => {
@@ -1778,278 +1792,132 @@ const init = async () => {
 // Start initialization
 init();
 
-// --- ModalGallerySwiper: Modal Carousel Logic ---
-class ModalGallerySwiper {
-  constructor(container, slides) {
-    this.container = container;
-    this.slides = slides;
-    this.current = 0;
-    this.isMobile = window.innerWidth <= 600;
-    this.applyResponsiveStyles();
-    // Track
-    this.track = document.createElement('div');
-    this.track.className = 'modal-gallery-track';
-    this.track.style.display = 'flex';
-    this.track.style.height = '100%';
-    this.track.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.2,1)';
-    this.track.style.willChange = 'transform';
-    this.track.style.touchAction = 'pan-y'; // Allow vertical scroll, block horizontal
-    if (this.isMobile) {
-      this.track.style.width = (this.slides.length * 100) + 'vw';
-    }
-    this.container.appendChild(this.track);
-    // Buttons
-    this.btnPrev = document.createElement('button');
-    this.btnPrev.className = 'modal-gallery-btn prev';
-    this.btnPrev.innerHTML = '&#8592;';
-    this.btnPrev.setAttribute('aria-label', 'Precedente');
-    this.btnPrev.style.position = 'absolute';
-    this.btnPrev.style.left = '8px';
-    this.btnPrev.style.top = '50%';
-    this.btnPrev.style.transform = 'translateY(-50%)';
-    this.btnPrev.style.zIndex = '10';
-    this.btnNext = document.createElement('button');
-    this.btnNext.className = 'modal-gallery-btn next';
-    this.btnNext.innerHTML = '&#8594;';
-    this.btnNext.setAttribute('aria-label', 'Successivo');
-    this.btnNext.style.position = 'absolute';
-    this.btnNext.style.right = '8px';
-    this.btnNext.style.top = '50%';
-    this.btnNext.style.transform = 'translateY(-50%)';
-    this.btnNext.style.zIndex = '10';
-    this.container.appendChild(this.btnPrev);
-    this.container.appendChild(this.btnNext);
-    this.renderSlides();
-    this.update();
-    this.attachEvents();
-    // Add modal-open class to body to hide scroll-indicator
-    document.body.classList.add('modal-open');
-    window.addEventListener('resize', this.onResize = () => {
-      const wasMobile = this.isMobile;
-      this.isMobile = window.innerWidth <= 600;
-      this.applyResponsiveStyles();
-      if (this.isMobile) {
-        this.track.style.width = (this.slides.length * 100) + 'vw';
-      } else {
-        this.track.style.width = '';
-      }
-      if (this.isMobile !== wasMobile) {
-        this.renderSlides();
-        this.update();
-      }
-      this.adjustContainerToCurrentSlide();
-    });
-  }
+// --- MODERN MOBILE MODAL GALLERY LOGIC ---
+function showModernModalGallery(slides, startIndex = 0, description = '') {
+  // Remove any existing modal
+  document.querySelectorAll('.modern-modal-gallery').forEach(el => el.remove());
 
-  applyResponsiveStyles() {
-    if (window.innerWidth <= 600) {
-      this.container.style.overflow = 'hidden';
-      this.container.style.width = '100vw';
-      this.container.style.maxWidth = '100vw';
-      this.container.style.height = '60vh'; // default, will be adjusted
-      this.container.style.position = 'relative';
+  const modal = document.createElement('div');
+  modal.className = 'modern-modal-gallery';
+
+  // Header
+  const header = document.createElement('div');
+  header.className = 'modern-modal-header';
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'modern-modal-close';
+  closeBtn.innerHTML = '&times;';
+  closeBtn.onclick = () => modal.remove();
+  const indicators = document.createElement('div');
+  indicators.className = 'modern-modal-indicators';
+  header.appendChild(closeBtn);
+  header.appendChild(indicators);
+  modal.appendChild(header);
+
+  // Carousel
+  const carousel = document.createElement('div');
+  carousel.className = 'modern-modal-carousel';
+  modal.appendChild(carousel);
+
+  // Footer
+  const footer = document.createElement('div');
+  footer.className = 'modern-modal-footer';
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'modern-modal-arrow prev';
+  prevBtn.innerHTML = '&#8592;';
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'modern-modal-arrow next';
+  nextBtn.innerHTML = '&#8594;';
+  footer.appendChild(prevBtn);
+  footer.appendChild(nextBtn);
+  modal.appendChild(footer);
+
+  document.body.appendChild(modal);
+
+  // Slides
+  let current = startIndex;
+  function renderSlides() {
+    carousel.innerHTML = '';
+    const slide = document.createElement('div');
+    slide.className = 'modern-modal-slide';
+    let el;
+    const src = slides[current];
+    if (src.endsWith('.mp4')) {
+      el = document.createElement('video');
+      el.src = src;
+      el.controls = true;
+      el.autoplay = false;
+      el.playsInline = true;
+      el.style.background = '#000';
     } else {
-      this.container.style.overflow = 'hidden';
-      this.container.style.width = '100%';
-      this.container.style.maxWidth = '90vw';
-      this.container.style.height = '65vh'; // default, will be adjusted
-      this.container.style.position = 'relative';
+      el = document.createElement('img');
+      el.src = src;
+      el.alt = '';
+      el.style.background = '#000';
     }
+    slide.appendChild(el);
+    carousel.appendChild(slide);
+    // Update indicators
+    indicators.innerHTML = '';
+    for (let i = 0; i < slides.length; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'dot' + (i === current ? ' active' : '');
+      indicators.appendChild(dot);
+    }
+    // Update arrows
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === slides.length - 1;
   }
 
-  renderSlides() {
-    this.track.innerHTML = '';
-    this.track.style.gap = '0';
-    this.track.style.boxSizing = 'border-box';
-    this.slideEls = this.slides.map((src, index) => {
-      const slide = document.createElement('div');
-      slide.className = 'modal-gallery-slide';
-      let slideStyle = '';
-      if (this.isMobile) {
-        slideStyle += 'flex:0 0 100vw !important;width:100vw !important;';
-      } else {
-        slideStyle += 'flex:0 0 100% !important;width:100% !important;';
-      }
-      slideStyle += 'display:flex !important;align-items:center  !important;justify-content:center !important;height:100% !important;overflow:hidden !important;box-sizing:border-box !important;padding:0 !important;margin:0 !important;background:#000 !important;';
-      
-      // Add border between slides (except for the last slide)
-      if (index < this.slides.length - 1) {
-        slideStyle += 'border-right:2px solid rgba(64,224,208,0.3) !important;';
-      }
-      
-      slide.setAttribute('style', slideStyle);
-      let el;
-      if (src.endsWith('.mp4')) {
-        el = document.createElement('video');
-        el.src = src;
-        el.className = 'modal-gallery-video';
-        el.controls = true;
-        el.setAttribute('tabindex', '0');
-        let elStyle = 'display:block !important;margin:0 auto !important;object-fit:contain !important;background:#000 !important;box-sizing:border-box !important;padding:0 !important;border:none !important;max-width:100% !important;max-height:100% !important;width:auto !important;height:auto !important;';
-        el.setAttribute('style', elStyle);
-        el.addEventListener('loadedmetadata', () => {
-          if (this.slideEls && this.slideEls[this.current] === slide) {
-            this.adjustContainerToCurrentSlide(el.videoWidth, el.videoHeight);
-          }
-        });
-      } else {
-        el = document.createElement('img');
-        el.src = src;
-        el.className = 'modal-gallery-img';
-        el.alt = '';
-        el.setAttribute('tabindex', '0');
-        let elStyle = 'display:block !important;margin:0 auto !important;object-fit:contain !important;background:#000 !important;box-sizing:border-box !important;padding:0 !important;border:none !important;max-width:100% !important;max-height:100% !important;width:auto !important;height:auto !important;';
-        el.setAttribute('style', elStyle);
-        el.addEventListener('load', () => {
-          if (this.slideEls && this.slideEls[this.current] === slide) {
-            this.adjustContainerToCurrentSlide(el.naturalWidth, el.naturalHeight);
-          }
-        });
-      }
-      slide.appendChild(el);
-      this.track.appendChild(slide);
-      return slide;
-    });
+  function goTo(idx) {
+    if (idx < 0 || idx >= slides.length) return;
+    current = idx;
+    renderSlides();
   }
+  prevBtn.onclick = () => goTo(current - 1);
+  nextBtn.onclick = () => goTo(current + 1);
 
-  attachEvents() {
-    this.btnPrev.addEventListener('click', () => this.goTo(this.current - 1));
-    this.btnNext.addEventListener('click', () => this.goTo(this.current + 1));
-    this.track.addEventListener('touchstart', this.onTouchStart.bind(this), {passive: true});
-    this.track.addEventListener('touchmove', this.onTouchMove.bind(this), {passive: false}); // passive: false to allow preventDefault
-    this.track.addEventListener('touchend', this.onTouchEnd.bind(this));
-    this.track.addEventListener('mousedown', this.onMouseDown.bind(this));
-    window.addEventListener('keydown', this.onKeyDown = (e) => {
-      if (this.container.style.display === 'none') return;
-      if (e.key === 'ArrowLeft') this.goTo(this.current - 1);
-      if (e.key === 'ArrowRight') this.goTo(this.current + 1);
-    });
-  }
+  // Swipe support
+  let touchStartX = null;
+  carousel.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) touchStartX = e.touches[0].clientX;
+  });
+  carousel.addEventListener('touchend', e => {
+    if (touchStartX === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (dx > 40) goTo(current - 1);
+    else if (dx < -40) goTo(current + 1);
+    touchStartX = null;
+  });
 
-  goTo(idx) {
-    // Clamp index
-    const clamped = Math.max(0, Math.min(idx, this.slides.length - 1));
-    if (clamped !== this.current) {
-      this.current = clamped;
-      this.update();
-    }
-  }
+  // Keyboard navigation
+  modal.tabIndex = -1;
+  modal.focus();
+  modal.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') goTo(current - 1);
+    if (e.key === 'ArrowRight') goTo(current + 1);
+    if (e.key === 'Escape') modal.remove();
+  });
 
-  update() {
-    // Move track so current slide is centered
-    let offset;
-    if (this.isMobile) {
-      offset = -this.current * 100;
-      // Clamp offset to valid range
-      if (offset < -((this.slides.length - 1) * 100)) offset = -((this.slides.length - 1) * 100);
-      if (offset > 0) offset = 0;
-      this.track.style.transform = `translateX(${offset}vw)`;
-    } else {
-      offset = -this.current * 100;
-      if (offset < -((this.slides.length - 1) * 100)) offset = -((this.slides.length - 1) * 100);
-      if (offset > 0) offset = 0;
-      this.track.style.transform = `translateX(${offset}%)`;
-    }
-    // Update buttons
-    this.btnPrev.style.opacity = this.current === 0 ? '0.3' : '1';
-    this.btnPrev.style.pointerEvents = this.current === 0 ? 'none' : 'auto';
-    this.btnNext.style.opacity = this.current === this.slides.length - 1 ? '0.3' : '1';
-    this.btnNext.style.pointerEvents = this.current === this.slides.length - 1 ? 'none' : 'auto';
-    this.adjustContainerToCurrentSlide();
-  }
-
-  adjustContainerToCurrentSlide(forceW, forceH) {
-    const slide = this.slideEls[this.current];
-    if (!slide) return;
-    const media = slide.querySelector('img,video');
-    if (!media) return;
-    let w = forceW, h = forceH;
-    if (!w || !h) {
-      if (media.tagName === 'IMG') {
-        w = media.naturalWidth;
-        h = media.naturalHeight;
-      } else if (media.tagName === 'VIDEO') {
-        w = media.videoWidth;
-        h = media.videoHeight;
-      }
-    }
-    if (!w || !h) return;
-    const aspect = w / h;
-    // MOBILE: se verticale (immagine o video), usa quasi tutto lo schermo
-    if (this.isMobile && h > w) {
-      const maxH = window.innerHeight * 0.9;
-      let newH = maxH;
-      let newW = newH * aspect;
-      if (newW > window.innerWidth) {
-        newW = window.innerWidth;
-        newH = newW / aspect;
-      }
-      this.container.style.height = newH + 'px';
-      this.container.style.width = newW + 'px';
-    } else {
-      // logica attuale
-      const maxW = this.container.offsetWidth;
-      const maxH = window.innerHeight * 0.65;
-      let newW = maxW, newH = maxW / aspect;
-      if (newH > maxH) {
-        newH = maxH;
-        newW = newH * aspect;
-      }
-      this.container.style.height = newH + 'px';
-      this.container.style.width = newW + 'px';
-    }
-    this.container.style.maxWidth = '100vw';
-    this.container.style.maxHeight = '95vh';
-    this.container.style.margin = '0 auto';
-  }
-
-  // Touch/drag support
-  onTouchStart(e) {
-    if (e.touches.length > 1) return;
-    this.touchStartX = e.touches[0].clientX;
-    this.touchStartY = e.touches[0].clientY;
-    this.touchMoved = false;
-  }
-  onTouchMove(e) {
-    if (!this.touchStartX || !this.touchStartY) return;
-    const dx = e.touches[0].clientX - this.touchStartX;
-    const dy = e.touches[0].clientY - this.touchStartY;
-    // Only preventDefault if horizontal movement is dominant
-    if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
-      this.touchMoved = true;
-      e.preventDefault();
-    }
-  }
-  onTouchEnd(e) {
-    if (!this.touchStartX || !this.touchMoved) return;
-    const dx = e.changedTouches[0].clientX - this.touchStartX;
-    if (dx > 40 && this.current > 0) this.goTo(this.current - 1);
-    else if (dx < -40 && this.current < this.slides.length - 1) this.goTo(this.current + 1);
-    // If at the edge, do not move further
-    this.touchStartX = null;
-    this.touchMoved = false;
-  }
-  onMouseDown(e) {
-    this.mouseStartX = e.clientX;
-    document.addEventListener('mousemove', this.onMouseMove = (ev) => {
-      const dx = ev.clientX - this.mouseStartX;
-      if (Math.abs(dx) > 30) {
-        if (dx > 0 && this.current > 0) this.goTo(this.current - 1);
-        else if (dx < 0 && this.current < this.slides.length - 1) this.goTo(this.current + 1);
-        this.mouseStartX = ev.clientX;
-      }
-    });
-    document.addEventListener('mouseup', this.onMouseUp = () => {
-      document.removeEventListener('mousemove', this.onMouseMove);
-      document.removeEventListener('mouseup', this.onMouseUp);
-    });
-  }
-  destroy() {
-    window.removeEventListener('keydown', this.onKeyDown);
-    window.removeEventListener('resize', this.onResize);
-    this.container.innerHTML = '';
-    // Remove modal-open class from body to show scroll-indicator again
-    document.body.classList.remove('modal-open');
-  }
+  renderSlides();
 }
-// --- End ModalGallerySwiper ---
+
+// --- Collega la moderna modal gallery ai canvas con galleria su mobile ---
+// Cerca i canvas che aprono una galleria (modalGallery) e collega l'handler mobile
+function enableModernMobileCanvasGallery() {
+  if (window.innerWidth > 900) return; // solo mobile/tablet
+  document.querySelectorAll('.gallery-item').forEach(item => {
+    if (item._modernModalBound) return;
+    item._modernModalBound = true;
+    item.addEventListener('click', function(e) {
+      if (!item.hasAttribute('data-modal-gallery')) return;
+      console.log('[MODERN MODAL] Click intercettato su mobile, nuova UI attiva!');
+      e.preventDefault();
+      e.stopImmediatePropagation(); // BLOCCA TUTTI GLI ALTRI HANDLER
+      const slides = JSON.parse(item.getAttribute('data-modal-gallery'));
+      const description = item.getAttribute('data-description') || '';
+      showModernModalGallery(slides, 0, description);
+    }, true); // true = capture mode
+  });
+}
+
+document.addEventListener('DOMContentLoaded', enableModernMobileCanvasGallery);
