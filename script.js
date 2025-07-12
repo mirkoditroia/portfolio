@@ -1637,13 +1637,10 @@ const applySiteData = (site) => {
     if (contactSection && Array.isArray(site.contacts)) {
       const contactsContainer = document.createElement('div');
       contactsContainer.className = 'contacts-container';
-      
       site.contacts.forEach(c => {
         if (c.visible === false) return;
-        
         const contactItem = document.createElement('div');
         contactItem.className = 'contact-item';
-        
         let valueElement;
         if (c.value.includes('@')) {
           valueElement = `<a href="mailto:${c.value}" class="contact-link">${c.value}</a>`;
@@ -1652,21 +1649,57 @@ const applySiteData = (site) => {
         } else {
           valueElement = `<span class="contact-text">${c.value}</span>`;
         }
-        
         contactItem.innerHTML = `
           <div class="contact-info">
             <div class="contact-label">${c.label}</div>
             <div class="contact-value">${valueElement}</div>
           </div>
         `;
-        
         contactsContainer.appendChild(contactItem);
       });
-      
       contactSection.innerHTML = '<h2 id="contact-heading">CONTACT</h2>';
       contactSection.appendChild(contactsContainer);
     }
-    
+
+    // --- Hide/show sections based on status ---
+    if (Array.isArray(site.sections)) {
+      site.sections.forEach(s => {
+        const sectionEl = document.getElementById(s.key);
+        if (sectionEl) {
+          if (s.status === 'hide') {
+            sectionEl.style.display = 'none';
+            console.log(`[HIDE] Section #${s.key} hidden (status: ${s.status})`);
+          } else if (s.status === 'soon') {
+            sectionEl.style.display = '';
+            // Replace content with Coming Soon placeholder
+            sectionEl.innerHTML = `<h2 style="color:var(--accent-color,#40e0d0);margin-bottom:32px;">${s.label || s.key} <span style='font-size:0.7em;opacity:0.7;'>(Coming Soon)</span></h2><div style='padding:48px 0;text-align:center;font-size:1.3em;color:#fff;opacity:0.7;'>🚧 Questa sezione sarà disponibile a breve!</div>`;
+            console.log(`[SOON] Section #${s.key} shows Coming Soon placeholder`);
+          } else {
+            sectionEl.style.display = '';
+            console.log(`[SHOW] Section #${s.key} shown (status: ${s.status})`);
+          }
+        }
+        // Hide/show nav menu links
+        const navLink = document.querySelector(`.menu a[href="#${s.key}"]`);
+        if (navLink) {
+          if (s.status === 'hide') {
+            navLink.style.display = 'none';
+          } else {
+            navLink.style.display = '';
+          }
+        }
+      });
+      setTimeout(() => {
+        site.sections.forEach(s => {
+          const sectionEl = document.getElementById(s.key);
+          if (sectionEl && s.status === 'hide') {
+            sectionEl.style.display = 'none';
+            console.log(`[FORCE HIDE] Section #${s.key} forcibly hidden (status: ${s.status})`);
+          }
+        });
+      }, 500);
+    }
+
   } catch (err) { 
     console.error('❌ Error applying site data:', err); 
   }
@@ -1826,8 +1859,9 @@ class ModalGallerySwiper {
 
   renderSlides() {
     this.track.innerHTML = '';
-   
-    this.slideEls = this.slides.map(src => {
+    this.track.style.gap = '0';
+    this.track.style.boxSizing = 'border-box';
+    this.slideEls = this.slides.map((src, index) => {
       const slide = document.createElement('div');
       slide.className = 'modal-gallery-slide';
       let slideStyle = '';
@@ -1836,7 +1870,13 @@ class ModalGallerySwiper {
       } else {
         slideStyle += 'flex:0 0 100% !important;width:100% !important;';
       }
-      slideStyle += 'display:flex !important;align-items:center !important;justify-content:center !important;height:100% !important;overflow:hidden !important;box-sizing:border-box !important;padding:0 !important;margin:0 !important;background:#000 !important;';
+      slideStyle += 'display:flex !important;align-items:center  !important;justify-content:center !important;height:100% !important;overflow:hidden !important;box-sizing:border-box !important;padding:0 !important;margin:0 !important;background:#000 !important;';
+      
+      // Add border between slides (except for the last slide)
+      if (index < this.slides.length - 1) {
+        slideStyle += 'border-right:2px solid rgba(64,224,208,0.3) !important;';
+      }
+      
       slide.setAttribute('style', slideStyle);
       let el;
       if (src.endsWith('.mp4')) {

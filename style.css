@@ -694,6 +694,10 @@ main { margin-top: 80px; }
   transform: translateZ(0);
   /* Prevent subpixel rendering issues */
   backface-visibility: hidden;
+  /* Removed padding-right to prevent off-centering */
+  /* padding-right: 16px !important; */
+  box-sizing: border-box;
+  gap: 0; /* Remove gap, use border for separation */
 }
 
 .modal-gallery-img {
@@ -726,6 +730,24 @@ main { margin-top: 80px; }
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+}
+
+/* Modal Gallery Slide Styles */
+.modal-gallery-slide {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: #000;
+  margin: 0;
+}
+
+/* Border between slides in canvas carousel */
+.modal-gallery-slide:not(:last-child) {
+  border-right: 2px solid rgba(64, 224, 208, 0.3);
 }
 
 .modal-gallery-btn {
@@ -1254,6 +1276,11 @@ main { margin-top: 80px; }
   
   .modal-gallery-btn {
     display: none !important;
+  }
+  
+  /* Mobile modal gallery slide borders */
+  .modal-gallery-slide:not(:last-child) {
+    border-right: 1px solid rgba(64, 224, 208, 0.2) !important;
   }
 }
 
