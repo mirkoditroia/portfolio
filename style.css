@@ -2180,7 +2180,7 @@ main{margin-top:0 !important;}
 }
 .modern-modal-indicators {
   /* Variabili per controllo posizione mobile */
-  --mobile-indicators-top: 16px;
+  --mobile-indicators-top: 26px;
   --mobile-indicators-left: 50%;
   --mobile-indicators-right: auto;
   --mobile-indicators-transform: translateX(-50%);
@@ -2370,7 +2370,7 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
 
   .modern-modal-indicators {
     /* Cambia questi valori per spostare i puntini su mobile */
-    --mobile-indicators-top: 16px;      /* Distanza dall'alto */
+    --mobile-indicators-top: 60px;      /* Distanza dall'alto */
     --mobile-indicators-left: 50%;      /* Posizione orizzontale */
     --mobile-indicators-right: auto;    /* auto = non usare destra */
     --mobile-indicators-transform: translateX(-50%); /* Centratura */
