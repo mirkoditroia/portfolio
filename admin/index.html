@@ -248,10 +248,9 @@
       </label>
       <label class="block-label">Tipo
         <select id="se-type">
-          <option value="video">video</option>
-          <option value="image">image</option>
-          <option value="gallery">gallery</option>
-          <option value="canvas-video">canvas video</option>
+          <option value="video">Video</option>
+          <option value="image">Immagine/Canvas</option>
+          <option value="gallery">Galleria</option>
         </select>
       </label>
 
@@ -263,10 +262,40 @@
       </div>
 
       <div id="field-image" class="type-field">
-        <label class="block-label">Modal image path
-          <input id="se-image" type="text" style="width:80%" />
-          <button class="upload-btn" data-target="se-image">Upload</button>
+        <label class="block-label">Contenuto modale
+          <select id="se-image-type" style="width:100%; margin-bottom:8px;">
+            <option value="none">Nessuno (solo thumbnail)</option>
+            <option value="single">Immagine singola</option>
+            <option value="gallery">Galleria di immagini/video</option>
+            <option value="video">Video singolo</option>
+          </select>
         </label>
+        
+        <div id="image-single-field" style="display:none;">
+          <label class="block-label">Immagine modale
+            <input id="se-image" type="text" style="width:80%" placeholder="images/full-image.jpg" />
+            <button class="upload-btn" data-target="se-image">Upload</button>
+          </label>
+        </div>
+        
+        <div id="image-gallery-field" style="display:none;">
+          <h4>Galleria modale (immagini e video)</h4>
+          <ul id="se-image-gallery-list" class="gallery-list"></ul>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="upload-btn" data-target="se-image-gallery-list" data-multiple="true">Upload immagini</button>
+            <button class="upload-btn" data-target="se-image-gallery-list" data-multiple="true" data-accept="video/*">Upload video</button>
+          </div>
+          <p style="font-size:0.8rem;color:#666;margin:8px 0;">
+            🖼️ Questa galleria si aprirà quando si clicca sull'immagine thumbnail.
+          </p>
+        </div>
+        
+        <div id="image-video-field" style="display:none;">
+          <label class="block-label">Video modale
+            <input id="se-image-video" type="text" style="width:80%" placeholder="video/demo.mp4" />
+            <button class="upload-btn" data-target="se-image-video" data-accept="video/*">Upload</button>
+          </label>
+        </div>
       </div>
 
       <div id="field-gallery" class="type-field">
@@ -281,24 +310,7 @@
         </p>
       </div>
 
-      <div id="field-canvas-video" class="type-field">
-        <label class="block-label">Video per Canvas (texture) *
-          <input id="se-canvas-video" type="text" style="width:80%" placeholder="video/demo.mp4" />
-          <button class="upload-btn" data-target="se-canvas-video" data-accept="video/*">Upload</button>
-        </label>
-        <label class="block-label">Immagine Fallback (opzionale)
-          <input id="se-canvas-fallback" type="text" style="width:80%" placeholder="images/thumbnail.jpg" />
-          <button class="upload-btn" data-target="se-canvas-fallback">Upload</button>
-        </label>
-        <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin:8px 0;border-left:4px solid #40e0d0;">
-          <p style="font-size:0.85rem;color:#333;margin:0;"><strong>🎬 Canvas Video:</strong></p>
-          <ul style="font-size:0.8rem;color:#666;margin:8px 0 0 0;padding-left:16px;">
-            <li><strong>Video:</strong> Riprodotto come anteprima nel canvas della galleria</li>
-            <li><strong>Fallback:</strong> Mostrato solo se il video non si carica (opzionale)</li>
-            <li><strong>Performance:</strong> Usa video leggeri (max 10MB) per prestazioni ottimali</li>
-          </ul>
-        </div>
-      </div>
+
 
       <label class="block-label">Descrizione
         <input id="se-description" type="text" style="width:100%" />

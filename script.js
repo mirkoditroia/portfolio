@@ -6,6 +6,447 @@ function fetchJson(primaryUrl, fallbackUrl) {
   }).catch(() => fetch(fallbackUrl).then(r => r.json()));
 }
 
+// ============ SISTEMA DI BUFFERING E PRELOADING ============
+
+// Cache per media files
+const mediaCache = new Map();
+const preloadQueue = new Set();
+
+// Preload intelligente con priorità e throttling
+function preloadMedia(urls, priority = 'normal') {
+  if (!Array.isArray(urls)) return;
+  
+  // Filtra URL validi e non già in cache/coda
+  const validUrls = urls.filter(url => {
+    if (!url || typeof url !== 'string') return false;
+    if (mediaCache.has(url) || preloadQueue.has(url)) return false;
+    return url.startsWith('http') || url.startsWith('/');
+  });
+  
+  if (validUrls.length === 0) return;
+  
+  console.log(`🚀 Starting preload of ${validUrls.length} media files (${priority} priority)`);
+  
+  // Throttling: max 2 richieste simultanee per evitare rate limiting Firebase
+  const maxConcurrent = 2;
+  const chunks = [];
+  for (let i = 0; i < validUrls.length; i += maxConcurrent) {
+    chunks.push(validUrls.slice(i, i + maxConcurrent));
+  }
+  
+  // Processa chunk per chunk con delay maggiore per Firebase
+  chunks.forEach((chunk, chunkIndex) => {
+    setTimeout(() => {
+      const promises = chunk.map(url => {
+        preloadQueue.add(url);
+        
+        // Controlla se è un video (sia URL locale che Firebase Storage)
+        const isVideo = url.includes('.mp4') || url.includes('videos%2F') || url.includes('/videos/');
+        
+        console.log('🔍 Preloading media type:', { url, isVideo });
+        
+        const preloadPromise = isVideo
+          ? preloadVideo(url, priority)
+          : preloadImage(url, priority);
+        
+        // Gestione errori silenziosa per evitare Uncaught Promise
+        return preloadPromise.catch(error => {
+          console.warn(`⚠️ Preload failed (final): ${url}`, error.message);
+          return null; // Return null invece di reject per non bloccare Promise.all
+        });
+      });
+      
+      // Aspetta che questo chunk sia completato
+      Promise.allSettled(promises).then(results => {
+        const successful = results.filter(r => r.status === 'fulfilled' && r.value !== null).length;
+        const failed = results.length - successful;
+        
+        if (failed > 0) {
+          console.warn(`⚠️ Chunk ${chunkIndex + 1}: ${successful} success, ${failed} failed`);
+        } else {
+          console.log(`✅ Chunk ${chunkIndex + 1}: ${successful} media preloaded successfully`);
+        }
+      });
+      
+    }, chunkIndex * 1000); // 1 secondo delay tra chunk per Firebase
+  });
+}
+
+// Preload video con buffering e retry semplificato
+function preloadVideo(url, priority = 'normal', retryCount = 0) {
+  const maxRetries = 3; // Aumentato a 3 tentativi
+  
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = 'anonymous';
+    
+    // Timeout più lungo per Firebase Storage
+    const timeoutDuration = priority === 'high' ? 25000 : 20000;
+    const timeout = setTimeout(() => {
+      console.warn(`⚠️ Video preload timeout (attempt ${retryCount + 1}):`, url);
+      if (retryCount < maxRetries) {
+        // Retry con delay exponenziale + random jitter
+        const baseDelay = Math.pow(2, retryCount) * 1000;
+        const jitter = Math.random() * 1000;
+        const delay = baseDelay + jitter;
+        
+        setTimeout(() => {
+          console.log(`🔄 Retrying video preload (${retryCount + 1}/${maxRetries}):`, url);
+          preloadVideo(url, priority, retryCount + 1)
+            .then(resolve)
+            .catch(reject);
+        }, delay);
+      } else {
+        preloadQueue.delete(url);
+        reject(new Error('Video preload timeout after retries'));
+      }
+    }, timeoutDuration);
+    
+    video.addEventListener('loadedmetadata', () => {
+      clearTimeout(timeout);
+      mediaCache.set(url, {
+        type: 'video',
+        element: video,
+        loaded: Date.now()
+      });
+      preloadQueue.delete(url);
+      console.log('✅ Video preloaded:', url);
+      resolve(video);
+    });
+    
+    video.addEventListener('error', (e) => {
+      clearTimeout(timeout);
+      console.error(`❌ Video preload failed (attempt ${retryCount + 1}):`, url, e);
+      
+      if (retryCount < maxRetries) {
+        // Retry con delay exponenziale + random jitter
+        const baseDelay = Math.pow(2, retryCount) * 1000;
+        const jitter = Math.random() * 1000;
+        const delay = baseDelay + jitter;
+        
+        setTimeout(() => {
+          console.log(`🔄 Retrying video preload (${retryCount + 1}/${maxRetries}):`, url);
+          preloadVideo(url, priority, retryCount + 1)
+            .then(resolve)
+            .catch(reject);
+        }, delay);
+      } else {
+        preloadQueue.delete(url);
+        reject(e);
+      }
+    });
+    
+    video.src = url;
+  });
+}
+
+// Preload immagini con retry semplificato
+function preloadImage(url, priority = 'normal', retryCount = 0) {
+  const maxRetries = 3; // Aumentato a 3 tentativi
+  
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    // Timeout più lungo per Firebase Storage
+    const timeoutDuration = priority === 'high' ? 20000 : 15000;
+    const timeout = setTimeout(() => {
+      console.warn(`⚠️ Image preload timeout (attempt ${retryCount + 1}):`, url);
+      if (retryCount < maxRetries) {
+        // Retry con delay exponenziale + random jitter
+        const baseDelay = Math.pow(2, retryCount) * 1000;
+        const jitter = Math.random() * 1000;
+        const delay = baseDelay + jitter;
+        
+        setTimeout(() => {
+          console.log(`🔄 Retrying image preload (${retryCount + 1}/${maxRetries}):`, url);
+          preloadImage(url, priority, retryCount + 1)
+            .then(resolve)
+            .catch(reject);
+        }, delay);
+      } else {
+        preloadQueue.delete(url);
+        reject(new Error('Image preload timeout after retries'));
+      }
+    }, timeoutDuration);
+    
+    img.addEventListener('load', () => {
+      clearTimeout(timeout);
+      mediaCache.set(url, {
+        type: 'image',
+        element: img,
+        loaded: Date.now()
+      });
+      preloadQueue.delete(url);
+      console.log('✅ Image preloaded:', url);
+      resolve(img);
+    });
+    
+    img.addEventListener('error', (e) => {
+      clearTimeout(timeout);
+      console.error(`❌ Image preload failed (attempt ${retryCount + 1}):`, url, e);
+      
+      if (retryCount < maxRetries) {
+        // Retry con delay exponenziale + random jitter
+        const baseDelay = Math.pow(2, retryCount) * 1000;
+        const jitter = Math.random() * 1000;
+        const delay = baseDelay + jitter;
+        
+        setTimeout(() => {
+          console.log(`🔄 Retrying image preload (${retryCount + 1}/${maxRetries}):`, url);
+          preloadImage(url, priority, retryCount + 1)
+            .then(resolve)
+            .catch(reject);
+        }, delay);
+      } else {
+        preloadQueue.delete(url);
+        reject(e);
+      }
+    });
+    
+    img.src = url;
+  });
+}
+
+// Ottieni media dalla cache (versione semplificata)
+function getMediaFromCache(url) {
+  const cached = mediaCache.get(url);
+  if (cached) {
+    console.log('📦 Media from cache:', url);
+    return cached.element;
+  }
+  return null;
+}
+
+// Pulizia cache semplificata
+function cleanupMediaCache() {
+  const now = Date.now();
+  const maxAge = 15 * 60 * 1000; // 15 minuti
+  
+  for (const [url, cached] of mediaCache.entries()) {
+    if (now - cached.loaded > maxAge) {
+      console.log('🗑️ Removing old cached media:', url);
+      mediaCache.delete(url);
+    }
+  }
+}
+
+      // Cleanup automatico ogni 5 minuti
+    setInterval(cleanupMediaCache, 5 * 60 * 1000);
+
+  // Preload automatico delle immagini visibili all'avvio
+  function startInitialPreload() {
+    // 1. Preload immagini visibili nel DOM
+    const visibleImages = document.querySelectorAll('img[src]:not([data-lazy])');
+    const domImages = Array.from(visibleImages).map(img => img.src);
+    
+    // 2. Preload immagini di anteprima dei canvas dalle gallerie
+    const canvasThumbnails = [];
+    
+    if (currentSiteData && typeof currentSiteData === 'object') {
+      console.log('🔍 Raccogliendo anteprime canvas dalle gallerie...');
+      
+      // Itera attraverso tutte le gallerie nei dati
+      Object.keys(currentSiteData).forEach(galleryKey => {
+        const gallery = currentSiteData[galleryKey];
+        
+        if (Array.isArray(gallery)) {
+          gallery.forEach(item => {
+            // Raccogli immagini di anteprima (src) per canvas
+            if (item.canvas && item.src) {
+              canvasThumbnails.push(item.src);
+              console.log(`📸 Canvas thumbnail trovata: ${item.title || 'Untitled'} -> ${item.src}`);
+            }
+            
+            // Opzionale: precarica anche immagini modali principali se sono canvas
+            if (item.canvas && item.modalImage) {
+              canvasThumbnails.push(item.modalImage);
+              console.log(`🖼️ Canvas modal image trovata: ${item.title || 'Untitled'} -> ${item.modalImage}`);
+            }
+          });
+        }
+      });
+    }
+    
+    // 3. Combina tutte le immagini da precaricare
+    const allImages = [...domImages, ...canvasThumbnails];
+    const uniqueImages = [...new Set(allImages)]; // Rimuovi duplicati
+    
+    if (uniqueImages.length > 0) {
+      console.log(`🚀 Initial preload: ${domImages.length} DOM images + ${canvasThumbnails.length} canvas thumbnails = ${uniqueImages.length} total`);
+      preloadMedia(uniqueImages, 'high');
+    } else {
+      console.log('📭 Nessuna immagine da precaricare trovata');
+    }
+  }
+
+  // Funzione per forzare il caricamento immediato di tutti i canvas
+  function forceLoadAllCanvas() {
+    const allCanvas = document.querySelectorAll('.gallery-canvas');
+    console.log(`🎨 Forcing immediate load of ${allCanvas.length} canvas elements...`);
+    
+    let loadedCount = 0;
+    allCanvas.forEach((canvas, index) => {
+      // Verifica se il canvas è già stato processato
+      if (canvas.id && (canvas.id.includes('canvas-') || canvas.id.includes('procedural-'))) {
+        return; // Già processato
+      }
+      
+      // Forza il caricamento del canvas se non è ancora stato processato
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        // Crea contenuto procedurale di base
+        createCanvasContent(ctx, 'Canvas', canvas.width, canvas.height);
+        loadedCount++;
+        console.log(`🎨 Force-loaded canvas #${index + 1}`);
+      }
+    });
+    
+    if (loadedCount > 0) {
+      console.log(`✅ Force-loaded ${loadedCount} additional canvas elements`);
+    }
+  }
+
+  // Funzione per inizializzare immediatamente tutti i canvas video esistenti
+  function initializeAllCanvasVideos() {
+    const allCanvasVideos = document.querySelectorAll('.gallery-canvas[id*="canvas-"]');
+    console.log(`🎬 Initializing ${allCanvasVideos.length} canvas video elements immediately...`);
+    
+    allCanvasVideos.forEach((canvas) => {
+      const canvasId = canvas.id;
+      const renderer = canvasVideoRenderers.get(canvasId);
+      
+      if (renderer && renderer.isVisible === false) {
+        // Forza l'inizializzazione immediata
+        renderer.isVisible = true;
+        if (renderer.video && renderer.video.readyState >= 2) {
+          renderer.startVideo();
+          console.log(`🎬 Canvas video ${canvasId} started immediately`);
+        }
+      }
+    });
+  }
+
+  // Avvia preloading iniziale dopo 2 secondi (per dare tempo ai dati di caricarsi)
+  setTimeout(startInitialPreload, 2000);
+  
+  // ========= SISTEMA DI FEEDBACK UTENTE =========
+  let loadingIndicatorTimeout;
+  
+  // Mostra indicatore di caricamento per operazioni lunghe
+  function showLoadingFeedback(message = 'Caricamento...') {
+    clearTimeout(loadingIndicatorTimeout);
+    
+    // Mostra indicatore solo se il caricamento richiede più di 2 secondi
+    loadingIndicatorTimeout = setTimeout(() => {
+      const existing = document.getElementById('media-loading-indicator');
+      if (existing) return;
+      
+      const indicator = document.createElement('div');
+      indicator.id = 'media-loading-indicator';
+      indicator.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-family: 'Montserrat', Arial, sans-serif;
+        font-size: 0.9rem;
+        z-index: 10000;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(64, 224, 208, 0.3);
+      `;
+      indicator.textContent = message;
+      document.body.appendChild(indicator);
+      
+      // Rimuovi automaticamente dopo 10 secondi
+      setTimeout(() => {
+        if (indicator.parentNode) {
+          indicator.parentNode.removeChild(indicator);
+        }
+      }, 10000);
+    }, 2000);
+  }
+  
+  // Nascondi indicatore di caricamento
+  function hideLoadingFeedback() {
+    clearTimeout(loadingIndicatorTimeout);
+    const indicator = document.getElementById('media-loading-indicator');
+    if (indicator && indicator.parentNode) {
+      indicator.style.opacity = '0';
+      setTimeout(() => {
+        if (indicator.parentNode) {
+          indicator.parentNode.removeChild(indicator);
+        }
+      }, 300);
+    }
+  }
+  
+  // Aggiungi feedback globale per preloading
+  window.addEventListener('beforeunload', hideLoadingFeedback);
+  
+  // ========= FINE FEEDBACK UTENTE =========
+
+  // ========= MONITORAGGIO RETE E ADATTIVO =========
+  let networkQuality = 'good'; // good, slow, poor
+  let preloadingEnabled = true;
+  
+  // Monitora la qualità della connessione
+  function assessNetworkQuality() {
+    if ('connection' in navigator) {
+      const connection = navigator.connection;
+      const effectiveType = connection.effectiveType;
+      
+      if (effectiveType === '4g') {
+        networkQuality = 'good';
+        preloadingEnabled = true;
+      } else if (effectiveType === '3g') {
+        networkQuality = 'slow';
+        preloadingEnabled = true; // Mantieni attivo ma con throttling più alto
+      } else {
+        networkQuality = 'poor';
+        preloadingEnabled = false; // Disabilita preloading
+      }
+      
+      console.log(`📡 Network quality: ${networkQuality} (${effectiveType}) - Preloading: ${preloadingEnabled}`);
+    }
+  }
+  
+  // Controlla la qualità di rete ogni 30 secondi
+  if ('connection' in navigator) {
+    assessNetworkQuality();
+    navigator.connection.addEventListener('change', assessNetworkQuality);
+    setInterval(assessNetworkQuality, 30000);
+  }
+  
+  // Wrapper per preloadMedia che considera la qualità di rete
+  const smartPreloadMedia = function(urls, priority = 'normal') {
+    if (!preloadingEnabled && priority !== 'high') {
+      console.log('⚠️ Preloading skipped due to poor network quality');
+      return;
+    }
+    
+    // Riduci il caricamento simultaneo se la rete è lenta
+    if (networkQuality === 'slow') {
+      console.log('🐌 Slow network detected, reducing concurrent loads');
+    }
+    
+    // Chiama la funzione originale di preloading
+    preloadMedia(urls, priority);
+  };
+  
+  // Sostituisci le chiamate a preloadMedia nelle gallery con smartPreloadMedia
+  window.smartPreloadMedia = smartPreloadMedia;
+
+  // ========= FINE MONITORAGGIO RETE =========
+
+  // ============ FINE SISTEMA BUFFERING ============
+
 // Ensure APP_ENV is available immediately (may load env script async)
 (function () {
   if (window.APP_ENV) return; // already set by env.*.js
@@ -108,7 +549,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       window.addEventListener('scroll', updateActiveSection);
-      updateActiveSection(); // Chiamata iniziale
+      updateActiveSection();
       console.log('✅ Scroll spy inizializzato');
     } catch (error) {
       console.error('❌ Errore scroll spy:', error);
@@ -478,7 +919,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // 🎬 CANVAS VIDEO SYSTEM - Lightweight video textures
   class CanvasVideoRenderer {
-    constructor(canvas, videoSrc, fallbackImageSrc) {
+    constructor(canvas, videoSrc, fallbackImageSrc, immediateInit = false) {
       this.canvas = canvas;
       this.ctx = canvas.getContext('2d');
       this.videoSrc = videoSrc;
@@ -492,7 +933,11 @@ document.addEventListener('DOMContentLoaded', function () {
       this.targetFPS = 15; // Limit FPS for performance
       this.frameInterval = 1000 / this.targetFPS;
 
-      this.init();
+      if (immediateInit) {
+        this.initImmediate();
+      } else {
+        this.init();
+      }
     }
 
     init() {
@@ -517,6 +962,39 @@ document.addEventListener('DOMContentLoaded', function () {
       // Start loading video immediately for preview
       if (this.videoSrc) {
         this.loadVideo();
+      }
+    }
+
+    // Funzione per inizializzazione immediata (senza lazy loading)
+    initImmediate() {
+      // Setup intersection observer solo per auto-pause
+      this.observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            this.onVisible();
+          } else {
+            this.onHidden();
+          }
+        });
+      }, { threshold: 0.1 });
+
+      this.observer.observe(this.canvas);
+
+      // Load fallback image first
+      if (this.fallbackImageSrc) {
+        this.loadFallbackImage();
+      }
+
+      // Start loading video immediately
+      if (this.videoSrc) {
+        this.loadVideo();
+        // Inizializza immediatamente come visibile
+        this.isVisible = true;
+        setTimeout(() => {
+          if (this.video && this.video.readyState >= 2) {
+            this.startVideo();
+          }
+        }, 100);
       }
     }
 
@@ -715,6 +1193,34 @@ document.addEventListener('DOMContentLoaded', function () {
 
     console.log(`📊 [${sectionId}] SPV=${realSPV}, Slide reali=${images.length}, placeholder=${fillersNeeded}, totali=${slidesData.length}`);
 
+    // ========= PRELOADING INTELLIGENTE =========
+    // Raccoglie tutti i media da precaricare
+    const mediaToPreload = [];
+    images.forEach(img => {
+      // Preload immagini principali
+      if (img.src) mediaToPreload.push(img.src);
+      if (img.modalImage) mediaToPreload.push(img.modalImage);
+      
+      // Preload video dei canvas
+      if (img.video) mediaToPreload.push(img.video);
+      
+      // Preload gallery modal
+      if (img.modalGallery && Array.isArray(img.modalGallery)) {
+        mediaToPreload.push(...img.modalGallery);
+      }
+    });
+    
+    // Avvia preloading con priorità normale (usa smart preloading se disponibile)
+    if (mediaToPreload.length > 0) {
+      console.log(`🚀 [${sectionId}] Preloading ${mediaToPreload.length} media files...`);
+      if (window.smartPreloadMedia) {
+        window.smartPreloadMedia(mediaToPreload, 'normal');
+      } else {
+        preloadMedia(mediaToPreload, 'normal');
+      }
+    }
+    // ========= FINE PRELOADING =========
+
     // Genera dinamicamente gli item con Swiper slide
     slidesData.forEach((img, index) => {
       const item = document.createElement('div');
@@ -757,13 +1263,16 @@ document.addEventListener('DOMContentLoaded', function () {
           const canvasId = `${sectionId}-canvas-${index}`;
           mediaEl.id = canvasId;
 
-          const renderer = new CanvasVideoRenderer(mediaEl, img.video, img.src);
+          const renderer = new CanvasVideoRenderer(mediaEl, img.video, img.src, true);
           canvasVideoRenderers.set(canvasId, renderer);
 
-          console.log(`🎬 Canvas video created: ${canvasId} (${img.video})`);
+          console.log(`🎬 Canvas video created with immediate loading: ${canvasId} (${img.video})`);
         } else if (img.src || img.modalImage) {
-          // Static image canvas (existing logic)
+          // Static image canvas (existing logic) - CARICAMENTO IMMEDIATO
           const imageObj = new Image();
+          const canvasId = `${sectionId}-static-canvas-${index}`;
+          mediaEl.id = canvasId;
+          
           imageObj.onload = function () {
             const canvasW = mediaEl.width;
             const canvasH = mediaEl.height;
@@ -781,6 +1290,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const offsetY = (canvasH - drawH) / 2;
             ctx.clearRect(0, 0, canvasW, canvasH);
             ctx.drawImage(imageObj, offsetX, offsetY, drawW, drawH);
+            console.log(`🖼️ Static canvas loaded immediately: ${canvasId}`);
           };
 
           // Se l'immagine non esiste o dà errore, mostra un placeholder testuale
@@ -788,10 +1298,15 @@ document.addEventListener('DOMContentLoaded', function () {
             console.warn('⚠️ Canvas fallback, immagine non trovata:', imageObj.src);
             createCanvasContent(ctx, img.title, mediaEl.width, mediaEl.height);
           };
+          
+          // Carica immediatamente l'immagine (senza lazy loading)
           imageObj.src = img.src || img.modalImage;
         } else {
-          // Procedural canvas content
+          // Procedural canvas content - CARICAMENTO IMMEDIATO
+          const canvasId = `${sectionId}-procedural-canvas-${index}`;
+          mediaEl.id = canvasId;
           createCanvasContent(ctx, img.title, mediaEl.width, mediaEl.height);
+          console.log(`🎨 Procedural canvas loaded immediately: ${canvasId}`);
         }
       } else {
         /* Utilizza ImageOptimizer per immagini responsive e lazy */
@@ -1093,6 +1608,13 @@ document.addEventListener('DOMContentLoaded', function () {
     galleries = data;
     Object.entries(data).forEach(([k, v]) => initGallery(k, v));
     afterGalleryInit();
+    
+    // Forza il caricamento immediato di tutti i canvas dopo l'inizializzazione
+    setTimeout(() => {
+      forceLoadAllCanvas();
+      initializeAllCanvasVideos();
+    }, 200);
+    
     if (window.innerWidth <= 900 && typeof enableModernMobileCanvasGallery === 'function') {
       console.log('[MODERN MODAL] enableModernMobileCanvasGallery chiamata DOPO tutte le gallery');
       enableModernMobileCanvasGallery();
@@ -1186,8 +1708,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             else if (hasProceduralContent) {
               // Canvas procedurale - usa il contenuto del canvas stesso
-              const placeholderGallery = [canvas.toDataURL()];
-              showModernModalGallery(placeholderGallery, 0, description || 'Canvas procedurale');
+              try {
+                const placeholderGallery = [canvas.toDataURL()];
+                showModernModalGallery(placeholderGallery, 0, description || 'Canvas procedurale');
+              } catch (error) {
+                // Errore di sicurezza con canvas "tainted" (contenuto da domini esterni)
+                console.warn('🚫 Canvas contiene contenuto da domini esterni, impossibile esportare:', error.message);
+                alert('⚠️ Questo canvas contiene contenuto da domini esterni.\nAggiungi immagini o video alla modalGallery tramite il pannello admin per visualizzarli correttamente.');
+              }
             }
           } else if (canvas && !imgData) {
             // Canvas senza dati - potrebbe essere procedurale, controlla se ha contenuto visivo
@@ -1203,8 +1731,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
               }
             } catch (error) {
-              console.warn('Errore nel controllo canvas:', error);
-              alert('⚠️ Questo canvas non ha contenuto da visualizzare.\nAggiungi immagini, video o gallerie tramite il pannello admin.');
+              // Errore di sicurezza con canvas "tainted" (contenuto da domini esterni)
+              if (error.name === 'SecurityError') {
+                console.warn('🚫 Canvas contiene contenuto da domini esterni, impossibile esportare:', error.message);
+                alert('⚠️ Questo canvas contiene contenuto da domini esterni.\nAggiungi immagini o video alla modalGallery tramite il pannello admin per visualizzarli correttamente.');
+              } else {
+                console.warn('Errore nel controllo canvas:', error);
+                alert('⚠️ Questo canvas non ha contenuto da visualizzare.\nAggiungi immagini, video o gallerie tramite il pannello admin.');
+              }
               return;
             }
           } else if (videoSrc && modalPlayer) {
@@ -1524,6 +2058,16 @@ document.addEventListener('DOMContentLoaded', () => {
     item.addEventListener('pointerdown', clearPulse, { once: true });
   });
 
+  // Forza il caricamento immediato di tutti i canvas già presenti nel DOM
+  setTimeout(() => {
+    if (typeof forceLoadAllCanvas === 'function') {
+      forceLoadAllCanvas();
+    }
+    if (typeof initializeAllCanvasVideos === 'function') {
+      initializeAllCanvasVideos();
+    }
+  }, 500);
+
   // Arrow scroll hint for horizontal carousels
   const carousels = document.querySelectorAll('.gallery-carousel');
   carousels.forEach(carousel => {
@@ -1804,6 +2348,9 @@ const checkForUpdates = async () => {
         console.log('🔄 Changes detected, updating site...');
         applySiteData(newSiteData);
 
+        // Precarica nuove anteprime canvas se ce ne sono
+        setTimeout(startInitialPreload, 100);
+
         // Show notification
         if (currentSiteData.version !== newSiteData.version) {
           showUpdateNotification(newSiteData.version);
@@ -1845,6 +2392,15 @@ const init = async () => {
 
     // Check for updates once per day (24h)
     setInterval(checkForUpdates, 86400000);
+
+    // Avvia preloading delle anteprime canvas dopo che i dati sono caricati
+    setTimeout(startInitialPreload, 500);
+
+    // Forza il caricamento immediato di tutti i canvas esistenti
+    setTimeout(() => {
+      forceLoadAllCanvas();
+      initializeAllCanvasVideos();
+    }, 1000);
 
     console.log('✅ Site initialized successfully');
 
@@ -1924,18 +2480,172 @@ function showModernModalGallery(slides, startIndex = 0, description = '') {
     
     let el;
     const src = slides[current];
-    if (src.endsWith('.mp4')) {
-      el = document.createElement('video');
-      el.src = src;
+    
+    // Preload del contenuto attuale e di quello successivo
+    const currentAndNext = [src];
+    if (slides.length > 1) {
+      const nextIndex = (current + 1) % slides.length;
+      currentAndNext.push(slides[nextIndex]);
+    }
+    // Usa sempre priority alta per i media della modal (necessari subito)
+    preloadMedia(currentAndNext, 'high');
+    
+    // Controlla se è un video (sia URL locale che Firebase Storage)
+    const isVideo = src.includes('.mp4') || src.includes('videos%2F') || src.includes('/videos/');
+    
+    console.log('🔍 Detecting media type:', { src, isVideo });
+    
+    if (isVideo) {
+      // Prova a ottenere video dalla cache
+      const cachedVideo = getMediaFromCache(src);
+      
+      if (cachedVideo) {
+        // Usa video dalla cache
+        el = cachedVideo.cloneNode();
+        el.currentTime = 0;
+        console.log('📦 Video dalla cache:', src);
+      } else {
+        // Crea nuovo video
+        el = document.createElement('video');
+        el.src = src;
+        console.log('🎬 Caricamento video:', src);
+      }
+      
+      // Configurazione video ottimizzata
       el.controls = true;
-      el.autoplay = false;
+      el.muted = true; // Necessario per autoplay
+      el.autoplay = true;
       el.playsInline = true;
+      el.preload = 'auto';
+      el.crossOrigin = 'anonymous';
       el.style.background = '#000';
+      el.style.maxWidth = '100%';
+      el.style.maxHeight = '100%';
+      
+      // Gestione errori video con retry semplificato
+      let retryAttempt = 0;
+      const maxRetries = 3;
+      
+      const handleVideoError = (e) => {
+        console.error(`❌ Errore video (attempt ${retryAttempt + 1}):`, src, e);
+        
+        if (retryAttempt < maxRetries) {
+          retryAttempt++;
+          const baseDelay = Math.pow(2, retryAttempt) * 1000;
+          const jitter = Math.random() * 1000;
+          const delay = baseDelay + jitter;
+          
+          setTimeout(() => {
+            console.log(`🔄 Retry video loading (${retryAttempt}/${maxRetries}):`, src);
+            el.src = src; // Ricarica il video
+          }, delay);
+        } else {
+          // Fallback finale
+          const fallback = document.createElement('div');
+          fallback.style.cssText = `
+            background: linear-gradient(135deg, #1a1a2e, #2d1b45);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px 20px;
+            border-radius: 8px;
+            max-width: 100%;
+            max-height: 100%;
+            font-family: 'Montserrat', Arial, sans-serif;
+          `;
+          fallback.innerHTML = `
+            <div>
+              <div style="font-size: 3em; margin-bottom: 16px;">🎬</div>
+              <div style="font-size: 1.2em; margin-bottom: 8px;">Video non disponibile</div>
+              <div style="font-size: 0.9em; opacity: 0.7;">Riprova più tardi</div>
+            </div>
+          `;
+          el.parentNode.replaceChild(fallback, el);
+        }
+      };
+      
+      el.addEventListener('error', handleVideoError);
+      
+      // Tentativo di play automatico con gestione errori
+      el.addEventListener('loadedmetadata', () => {
+        el.play().catch(err => {
+          console.warn('⚠️ Autoplay fallito (normale su alcuni browser):', err);
+          // Aggiungi un pulsante play se l'autoplay fallisce
+          if (!el.controls) {
+            el.controls = true;
+            console.log('🎮 Controls abilitati per il video');
+          }
+        });
+      });
+      
     } else {
-      el = document.createElement('img');
-      el.src = src;
+      // Gestione immagini con lazy loading
+      const cachedImage = getMediaFromCache(src);
+      
+      if (cachedImage) {
+        // Usa immagine dalla cache
+        el = cachedImage.cloneNode();
+        console.log('📦 Immagine dalla cache:', src);
+      } else {
+        // Crea nuova immagine
+        el = document.createElement('img');
+        el.src = src;
+        console.log('🖼️ Caricamento immagine:', src);
+      }
+      
       el.alt = '';
       el.style.background = '#000';
+      el.style.maxWidth = '100%';
+      el.style.maxHeight = '100%';
+      el.style.objectFit = 'contain';
+      
+      // Gestione errori immagine con retry semplificato
+      let imageRetryAttempt = 0;
+      const maxImageRetries = 3;
+      
+      const handleImageError = (e) => {
+        console.error(`❌ Errore immagine (attempt ${imageRetryAttempt + 1}):`, src, e);
+        
+        if (imageRetryAttempt < maxImageRetries) {
+          imageRetryAttempt++;
+          const baseDelay = Math.pow(2, imageRetryAttempt) * 1000;
+          const jitter = Math.random() * 1000;
+          const delay = baseDelay + jitter;
+          
+          setTimeout(() => {
+            console.log(`🔄 Retry image loading (${imageRetryAttempt}/${maxImageRetries}):`, src);
+            el.src = src; // Ricarica l'immagine
+          }, delay);
+        } else {
+          // Fallback finale per immagini
+          const fallback = document.createElement('div');
+          fallback.style.cssText = `
+            background: linear-gradient(135deg, #1a1a2e, #2d1b45);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px 20px;
+            border-radius: 8px;
+            max-width: 100%;
+            max-height: 100%;
+            font-family: 'Montserrat', Arial, sans-serif;
+          `;
+          fallback.innerHTML = `
+            <div>
+              <div style="font-size: 3em; margin-bottom: 16px;">🖼️</div>
+              <div style="font-size: 1.2em; margin-bottom: 8px;">Immagine non disponibile</div>
+              <div style="font-size: 0.9em; opacity: 0.7;">Riprova più tardi</div>
+            </div>
+          `;
+          el.parentNode.replaceChild(fallback, el);
+        }
+      };
+      
+      el.addEventListener('error', handleImageError);
     }
     mediaContainer.appendChild(el);
     slide.appendChild(mediaContainer);

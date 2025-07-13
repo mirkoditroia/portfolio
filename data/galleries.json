@@ -1,16 +1,16 @@
 {
   "vfx": [
     {
-      "src": "images/Active_Render10620-1752188255807.jpg",
-      "canvas": true,
       "title": "Motion Graphics",
+      "canvas": true,
       "description": "Grafica animata e motion design.",
       "modalGallery": [
         "images/frame_1040.jpg",
         "images/art_2k_end.png",
         "images/rhythm_v004.karmarendersettings.1052.png",
-        "images/Active_Render10620-1752188212937.jpg"
-      ]
+        "video/0001-0720-1752419811482.mp4"
+      ],
+      "src": ""
     },
     {
       "canvas": true,
@@ -19,10 +19,10 @@
       "description": "Demo effetti visivi avanzati."
     },
     {
-      "canvas": true,
       "title": "meirkssssss",
+      "canvas": true,
       "description": "Effetti visivi e compositing.",
-      "modalImage": "images/PXL_20250609_132751594MP-1751897112432.jpg"
+      "src": "images/TDMovieOut6-1752437644997.jpg"
     },
     {
       "canvas": true,
@@ -34,12 +34,12 @@
       "description": "Tecniche di compositing digitale."
     },
     {
-      "canvas": true,
-      "canvasVideo": true,
       "title": "Canvas Video Demo",
+      "canvas": true,
+      "description": "Flora è la più \"amata\" del gruppo e non ha praticamente nessuno che le stia davvero antipatico. Anche quando c'è tensione, cerca sempre di risolvere con gentilezza e comprensione.  Se vuoi, posso anche spiegarti le dinamiche interne tra le Winx e i loro caratteri (chi va più d'accordo con chi)! Vuoi? 🌸💖",
       "src": "images/art_2k_end.png",
       "video": "video/ART.mp4",
-      "description": "Demo canvas video con texture leggera."
+      "canvasVideo": true
     }
   ],
   "art3d": [
@@ -130,6 +130,13 @@
       "title": "Interactive Demo",
       "modalImage": "images/boccioni.png",
       "description": "Demo installazione interattiva."
+    },
+    {
+      "title": "vuoto",
+      "canvas": false,
+      "description": "",
+      "src": "",
+      "modalImage": ""
     }
   ],
   "creativecoding": [

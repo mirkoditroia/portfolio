@@ -781,38 +781,53 @@ document.addEventListener('DOMContentLoaded', ()=>{
     src: document.getElementById('se-src'),
     video: document.getElementById('se-video'),
     image: document.getElementById('se-image'),
-    canvasVideo: document.getElementById('se-canvas-video'),
-    canvasFallback: document.getElementById('se-canvas-fallback'),
+    imageVideo: document.getElementById('se-image-video'),
     desc: document.getElementById('se-description')
   };
   const typeFields = {
     video: document.getElementById('field-video'),
     image: document.getElementById('field-image'),
-    gallery: document.getElementById('field-gallery'),
-    'canvas-video': document.getElementById('field-canvas-video'),
-    canvas: document.getElementById('field-image')
+    gallery: document.getElementById('field-gallery')
   };
 
   function showTypeFields(t){
     Object.entries(typeFields).forEach(([k,div])=>{
       div.style.display = k===t ? 'block':'none';
     });
+    
+    // Trigger image type change when image type is selected
+    if(t === 'image') {
+      const imageTypeSelect = document.getElementById('se-image-type');
+      if(imageTypeSelect) {
+        imageTypeSelect.dispatchEvent(new Event('change'));
+      }
+    }
   }
   F.type.addEventListener('change',()=>showTypeFields(F.type.value));
 
-  // Ensure select has 'canvas' option
-  (function(){
-    if(F.type && !Array.from(F.type.options).some(o=>o.value==='canvas')){
-      const opt=document.createElement('option');
-      opt.value='canvas';
-      opt.textContent='Canvas';
-      F.type.appendChild(opt);
-    }
-  })();
+  // Setup image type selector
+  const imageTypeSelect = document.getElementById('se-image-type');
+  const imageSingleField = document.getElementById('image-single-field');
+  const imageGalleryField = document.getElementById('image-gallery-field');
+  const imageVideoField = document.getElementById('image-video-field');
+  
+  if (imageTypeSelect) {
+    imageTypeSelect.addEventListener('change', () => {
+      const selectedType = imageTypeSelect.value;
+      
+      imageSingleField.style.display = selectedType === 'single' ? 'block' : 'none';
+      imageGalleryField.style.display = selectedType === 'gallery' ? 'block' : 'none';
+      imageVideoField.style.display = selectedType === 'video' ? 'block' : 'none';
+    });
+  }
 
   // ----- Gallery list UI helpers -----
   const galleryListEl = document.getElementById('se-gallery-list');
   let galleryArr = [];
+  
+  // ----- Image gallery list UI helpers -----
+  const imageGalleryListEl = document.getElementById('se-image-gallery-list');
+  let imageGalleryArr = [];
 
   function renderGallery(){
     if(!galleryListEl) return;
@@ -832,45 +847,76 @@ document.addEventListener('DOMContentLoaded', ()=>{
       galleryListEl.appendChild(li);
     });
   }
+  
+  function renderImageGallery(){
+    if(!imageGalleryListEl) return;
+    imageGalleryListEl.innerHTML='';
+    imageGalleryArr.forEach((p,idx)=>{
+      const li=document.createElement('li');
+      // 🎬 NEW: Add media type indicator
+      const isVideo = /\.(mp4|webm|mov|avi|mkv)$/i.test(p);
+      const mediaIcon = isVideo ? '🎬' : '🖼️';
+      const fileName = p.split('/').pop();
+      
+      li.innerHTML=`<span>${mediaIcon} ${fileName}</span> <button class="delete small">X</button>`;
+      li.querySelector('button').addEventListener('click',()=>{
+        imageGalleryArr.splice(idx,1);
+        renderImageGallery();
+      });
+      imageGalleryListEl.appendChild(li);
+    });
+  }
 
   let editorCb = null;
   document.getElementById('se-cancel').addEventListener('click',()=>overlay.classList.add('hidden'));
   document.getElementById('se-save').addEventListener('click',()=>{
+    // BUGFIX: Risolto problema thumbnail che scompariva dopo salvataggio
+    // Ora il campo 'src' (thumbnail) viene sempre preservato correttamente
     const slideData = {
       title: F.title.value,
       canvas: F.canvas.checked,
       description: F.desc.value
     };
     
-    // Validation for canvas video
-    if(F.type.value==='canvas-video' && !F.canvasVideo.value.trim()){
-      alert('⚠️ Il campo Video è obbligatorio per i Canvas Video');
-      return;
-    }
-    
-    if(F.type.value==='video'){
-      slideData.src = F.src.value;
-      slideData.video = F.video.value;
-    }else if(F.type.value==='image'){
-      slideData.modalImage = F.image.value;
-    }else if(F.type.value==='gallery'){
-      slideData.modalGallery = [...galleryArr];
-    }else if(F.type.value==='canvas-video'){
-      slideData.src = F.canvasFallback.value || ''; // Optional fallback image
-      slideData.video = F.canvasVideo.value;
-      slideData.canvas = true; // Force canvas mode
-      slideData.canvasVideo = true; // Flag to distinguish from regular canvas+video
-    }
-
-    // ----- Canvas thumbnail fallback -----
-    if(F.canvas.checked){
-      slideData.canvas = true;
-      if(!slideData.src){
-        slideData.src = F.image.value || F.canvasFallback.value || '';
+    // Validation for image video
+    if(F.type.value==='image'){
+      const imageType = document.getElementById('se-image-type').value;
+      if(imageType === 'video' && !F.imageVideo.value.trim()){
+        alert('⚠️ Il campo Video è obbligatorio per il contenuto video');
+        return;
       }
     }
-    else if(F.type.value==='canvas'){
-      slideData.src = F.image.value || F.canvasFallback.value || '';
+    
+    // Imposta sempre il campo src dalla thumbnail principale
+    slideData.src = F.src.value;
+    
+    // Debug: log della thumbnail per verificare che non scompaia
+    if(F.src.value) {
+      console.log('💾 Salvataggio slide - Thumbnail:', F.src.value);
+    }
+
+    if(F.type.value==='video'){
+      slideData.video = F.video.value;
+    }else if(F.type.value==='image'){
+      // Gestione del nuovo campo imageType unificato
+      const imageType = document.getElementById('se-image-type').value;
+      if(imageType === 'gallery' && imageGalleryArr.length > 0){
+        slideData.modalGallery = [...imageGalleryArr];
+      } else if(imageType === 'single' && F.image.value.trim()){
+        slideData.modalImage = F.image.value;
+      } else if(imageType === 'video' && F.imageVideo.value.trim()){
+        slideData.video = F.imageVideo.value;
+      }
+      // Se è canvas e ha un video, imposta il flag canvasVideo per compatibilità
+      if(F.canvas.checked && slideData.video){
+        slideData.canvasVideo = true;
+      }
+    }else if(F.type.value==='gallery'){
+      slideData.modalGallery = [...galleryArr];
+    }
+
+    // Forza canvas mode se checkbox è selezionato
+    if(F.canvas.checked){
       slideData.canvas = true;
     }
     editorCb(slideData);
@@ -888,25 +934,87 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function openSlideEditor(slide, cb){
     editorCb = cb;
     document.getElementById('se-heading').textContent = slide ? 'Modifica Slide' : 'Nuova Slide';
-    F.title.value='';F.canvas.checked=false;F.type.value='video';F.src.value='';F.video.value='';F.image.value='';F.canvasVideo.value='';F.canvasFallback.value='';F.desc.value='';
+    F.title.value='';F.canvas.checked=false;F.type.value='video';F.src.value='';F.video.value='';F.image.value='';F.imageVideo.value='';F.desc.value='';
+    
+    // Reset arrays
+    galleryArr = [];
+    imageGalleryArr = [];
+    
+    // Reset image type selector
+    const imageTypeSelect = document.getElementById('se-image-type');
+    if(imageTypeSelect) {
+      imageTypeSelect.value = 'none';
+      imageTypeSelect.dispatchEvent(new Event('change'));
+    }
+    
     if(slide){
       F.title.value = slide.title || '';
       F.canvas.checked = !!slide.canvas;
+      
+      // Imposta sempre il campo thumbnail principale
+      F.src.value = slide.src || '';
+      
       if(slide.canvasVideo && slide.video){
-        F.type.value='canvas-video'; F.canvasFallback.value=slide.src||''; F.canvasVideo.value=slide.video||'';
-      }else if(slide.video){
-        F.type.value='video'; F.src.value=slide.src||''; F.video.value=slide.video||'';
+        // Vecchio canvas-video migra al nuovo tipo image con video
+        F.type.value='image'; 
+        F.imageVideo.value=slide.video||'';
+        F.canvas.checked = true;
+        if(imageTypeSelect) {
+          imageTypeSelect.value = 'video';
+          imageTypeSelect.dispatchEvent(new Event('change'));
+        }
+      }else if(slide.video && !slide.modalImage && !slide.modalGallery){
+        // Video normale
+        F.type.value='video'; 
+        F.video.value=slide.video||'';
+      }else if(slide.video && (slide.modalImage || slide.modalGallery)){
+        // Immagine/Canvas con video come contenuto modale
+        F.type.value='image'; 
+        F.imageVideo.value=slide.video||'';
+        if(imageTypeSelect) {
+          imageTypeSelect.value = 'video';
+          imageTypeSelect.dispatchEvent(new Event('change'));
+        }
       }else if(slide.modalImage){
-        F.type.value='image'; F.image.value=slide.modalImage;
+        F.type.value='image'; 
+        F.image.value=slide.modalImage;
+        // Tipo immagine singola
+        if(imageTypeSelect) {
+          imageTypeSelect.value = 'single';
+          imageTypeSelect.dispatchEvent(new Event('change'));
+        }
       }else if(slide.modalGallery){
-        F.type.value='gallery'; galleryArr=[...slide.modalGallery]; renderGallery();
-      }
-      else if(slide.canvas && !slide.canvasVideo){
-        F.type.value='canvas'; F.canvasFallback.value=slide.src||'';
+        // Controlla se è una galleria normale o una galleria del tipo image
+        if(slide.type === 'image') {
+          F.type.value='image';
+          imageGalleryArr=[...slide.modalGallery];
+          renderImageGallery();
+          // Tipo immagine con galleria
+          if(imageTypeSelect) {
+            imageTypeSelect.value = 'gallery';
+            imageTypeSelect.dispatchEvent(new Event('change'));
+          }
+        } else {
+          F.type.value='gallery'; 
+          galleryArr=[...slide.modalGallery]; 
+          renderGallery();
+        }
+      }else if(slide.canvas){
+        // Solo canvas senza contenuto modale
+        F.type.value='image';
+        if(imageTypeSelect) {
+          imageTypeSelect.value = 'none';
+          imageTypeSelect.dispatchEvent(new Event('change'));
+        }
       }
       F.desc.value = slide.description || '';
     }
-    if(!slide){ galleryArr=[]; renderGallery(); }
+    if(!slide){ 
+      galleryArr=[]; 
+      imageGalleryArr=[]; 
+      renderGallery(); 
+      renderImageGallery(); 
+    }
     showTypeFields(F.type.value);
     overlay.classList.remove('hidden');
   }
@@ -1014,6 +1122,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
         if(targetEl.id === 'se-gallery-list') {
           galleryArr.push(...paths);
           renderGallery();
+        } else if(targetEl.id === 'se-image-gallery-list') {
+          imageGalleryArr.push(...paths);
+          renderImageGallery();
         } else {
           targetEl.value = paths[0];
         }
@@ -1057,6 +1168,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(targetEl.id==='se-gallery-list'){
         galleryArr.push(...paths);
         renderGallery();
+      }else if(targetEl.id==='se-image-gallery-list'){
+        imageGalleryArr.push(...paths);
+        renderImageGallery();
       }else{
         targetEl.value = paths[0];
       }
@@ -1199,15 +1313,28 @@ window.unsavedChanges = {
 };
 
 function markGalleryUnsaved(galleryKey) {
+  if (!galleryKey) {
+    console.warn('⚠️ markGalleryUnsaved called with empty galleryKey');
+    return;
+  }
+  
   window.unsavedChanges.galleries.add(galleryKey);
-  const panel = Array.from(document.querySelectorAll('.gallery-panel')).find(p => 
-    p.querySelector('.gallery-title').textContent.trim() === galleryKey
-  );
+  
+  const panel = Array.from(document.querySelectorAll('.gallery-panel')).find(p => {
+    const titleEl = p.querySelector('.gallery-title');
+    if (!titleEl) return false;
+    const title = titleEl.textContent.trim();
+    return title === galleryKey;
+  });
+  
   if(panel) {
     panel.classList.add('unsaved-changes');
     const saveBtn = panel.querySelector('.save-gallery-btn');
-    if(saveBtn) saveBtn.classList.add('save-btn-highlight');
+    if(saveBtn) {
+      saveBtn.classList.add('save-btn-highlight');
+    }
   }
+  
   window.adminLog?.(`⚠️ Gallery "${galleryKey}" ha modifiche non salvate`);
 }
 
