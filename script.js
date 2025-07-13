@@ -20,12 +20,28 @@ function fetchJson(primaryUrl, fallbackUrl) {
 })();
 
 // Scroll lock utility - semplice overflow hidden
+let scrollPosition = 0;
+
 function lockScroll() {
+  // Salva la posizione di scroll corrente
+  scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+  
+  // Applica il blocco scroll
   document.body.classList.add('lock-scroll');
+  document.body.style.top = `-${scrollPosition}px`;
+  
+  console.log('🔒 Scroll bloccato - classe lock-scroll aggiunta, posizione salvata:', scrollPosition);
 }
 
 function unlockScroll() {
+  // Rimuovi il blocco scroll
   document.body.classList.remove('lock-scroll');
+  document.body.style.top = '';
+  
+  // Ripristina la posizione di scroll
+  window.scrollTo(0, scrollPosition);
+  
+  console.log('🔓 Scroll sbloccato - classe lock-scroll rimossa, posizione ripristinata:', scrollPosition);
 }
 
 // JS per multiple gallery sections
@@ -1144,6 +1160,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
           // Gestione unificata dei canvas - tutti usano showModernModalGallery
           if (canvas && imgData) {
+            // Controllo se il canvas ha contenuto valido (multimediale o procedurale)
+            const hasMediaContent = imgData.modalImage || imgData.modalGallery || imgData.video || videoSrc;
+            const hasProceduralContent = imgData.canvas && imgData.title; // Canvas procedurale con titolo
+            
+            if (!hasMediaContent && !hasProceduralContent) {
+              // Canvas vuoto - mostra avviso
+              alert('⚠️ Questo canvas non ha contenuto da visualizzare.\nAggiungi immagini, video o gallerie tramite il pannello admin.');
+              return;
+            }
+            
             if (imgData.modalImage) {
               // Converte immagine singola in gallery per UI unificata
               const singleImageGallery = [imgData.modalImage];
@@ -1158,10 +1184,29 @@ document.addEventListener('DOMContentLoaded', function () {
               const singleVideoGallery = [src];
               showModernModalGallery(singleVideoGallery, 0, description);
             }
+            else if (hasProceduralContent) {
+              // Canvas procedurale - usa il contenuto del canvas stesso
+              const placeholderGallery = [canvas.toDataURL()];
+              showModernModalGallery(placeholderGallery, 0, description || 'Canvas procedurale');
+            }
           } else if (canvas && !imgData) {
-            // Canvas senza dati specifici - usa placeholder
-            const placeholderGallery = [item.querySelector('.gallery-canvas').toDataURL()];
-            showModernModalGallery(placeholderGallery, 0, 'Demo canvas interattivo');
+            // Canvas senza dati - potrebbe essere procedurale, controlla se ha contenuto visivo
+            try {
+              const canvasData = canvas.toDataURL();
+              // Controlla se il canvas ha contenuto (non è completamente vuoto)
+              if (canvasData && canvasData.length > 1000) { // Un canvas vuoto ha circa 100-200 caratteri
+                const placeholderGallery = [canvasData];
+                showModernModalGallery(placeholderGallery, 0, 'Canvas interattivo');
+              } else {
+                // Canvas realmente vuoto
+                alert('⚠️ Questo canvas non ha contenuto da visualizzare.\nAggiungi immagini, video o gallerie tramite il pannello admin.');
+                return;
+              }
+            } catch (error) {
+              console.warn('Errore nel controllo canvas:', error);
+              alert('⚠️ Questo canvas non ha contenuto da visualizzare.\nAggiungi immagini, video o gallerie tramite il pannello admin.');
+              return;
+            }
           } else if (videoSrc && modalPlayer) {
             // Default: video per immagini normali - usa UI unificata
             const singleVideoGallery = [videoSrc];
@@ -1872,6 +1917,11 @@ function showModernModalGallery(slides, startIndex = 0, description = '') {
     carousel.innerHTML = '';
     const slide = document.createElement('div');
     slide.className = 'modern-modal-slide';
+    
+    // Media container
+    const mediaContainer = document.createElement('div');
+    mediaContainer.className = 'modern-modal-media';
+    
     let el;
     const src = slides[current];
     if (src.endsWith('.mp4')) {
@@ -1887,7 +1937,115 @@ function showModernModalGallery(slides, startIndex = 0, description = '') {
       el.alt = '';
       el.style.background = '#000';
     }
-    slide.appendChild(el);
+    mediaContainer.appendChild(el);
+    slide.appendChild(mediaContainer);
+    
+    // Description (se presente)
+    if (description && description.trim()) {
+      const descriptionElement = document.createElement('div');
+      descriptionElement.className = 'modern-modal-description';
+      
+      // Gestione descrizioni lunghe
+      const maxLength = 120; // Caratteri massimi per l'anteprima
+      const isLongDescription = description.length > maxLength;
+      
+      if (isLongDescription) {
+        // Anteprima troncata
+        const preview = description.substring(0, maxLength) + '...';
+        const fullText = description;
+        
+        const textElement = document.createElement('span');
+        textElement.className = 'description-text';
+        textElement.textContent = preview;
+        
+        const expandButton = document.createElement('button');
+        expandButton.className = 'description-expand-btn';
+        expandButton.textContent = 'Leggi tutto';
+        expandButton.setAttribute('aria-expanded', 'false');
+        
+        expandButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // Crea overlay tendina che sale dal basso
+          const overlay = document.createElement('div');
+          overlay.className = 'description-overlay';
+          
+          const panel = document.createElement('div');
+          panel.className = 'description-panel';
+          
+          // Header del panel con titolo e pulsante chiudi
+          const header = document.createElement('div');
+          header.className = 'description-panel-header';
+          
+          const title = document.createElement('h3');
+          title.textContent = 'Descrizione';
+          title.className = 'description-panel-title';
+          
+          const closeBtn = document.createElement('button');
+          closeBtn.className = 'description-panel-close';
+          closeBtn.innerHTML = '&times;';
+          closeBtn.setAttribute('aria-label', 'Chiudi descrizione');
+          
+          header.appendChild(title);
+          header.appendChild(closeBtn);
+          
+          // Contenuto del panel
+          const content = document.createElement('div');
+          content.className = 'description-panel-content';
+          content.textContent = fullText;
+          
+          panel.appendChild(header);
+          panel.appendChild(content);
+          overlay.appendChild(panel);
+          
+          // Funzione per chiudere il panel
+          const closePanel = () => {
+            overlay.classList.add('closing');
+            setTimeout(() => {
+              if (overlay.parentNode) {
+                overlay.remove();
+              }
+            }, 300);
+          };
+          
+          // Event listeners per chiudere
+          closeBtn.addEventListener('click', closePanel);
+          overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+              closePanel();
+            }
+          });
+          
+          // ESC key per chiudere
+          const handleEsc = (e) => {
+            if (e.key === 'Escape') {
+              closePanel();
+              document.removeEventListener('keydown', handleEsc);
+            }
+          };
+          document.addEventListener('keydown', handleEsc);
+          
+          // Aggiungi al modal
+          modal.appendChild(overlay);
+          
+          // Trigger animazione
+          requestAnimationFrame(() => {
+            overlay.classList.add('active');
+          });
+        });
+        
+        descriptionElement.appendChild(textElement);
+        descriptionElement.appendChild(expandButton);
+        
+      } else {
+        // Descrizione corta - mostra direttamente
+        descriptionElement.textContent = description;
+      }
+      
+      slide.appendChild(descriptionElement);
+    }
+    
     carousel.appendChild(slide);
     // Update indicators (solo se più di un elemento)
     indicators.innerHTML = '';
