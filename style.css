@@ -5,7 +5,7 @@
 
 html {
   overflow-x: hidden; /* Prevent horizontal scroll on html */
-  touch-action: pan-y; /* Allow only vertical scrolling */
+ 
   scroll-behavior: smooth; /* Smooth scrolling */
 }
 
@@ -22,7 +22,7 @@ body {
   color: #fff;
   min-height: 100vh;
   overflow-x: hidden; /* Prevent horizontal scroll */
-  touch-action: pan-y; /* Allow only vertical scrolling */
+ 
   position: relative;
   width: 100%;
   max-width: 100vw; /* Ensure body doesn't exceed viewport width */
@@ -30,23 +30,61 @@ body {
   flex-direction: column;
 }
 
+/* Lock scroll when modal is open */
+body.lock-scroll {
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* 
+=== CONTROLLO POSIZIONE MODAL CLOSE & INDICATORS ===
+
+PULSANTE CHIUSURA (X):
+MOBILE (<900px):
+  --mobile-close-top: valore;     (es: 20px, 2rem)
+  --mobile-close-right: valore;   (es: 16px, auto)
+  --mobile-close-left: valore;    (es: auto, 16px)
+
+DESKTOP (≥900px):  
+  --desktop-close-top: valore;    (es: 16px, 2rem)
+  --desktop-close-left: valore;   (es: 16px, auto)
+  --desktop-close-right: valore;  (es: auto, 16px)
+
+PUNTINI INDICATORI:
+MOBILE (<900px):
+  --mobile-indicators-top: valore;       (es: 16px, 2rem)
+  --mobile-indicators-left: valore;      (es: 50%, 16px, auto)
+  --mobile-indicators-right: valore;     (es: auto, 16px)
+  --mobile-indicators-transform: valore; (es: translateX(-50%), none)
+
+DESKTOP (≥900px):
+  --desktop-indicators-top: valore;       (es: 16px, 2rem)
+  --desktop-indicators-left: valore;      (es: 50%, 16px, auto)
+  --desktop-indicators-right: valore;     (es: auto, 16px)
+  --desktop-indicators-transform: valore; (es: translateX(-50%), none)
+
+ESEMPI POSIZIONI:
+- Sinistra: left: 16px, right: auto, transform: none
+- Destra: left: auto, right: 16px, transform: none
+- Centro: left: 50%, right: auto, transform: translateX(-50%)
+*/
+
 
 
 .banner {
-  width: 100%;
-  max-width: 100vw; /* Ensure it doesn't exceed viewport width */
-  background: rgba(20, 30, 48, 0.95);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 32px;
-  height: 80px;
-  position: fixed;
+  position: fixed !important;
   top: 0;
   left: 0;
-  z-index: 1000;
+  width: 100vw !important;
+  z-index: 9999 !important;
+  background: rgba(20, 30, 48, 0.95) !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
+
 
 .logo {
   display: flex;
@@ -115,14 +153,16 @@ body {
 }
 
 main {
-  margin-top: 80px;
-  flex: 1;
-  padding-bottom: 0 !important;
+  padding-top: 80px !important;
+  min-height: auto !important;
+  height: auto !important;
+  min-height: 200vh; /* Solo per testare che lo scroll funzioni */
+
 }
 
 .hero {
   width: 100%;
-  min-height: 100vh;
+  min-height: 60vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -203,6 +243,7 @@ main {
   box-sizing: border-box; /* Include padding in width calculation */
   position: relative;
   transition: all 0.3s ease;
+  scroll-margin-top: 100px; /* Compensa banner fisso per anchor link */
 }
 
 /* Color coding per sezioni */
@@ -663,14 +704,28 @@ main {
 
 .modal-close {
   position: absolute;
-  top: 12px;
-  right: 18px;
-  background: none;
+  top: max(20px, env(safe-area-inset-top, 0px) + 8px);
+  right: 20px;
+  background: rgba(0, 0, 0, 0.5);
   border: none;
   color: #fff;
   font-size: 2.2rem;
   cursor: pointer;
-  z-index: 2;
+  z-index: 10;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover,
+.modal-close:focus {
+  background: rgba(255, 255, 255, 0.2);
+  color: #40e0d0;
+  transform: scale(1.1);
 }
 
 /* Modal Gallery Styles */
@@ -1506,8 +1561,10 @@ main {
   
   .modal-close {
     font-size: 1.8rem;
-    top: 8px;
-    right: 12px;
+    top: max(24px, env(safe-area-inset-top, 0px) + 12px);
+    right: 16px;
+    width: 40px;
+    height: 40px;
   }
   
   /* Modal Gallery Mobile */
@@ -1558,6 +1615,17 @@ main {
   
   .carousel-btn.prev { left: 2px; }
   .carousel-btn.next { right: 2px; }
+  
+  /* Modern modal mobile adjustments */
+  .modern-modal-header {
+    padding: max(24px, env(safe-area-inset-top, 0px) + 12px) 12px 0 12px;
+  }
+  
+  .modern-modal-close {
+    width: 40px;
+    height: 40px;
+    font-size: 1.8rem;
+  }
 }
 
 /* EXTRA SMALL MOBILE */
@@ -1582,6 +1650,57 @@ main {
   .carousel-video {
     max-width: 200px;
     max-height: 140px;
+  }
+  
+  /* Extra small devices - ensure modal close buttons are always visible */
+  .modal-close {
+    top: max(28px, env(safe-area-inset-top, 0px) + 16px);
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    font-size: 1.6rem;
+  }
+  
+  .modern-modal-header {
+    padding: max(28px, env(safe-area-inset-top, 0px) + 16px) 12px 0 12px;
+  }
+  
+  .modern-modal-close {
+    width: 36px;
+    height: 36px;
+    font-size: 1.6rem;
+  }
+}
+
+/* Additional support for devices with notch or very small viewports */
+@media (max-width: 320px), (max-height: 568px) {
+  .modal-close {
+    top: max(32px, env(safe-area-inset-top, 0px) + 20px) !important;
+    right: 8px !important;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 1.4rem !important;
+  }
+  
+  .modern-modal-header {
+    padding: max(32px, env(safe-area-inset-top, 0px) + 20px) 8px 0 8px !important;
+  }
+  
+  .modern-modal-close {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 1.4rem !important;
+  }
+}
+
+/* Special handling for landscape on mobile devices */
+@media (orientation: landscape) and (max-height: 500px) {
+  .modal-close {
+    top: max(16px, env(safe-area-inset-top, 0px) + 8px) !important;
+  }
+  
+  .modern-modal-header {
+    padding: max(16px, env(safe-area-inset-top, 0px) + 8px) 12px 0 12px !important;
   }
 }
 
@@ -1749,6 +1868,21 @@ main {
 @media (min-width: 901px) {
   .menu-toggle {
     display: none;
+  }
+  .banner {
+    display: flex !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  .menu {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 }
 
@@ -2007,22 +2141,55 @@ main{margin-top:0 !important;}
   to   { opacity: 1; }
 }
 .modern-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px 0 16px;
+  /* Variabili per controllo posizione mobile */
+  --mobile-close-top: max(20px, env(safe-area-inset-top, 0px) + 8px);
+  --mobile-close-right: 16px;
+  --mobile-close-left: auto;
+  
+  position: absolute;
+  top: var(--mobile-close-top);
+  right: var(--mobile-close-right);
+  left: var(--mobile-close-left);
+  z-index: 1000;
 }
 .modern-modal-close {
-  background: none;
+  background: rgba(0, 0, 0, 0.5);
   border: none;
+  transform: translateX(-40%);
   color: #fff;
   font-size: 2.2rem;
-  opacity: 0.7;
+  opacity: 0.9;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s ease;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
 }
-.modern-modal-close:hover { opacity: 1; }
+.modern-modal-close:hover,
+.modern-modal-close:focus {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+  color: #40e0d0;
+  transform: scale(1.1);
+  transform: translateX(-40%);
+
+}
 .modern-modal-indicators {
+  /* Variabili per controllo posizione mobile */
+  --mobile-indicators-top: 16px;
+  --mobile-indicators-left: 50%;
+  --mobile-indicators-right: auto;
+  --mobile-indicators-transform: translateX(-50%);
+  
+  position: absolute;
+  top: var(--mobile-indicators-top);
+  left: var(--mobile-indicators-left);
+  right: var(--mobile-indicators-right);
+  transform: var(--mobile-indicators-transform);
   display: flex;
   gap: 6px;
 }
@@ -2090,3 +2257,187 @@ main{margin-top:0 !important;}
 }
 .modern-modal-arrow:active,
 .modern-modal-arrow:focus { background: #40e0d0; color: #232b3a; }
+
+@media screen and (min-width: 900px) {
+  /* Container principale: full‑screen e flex centratore */
+  /* FULLSCREEN FLEX CENTERED */
+.modern-modal-gallery {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;       /* orizzontalmente centrato */
+  justify-content: center;   /* verticalmente centrato */
+  background: rgba(18,22,34,0.98);
+  overflow: hidden;
+  z-index: 9999;
+  padding: 0;
+}
+
+/* HEADER (X) - Solo pulsante chiusura DESKTOP */
+.modern-modal-header {
+  /* Variabili per controllo posizione desktop */
+  --desktop-close-top: 16px;
+  --desktop-close-left: 16px;
+  --desktop-close-right: auto;
+  
+  position: absolute;
+  top: var(--desktop-close-top);
+  left: var(--desktop-close-left);
+  right: var(--desktop-close-right);
+  z-index: 1000;
+}
+/* Solo la X (chiudi) */
+
+
+
+
+  /* Wrapper della slide: auto‑sizing, nessun min‑width */
+  .modern-modal-carousel,
+  .modern-modal-slide {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: auto !important;
+    min-width: auto !important;
+    height: auto !important;
+  }
+
+  /* L’immagine/video: max constraints senza overflow e centrata */
+  .modern-modal-slide img,
+  .modern-modal-slide video {
+    width: auto !important;
+    height: auto !important;
+    max-width: 80vw !important;
+    max-height: 80vh !important;
+    object-fit: contain !important;
+    margin: 0 auto !important;
+  }
+
+  /* Frecce ai lati */
+  .modern-modal-arrow.prev {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .modern-modal-arrow.next {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+}
+
+
+
+html, body {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+}
+
+body {
+  display: block !important;
+}
+
+/* 
+=== PERSONALIZZAZIONE POSIZIONE MODAL CLOSE & INDICATORS ===
+Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
+*/
+
+/* CONFIGURAZIONE MOBILE */
+@media (max-width: 899px) {
+  .modern-modal-header {
+    /* Cambia questi valori per spostare la X su mobile */
+    --mobile-close-top: max(20px, env(safe-area-inset-top, 0px) + 8px);
+    --mobile-close-right: 16px;    /* Distanza da destra */
+    --mobile-close-left: auto;     /* auto = non usare sinistra */
+    
+    /* ESEMPI ALTERNATIVI:
+    
+    X a sinistra mobile:
+    --mobile-close-left: 16px;
+    --mobile-close-right: auto;
+    
+    X centrata mobile:
+    --mobile-close-left: 50%;
+    --mobile-close-right: auto;
+    transform: translateX(-50%);
+    */
+  }
+
+  .modern-modal-indicators {
+    /* Cambia questi valori per spostare i puntini su mobile */
+    --mobile-indicators-top: 16px;      /* Distanza dall'alto */
+    --mobile-indicators-left: 50%;      /* Posizione orizzontale */
+    --mobile-indicators-right: auto;    /* auto = non usare destra */
+    --mobile-indicators-transform: translateX(-50%); /* Centratura */
+    
+    /* ESEMPI ALTERNATIVI:
+    
+    Puntini a sinistra mobile:
+    --mobile-indicators-left: 16px;
+    --mobile-indicators-transform: none;
+    
+    Puntini a destra mobile:
+    --mobile-indicators-left: auto;
+    --mobile-indicators-right: 16px;
+    --mobile-indicators-transform: none;
+    */
+  }
+}
+
+/* CONFIGURAZIONE DESKTOP */
+@media (min-width: 900px) {
+  .modern-modal-header {
+    /* Cambia questi valori per spostare la X su desktop */
+    --desktop-close-top:16px;     /* Distanza dall'alto */
+    --desktop-close-left:26px;    /* Distanza da sinistra */
+    --desktop-close-right: auto;   /* auto = non usare destra */
+    
+    /* ESEMPI ALTERNATIVI:
+    
+    X a destra desktop:
+    --desktop-close-left: auto;
+    --desktop-close-right: 16px;
+    
+    X centrata desktop:
+    --desktop-close-left: 50%;
+    --desktop-close-right: auto;
+    transform: translateX(-50%);
+    */
+  }
+
+  .modern-modal-indicators {
+    /* Variabili per controllo posizione desktop */
+    --desktop-indicators-top: 26px;      /* Distanza dall'alto */
+    --desktop-indicators-left: 50%;      /* Posizione orizzontale */
+    --desktop-indicators-right: auto;    /* auto = non usare destra */
+    --desktop-indicators-transform: translateX(-50%); /* Centratura */
+    
+    /* Applica le variabili desktop */
+    top: var(--desktop-indicators-top);
+    left: var(--desktop-indicators-left);
+    right: var(--desktop-indicators-right);
+    transform: var(--desktop-indicators-transform);
+    
+    /* ESEMPI ALTERNATIVI:
+    
+    Puntini a sinistra desktop:
+    --desktop-indicators-left: 16px;
+    --desktop-indicators-transform: none;
+    
+    Puntini a destra desktop:
+    --desktop-indicators-left: auto;
+    --desktop-indicators-right: 16px;
+    --desktop-indicators-transform: none;
+    
+    Puntini più in basso desktop:
+    --desktop-indicators-top: 32px;
+    */
+  }
+}
+
+/* Blocca lo scroll sul body */
