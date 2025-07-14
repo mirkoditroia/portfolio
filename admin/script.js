@@ -842,7 +842,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
     
     // Add video options from galleryArr
     galleryArr.forEach((media, idx) => {
-      const isVideo = /\.(mp4|webm|mov|avi|mkv)$/i.test(media);
+      // PATCH: estrai la parte prima del ? per il test estensione
+      const cleanMedia = media.split('?')[0];
+      const isVideo = /\.(mp4|webm|mov|avi|mkv)$/i.test(cleanMedia);
       if (isVideo) {
         const fileName = media.split('/').pop();
         const option = document.createElement('option');
