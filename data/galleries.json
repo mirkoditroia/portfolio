@@ -53,6 +53,15 @@
       "src": "images/art_2k_end.png",
       "video": "video/ART.mp4",
       "canvasVideo": true
+    },
+    {
+      "title": "GRASS BALL",
+      "canvas": true,
+      "description": "software utilizzati e piccola descrizoine",
+      "type": "image",
+      "src": "",
+      "video": "video/grassball-1752503521126.mp4",
+      "canvasVideo": true
     }
   ],
   "art3d": [

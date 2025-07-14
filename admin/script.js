@@ -926,7 +926,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const slideData = {
       title: F.title.value,
       canvas: F.canvas.checked,
-      description: F.desc.value
+      description: F.desc.value,
+      type: F.type.value // <--- Salva sempre il tipo selezionato
     };
     
     // Validation for image video
@@ -1019,12 +1020,56 @@ document.addEventListener('DOMContentLoaded', ()=>{
       F.canvas.checked = !!slide.canvas;
       F.src.value = slide.src || '';
 
-      // PATCH: Riconoscimento corretto galleria con canvas video
+      // PATCH: Se la slide è di tipo image, mostra sempre la UI Immagine/Canvas
+      if(slide.type === 'image'){
+        F.type.value = 'image';
+        // Gestione modale image/canvas
+        const imageTypeSelect = document.getElementById('se-image-type');
+        if(slide.modalGallery && Array.isArray(slide.modalGallery)){
+          imageGalleryArr = [...slide.modalGallery];
+          renderImageGallery();
+          if(imageTypeSelect) {
+            imageTypeSelect.value = 'gallery';
+            imageTypeSelect.dispatchEvent(new Event('change'));
+          }
+        } else if(slide.modalImage){
+          F.image.value = slide.modalImage;
+          if(imageTypeSelect) {
+            imageTypeSelect.value = 'single';
+            imageTypeSelect.dispatchEvent(new Event('change'));
+          }
+        } else if(slide.video){
+          F.imageVideo.value = slide.video;
+          if(imageTypeSelect) {
+            imageTypeSelect.value = 'video';
+            imageTypeSelect.dispatchEvent(new Event('change'));
+          }
+        } else {
+          if(imageTypeSelect) {
+            imageTypeSelect.value = 'none';
+            imageTypeSelect.dispatchEvent(new Event('change'));
+          }
+        }
+        F.desc.value = slide.description || '';
+        return showTypeFields('image'), overlay.classList.remove('hidden');
+      }
+
+      // PATCH: Riconoscimento corretto image/canvas con modale video
       if(slide.modalGallery && slide.canvasVideo && slide.video){
         F.type.value = 'gallery';
         galleryArr = [...slide.modalGallery];
         selectedCanvasVideo = slide.video;
         renderGallery();
+      }
+      else if(slide.canvas && slide.video && !slide.modalImage && !slide.modalGallery){
+        // Immagine/canvas con modale video
+        F.type.value = 'image';
+        F.canvas.checked = true;
+        F.imageVideo.value = slide.video || '';
+        if(imageTypeSelect) {
+          imageTypeSelect.value = 'video';
+          imageTypeSelect.dispatchEvent(new Event('change'));
+        }
       }
       else if(slide.canvasVideo && slide.video){
         // Vecchio canvas-video migra al nuovo tipo image con video
