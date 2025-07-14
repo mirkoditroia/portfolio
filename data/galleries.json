@@ -1,6 +1,19 @@
 {
   "vfx": [
     {
+      "title": "GARRARD - Christmas ADV",
+      "canvas": true,
+      "description": "vfx per GARRARD - descrivere dettagli progetto",
+      "src": "video/garrard-1752499911634.mp4",
+      "modalGallery": [
+        "images/Screenshot2024-11-05151448-1752499995945.png",
+        "video/garrard-1752500026625.mp4",
+        "video/garrard2-1752500026626.mp4"
+      ],
+      "video": "video/garrard2-1752500026626.mp4",
+      "canvasVideo": true
+    },
+    {
       "title": "Motion Graphics",
       "canvas": true,
       "description": "Grafica animata e motion design.",

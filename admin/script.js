@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const row   = sTpl.content.cloneNode(true);
         row.querySelector('.slide-index').textContent = i+1;
         row.querySelector('.slide-title').textContent = slide.title || '-';
-        const type = slide.canvasVideo ? 'canvas-video' : slide.video ? 'video' : slide.modalGallery ? 'gallery' : slide.modalImage ? 'image' : slide.canvas ? 'canvas' : 'unknown';
+        const type = slide.canvasVideo && slide.modalGallery ? 'gallery-canvas-video' : slide.canvasVideo ? 'canvas-video' : slide.video ? 'video' : slide.modalGallery ? 'gallery' : slide.modalImage ? 'image' : slide.canvas ? 'canvas' : 'unknown';
         row.querySelector('.slide-type').textContent = type;
         tbody.appendChild(row);
       });
@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
           tr.querySelector('.slide-index').textContent = index+1;
           tr.querySelector('.slide-title').textContent = slide.title || '-';
-          const type = slide.canvasVideo ? 'canvas-video' : slide.video ? 'video' : slide.modalGallery ? 'gallery' : slide.modalImage ? 'image' : slide.canvas ? 'canvas' : 'unknown';
+          const type = slide.canvasVideo && slide.modalGallery ? 'gallery-canvas-video' : slide.canvasVideo ? 'canvas-video' : slide.video ? 'video' : slide.modalGallery ? 'gallery' : slide.modalImage ? 'image' : slide.canvas ? 'canvas' : 'unknown';
           tr.querySelector('.slide-type').textContent = type;
           tr.dataset.slide = JSON.stringify(slide);
 
@@ -255,7 +255,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
             openSlideEditor(current, (updated)=> {
               tr.dataset.slide = JSON.stringify(updated);
               tr.querySelector('.slide-title').textContent = updated.title || '-';
-              const newType = updated.canvasVideo ? 'canvas-video' : updated.video ? 'video' : updated.modalGallery ? 'gallery' : updated.modalImage ? 'image' : updated.canvas ? 'canvas' : 'unknown';
+              const newType = updated.canvasVideo && updated.modalGallery ? 'gallery-canvas-video' : updated.canvasVideo ? 'canvas-video' : updated.video ? 'video' : updated.modalGallery ? 'gallery' : updated.modalImage ? 'image' : updated.canvas ? 'canvas' : 'unknown';
               tr.querySelector('.slide-type').textContent = newType;
             });
           });
@@ -828,6 +828,52 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // ----- Image gallery list UI helpers -----
   const imageGalleryListEl = document.getElementById('se-image-gallery-list');
   let imageGalleryArr = [];
+  
+  // ----- Gallery canvas video selection helpers -----
+  const galleryCanvasVideoSelect = document.getElementById('se-gallery-canvas-video');
+  let selectedCanvasVideo = '';
+  
+  // Function to update canvas video selection dropdown
+  function updateGalleryCanvasVideoSelection() {
+    if (!galleryCanvasVideoSelect) return;
+    
+    // Clear existing options except the first one
+    galleryCanvasVideoSelect.innerHTML = '<option value="">Nessun video canvas (usa immagine statica)</option>';
+    
+    // Add video options from galleryArr
+    galleryArr.forEach((media, idx) => {
+      const isVideo = /\.(mp4|webm|mov|avi|mkv)$/i.test(media);
+      if (isVideo) {
+        const fileName = media.split('/').pop();
+        const option = document.createElement('option');
+        option.value = media;
+        option.textContent = `🎬 ${fileName}`;
+        galleryCanvasVideoSelect.appendChild(option);
+      }
+    });
+    
+    // Restore selected value if it exists
+    if (selectedCanvasVideo && galleryCanvasVideoSelect.querySelector(`option[value="${selectedCanvasVideo}"]`)) {
+      galleryCanvasVideoSelect.value = selectedCanvasVideo;
+    } else {
+      selectedCanvasVideo = '';
+      galleryCanvasVideoSelect.value = '';
+    }
+  }
+  
+  // Handle canvas video selection change
+  if (galleryCanvasVideoSelect) {
+    galleryCanvasVideoSelect.addEventListener('change', (e) => {
+      selectedCanvasVideo = e.target.value;
+      const canvasCheckbox = F.canvas;
+      
+      // Auto-activate canvas flag if video is selected
+      if (selectedCanvasVideo) {
+        canvasCheckbox.checked = true;
+        console.log('🎬 Canvas video selected:', selectedCanvasVideo, '- Canvas flag auto-activated');
+      }
+    });
+  }
 
   function renderGallery(){
     if(!galleryListEl) return;
@@ -846,6 +892,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
       });
       galleryListEl.appendChild(li);
     });
+    
+    // 🎬 NEW: Update canvas video selection dropdown
+    updateGalleryCanvasVideoSelection();
   }
   
   function renderImageGallery(){
@@ -913,6 +962,19 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }
     }else if(F.type.value==='gallery'){
       slideData.modalGallery = [...galleryArr];
+      
+      // 🎬 NEW: Handle canvas video selection for gallery type
+      if (selectedCanvasVideo) {
+        slideData.video = selectedCanvasVideo;
+        slideData.canvasVideo = true;
+        
+        // Use video as thumbnail source only if no custom thumbnail is set
+        if (!slideData.src || slideData.src.trim() === '') {
+          slideData.src = selectedCanvasVideo;
+        }
+        
+        console.log('🎬 Gallery canvas video configured:', selectedCanvasVideo);
+      }
     }
 
     // Forza canvas mode se checkbox è selezionato
@@ -940,6 +1002,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
     galleryArr = [];
     imageGalleryArr = [];
     
+    // 🎬 NEW: Reset canvas video selection
+    selectedCanvasVideo = '';
+    
     // Reset image type selector
     const imageTypeSelect = document.getElementById('se-image-type');
     if(imageTypeSelect) {
@@ -950,11 +1015,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(slide){
       F.title.value = slide.title || '';
       F.canvas.checked = !!slide.canvas;
-      
-      // Imposta sempre il campo thumbnail principale
       F.src.value = slide.src || '';
-      
-      if(slide.canvasVideo && slide.video){
+
+      // PATCH: Riconoscimento corretto galleria con canvas video
+      if(slide.modalGallery && slide.canvasVideo && slide.video){
+        F.type.value = 'gallery';
+        galleryArr = [...slide.modalGallery];
+        selectedCanvasVideo = slide.video;
+        renderGallery();
+      }
+      else if(slide.canvasVideo && slide.video){
         // Vecchio canvas-video migra al nuovo tipo image con video
         F.type.value='image'; 
         F.imageVideo.value=slide.video||'';
@@ -997,6 +1067,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
         } else {
           F.type.value='gallery'; 
           galleryArr=[...slide.modalGallery]; 
+          // 🎬 NEW: Handle canvas video selection for existing gallery slides
+          if (slide.canvasVideo && slide.video) {
+            selectedCanvasVideo = slide.video;
+          } else {
+            selectedCanvasVideo = '';
+          }
           renderGallery();
         }
       }else if(slide.canvas){
@@ -1012,6 +1088,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(!slide){ 
       galleryArr=[]; 
       imageGalleryArr=[]; 
+      selectedCanvasVideo = ''; // 🎬 NEW: Reset canvas video selection
       renderGallery(); 
       renderImageGallery(); 
     }

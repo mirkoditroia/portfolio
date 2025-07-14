@@ -583,3 +583,41 @@ h1 {
     padding: 6px 4px;
   }
 } 
+
+/* Gallery canvas video selection styles */
+#gallery-canvas-video-selection {
+  transition: all 0.3s ease;
+  border-left: 4px solid #007bff;
+}
+
+#gallery-canvas-video-selection h5 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+#se-gallery-canvas-video {
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+#se-gallery-canvas-video:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+#se-gallery-canvas-video option[value=""] {
+  color: #6c757d;
+  font-style: italic;
+}
+
+#se-gallery-canvas-video option:not([value=""]) {
+  color: #495057;
+  font-weight: 500;
+}

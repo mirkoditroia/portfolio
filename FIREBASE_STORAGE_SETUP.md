@@ -73,12 +73,12 @@ service firebase.storage {
    ]' > cors.json
    
    # Apply CORS
-   gsutil cors set cors.json gs://portfolio-eb526.firebasestorage.app
+   gsutil cors set cors.json gs://portfolio‑eb526.firebasestorage.app
    ```
 
 3. **Verifica CORS**:
    ```bash
-   gsutil cors get gs://portfolio-eb526.firebasestorage.app
+   gsutil cors get gs://portfolio‑eb526.firebasestorage.app
    ```
 
 ### Alternative Senza Google Cloud SDK:
