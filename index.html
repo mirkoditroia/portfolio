@@ -18,13 +18,13 @@
     </div>
     <button class="menu-toggle" id="menuToggle" aria-label="Apri menu">&#9776;</button>
     <nav class="menu" role="navigation" aria-label="Menu principale">
-      <a href="#vfx" aria-label="Vai alla sezione VFX">VFX</a>
-      <a href="#art3d" aria-label="Vai alla sezione Arte 3D">3D Art</a>
-      <a href="#interactive" aria-label="Vai alla sezione Arte Interattiva">Interactive Art</a>
-      <a href="#creativecoding" aria-label="Vai alla sezione Programmazione Creativa">Creative Coding</a>
-      <a href="#ai" aria-label="Vai alla sezione AI">AI</a>
-      <a href="#about" aria-label="Vai alla sezione Chi Sono">About Me</a>
-      <a href="#contact" aria-label="Vai alla sezione Contatti">Contact</a>
+      <a href="#vfx"           data-section-key="vfx"           aria-label="Vai alla sezione VFX"></a>
+      <a href="#art3d"        data-section-key="art3d"        aria-label="Vai alla sezione Arte 3D"></a>
+      <a href="#interactive"  data-section-key="interactive"  aria-label="Vai alla sezione Arte Interattiva"></a>
+      <a href="#creativecoding" data-section-key="creativecoding" aria-label="Vai alla sezione Programmazione Creativa"></a>
+      <a href="#ai"           data-section-key="ai"           aria-label="Vai alla sezione AI"></a>
+      <a href="#about"        data-section-key="about"        aria-label="Vai alla sezione Chi Sono">About Me</a>
+      <a href="#contact"      data-section-key="contact"      aria-label="Vai alla sezione Contatti">Contact</a>
     </nav>
   </header>
   <main role="main">
@@ -44,15 +44,16 @@
       </div>
     </section>
     <section id="vfx" class="section vfx art3d" role="region" aria-labelledby="vfx-heading">
-      <h2 id="vfx-heading">VFX</h2>
+      <h2 id="vfx-heading" data-section-key="vfx"></h2>
       <div class="gallery-carousel swiper" role="region" aria-label="Gallery VFX">
         <div class="gallery-track swiper-wrapper" id="vfx-track" role="list"></div>
         <div class="swiper-button-next"></div>
         <div class="swiper-button-prev"></div>
       </div>
     </section>
+    
     <section id="art3d" class="section art3d" role="region" aria-labelledby="art3d-heading">
-      <h2 id="art3d-heading">3D ART</h2>
+      <h2 id="art3d-heading" data-section-key="art3d"></h2>
       <div class="gallery-carousel swiper" role="region" aria-label="Gallery Arte 3D">
         <div class="gallery-track swiper-wrapper" id="art3d-track" role="list"></div>
         <div class="swiper-button-next"></div>
@@ -67,32 +68,35 @@
           <div id="modalDescription" style="color:#fff; margin-top:18px; font-size:1.1em; text-align:center;" role="text"></div>
         </div>
       </div>
-      <!-- RIMOSSO: vecchia modal-video, modalGallery, modalDescription -->
     </section>
+    
     <section id="interactive" class="section interactive art3d" role="region" aria-labelledby="interactive-heading">
-      <h2 id="interactive-heading">INTERACTIVE ART</h2>
+      <h2 id="interactive-heading" data-section-key="interactive"></h2>
       <div class="gallery-carousel swiper" role="region" aria-label="Gallery Arte Interattiva">
         <div class="gallery-track swiper-wrapper" id="interactive-track" role="list"></div>
         <div class="swiper-button-next"></div>
         <div class="swiper-button-prev"></div>
       </div>
     </section>
+    
     <section id="creativecoding" class="section creativecoding art3d" role="region" aria-labelledby="creativecoding-heading">
-      <h2 id="creativecoding-heading">Creative Coding</h2>
+      <h2 id="creativecoding-heading" data-section-key="creativecoding"></h2>
       <div class="gallery-carousel swiper" role="region" aria-label="Gallery Programmazione Creativa">
         <div class="gallery-track swiper-wrapper" id="creativecoding-track" role="list"></div>
         <div class="swiper-button-next"></div>
         <div class="swiper-button-prev"></div>
       </div>
     </section>
+    
     <section id="ai" class="section ai art3d" role="region" aria-labelledby="ai-heading">
-      <h2 id="ai-heading">AI</h2>
+      <h2 id="ai-heading" data-section-key="ai"></h2>
       <div class="gallery-carousel swiper" role="region" aria-label="Gallery AI">
         <div class="gallery-track swiper-wrapper" id="ai-track" role="list"></div>
         <div class="swiper-button-next"></div>
         <div class="swiper-button-prev"></div>
       </div>
     </section>
+    
     <section id="about" class="section about" role="region" aria-labelledby="about-heading">
       <h2 id="about-heading">ABOUT ME</h2>
       <p class="about-text">Passionate about music, art and technology, I explore the intersection of creativity and innovation — blending visual design, sound, and narrative across both physical and digital spaces. With 50+ exhibitions across Europe, Asia, and Latin America, and deep experience in video production for Web3 communities and events, I bring a multidisciplinary mindset to every project — always aiming to craft meaningful visual experiences that inspire connection and curiosity.</p>

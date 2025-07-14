@@ -72,6 +72,16 @@ function preloadMedia(urls, priority = 'normal') {
   });
 }
 
+
+
+
+// script.js
+
+
+
+
+
+
 // Preload video con buffering e retry semplificato
 function preloadVideo(url, priority = 'normal', retryCount = 0) {
   const maxRetries = 3; // Aumentato a 3 tentativi
@@ -487,7 +497,7 @@ function unlockScroll() {
   window.scrollTo({
     top: toY,
     left: 0,
-    behavior: 'auto'  // forza lo “jump” istantaneo
+    behavior: 'auto'  // forza lo "jump" istantaneo
   });
   
   console.log('🔓 Scroll ripristinato a', toY);
@@ -2836,3 +2846,35 @@ function enableModernMobileCanvasGallery() {
 }
 
 document.addEventListener('DOMContentLoaded', enableModernMobileCanvasGallery);
+
+document.addEventListener('DOMContentLoaded', () => {
+  fetch('/data/site.json')
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then(config => {
+      // Aggiorna solo i testi dei link di navigazione e degli heading delle sezioni
+      if (Array.isArray(config.sections)) {
+        config.sections.forEach(sec => {
+          // Aggiorna il testo del link di navigazione
+          const navLink = document.querySelector(`.menu a[data-section-key="${sec.key}"]`);
+          if (navLink) {
+            navLink.textContent = sec.label;
+            navLink.setAttribute('aria-label', `Vai alla sezione ${sec.label}`);
+          }
+          // Aggiorna il testo dell'heading della sezione
+          const heading = document.querySelector(`#${sec.key}-heading[data-section-key="${sec.key}"]`);
+          if (heading) {
+            heading.textContent = sec.label;
+          }
+        });
+      }
+    })
+    .catch(err => {
+      console.error('Errore caricando site.json:', err);
+    });
+});
+
+
+
