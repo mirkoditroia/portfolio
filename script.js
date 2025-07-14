@@ -460,31 +460,38 @@ function cleanupMediaCache() {
   }
 })();
 
-// Scroll lock utility - semplice overflow hidden
-let scrollPosition = 0;
+let savedScrollY = 0;
 
 function lockScroll() {
-  // Salva la posizione di scroll corrente
-  scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+  // Salva la posizione corrente
+  savedScrollY = window.scrollY || document.documentElement.scrollTop;
   
-  // Applica il blocco scroll
+  // Blocca lo scroll e compensa lo spostamento
   document.body.classList.add('lock-scroll');
-  document.body.style.top = `-${scrollPosition}px`;
+  document.body.style.top = `-${savedScrollY}px`;
   
-  console.log('🔒 Scroll bloccato - classe lock-scroll aggiunta, posizione salvata:', scrollPosition);
+  console.log('🔒 Scroll bloccato a', savedScrollY);
 }
 
 function unlockScroll() {
-  // Rimuovi il blocco scroll
+  // Rimuove il blocco
   document.body.classList.remove('lock-scroll');
+  
+  // Calcola di nuovo la posizione in cui tornare
+  const toY = Math.abs(parseInt(document.body.style.top || '0'));
+  
+  // Pulisce lo stile
   document.body.style.top = '';
   
-  // Ripristina la posizione di scroll
-  window.scrollTo(0, scrollPosition);
+  // Ripristina lo scroll ESATTAMENTE al punto salvato
+  window.scrollTo({
+    top: toY,
+    left: 0,
+    behavior: 'auto'  // forza lo “jump” istantaneo
+  });
   
-  console.log('🔓 Scroll sbloccato - classe lock-scroll rimossa, posizione ripristinata:', scrollPosition);
+  console.log('🔓 Scroll ripristinato a', toY);
 }
-
 // JS per multiple gallery sections
 document.addEventListener('DOMContentLoaded', function () {
 
