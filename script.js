@@ -1,4 +1,7 @@
 // ---------------- Global helper to load JSON with fallback ----------------
+let galleries = {};
+const canvasVideoRenderers = new Map();
+
 function fetchJson(primaryUrl, fallbackUrl) {
   return fetch(primaryUrl).then(res => {
     if (res.ok) return res.json();
@@ -6,15 +9,31 @@ function fetchJson(primaryUrl, fallbackUrl) {
   }).catch(() => fetch(fallbackUrl).then(r => r.json()));
 }
 
-// ============ SISTEMA DI BUFFERING E PRELOADING ============
+// ============ SISTEMA DI BUFFERING E PRELOADING OTTIMIZZATO ============
 
-// Cache per media files
+// Cache per media files con TTL (Time To Live)
 const mediaCache = new Map();
 const preloadQueue = new Set();
 
-// Preload intelligente con priorità e throttling
+// Configurazione performance
+const PERFORMANCE_CONFIG = {
+  // Lazy loading threshold (quando iniziare a caricare)
+  lazyThreshold: 0.1,
+  // FPS limit per canvas video
+  maxFPS: 5,
+  // Batch size per preloading
+  batchSize: 2,
+  // Timeout per caricamento media
+  mediaTimeout: 15000,
+  // Cache TTL (5 minuti)
+  cacheTTL: 5 * 60 * 1000,
+  // Debounce delay per scroll events
+  scrollDebounce: 100
+};
+
+// Preload intelligente con priorità e throttling ottimizzato
 function preloadMedia(urls, priority = 'normal') {
-  if (!Array.isArray(urls)) return;
+  if (!Array.isArray(urls) || urls.length === 0) return;
   
   // Filtra URL validi e non già in cache/coda
   const validUrls = urls.filter(url => {
@@ -28,7 +47,7 @@ function preloadMedia(urls, priority = 'normal') {
   console.log(`🚀 Starting preload of ${validUrls.length} media files (${priority} priority)`);
   
   // Throttling: max 2 richieste simultanee per evitare rate limiting Firebase
-  const maxConcurrent = 2;
+  const maxConcurrent = priority === 'high' ? 3 : 2;
   const chunks = [];
   for (let i = 0; i < validUrls.length; i += maxConcurrent) {
     chunks.push(validUrls.slice(i, i + maxConcurrent));
@@ -68,23 +87,13 @@ function preloadMedia(urls, priority = 'normal') {
         }
       });
       
-    }, chunkIndex * 1000); // 1 secondo delay tra chunk per Firebase
+    }, chunkIndex * (priority === 'high' ? 500 : 1000)); // Delay ridotto per priorità alta
   });
 }
 
-
-
-
-// script.js
-
-
-
-
-
-
-// Preload video con buffering e retry semplificato
+// Preload video con buffering e retry ottimizzato
 function preloadVideo(url, priority = 'normal', retryCount = 0) {
-  const maxRetries = 3; // Aumentato a 3 tentativi
+  const maxRetries = priority === 'high' ? 2 : 1;
   
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
@@ -94,7 +103,7 @@ function preloadVideo(url, priority = 'normal', retryCount = 0) {
     video.crossOrigin = 'anonymous';
     
     // Timeout più lungo per Firebase Storage
-    const timeoutDuration = priority === 'high' ? 25000 : 20000;
+    const timeoutDuration = priority === 'high' ? 20000 : PERFORMANCE_CONFIG.mediaTimeout;
     const timeout = setTimeout(() => {
       console.warn(`⚠️ Video preload timeout (attempt ${retryCount + 1}):`, url);
       if (retryCount < maxRetries) {
@@ -153,16 +162,16 @@ function preloadVideo(url, priority = 'normal', retryCount = 0) {
   });
 }
 
-// Preload immagini con retry semplificato
+// Preload immagini con retry ottimizzato
 function preloadImage(url, priority = 'normal', retryCount = 0) {
-  const maxRetries = 3; // Aumentato a 3 tentativi
+  const maxRetries = priority === 'high' ? 2 : 1;
   
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     
     // Timeout più lungo per Firebase Storage
-    const timeoutDuration = priority === 'high' ? 20000 : 15000;
+    const timeoutDuration = priority === 'high' ? 15000 : PERFORMANCE_CONFIG.mediaTimeout;
     const timeout = setTimeout(() => {
       console.warn(`⚠️ Image preload timeout (attempt ${retryCount + 1}):`, url);
       if (retryCount < maxRetries) {
@@ -221,20 +230,27 @@ function preloadImage(url, priority = 'normal', retryCount = 0) {
   });
 }
 
-// Ottieni media dalla cache (versione semplificata)
+// Ottieni media dalla cache (versione ottimizzata)
 function getMediaFromCache(url) {
   const cached = mediaCache.get(url);
   if (cached) {
-    console.log('📦 Media from cache:', url);
-    return cached.element;
+    // Controlla se la cache è ancora valida
+    const now = Date.now();
+    if (now - cached.loaded < PERFORMANCE_CONFIG.cacheTTL) {
+      console.log('📦 Media from cache:', url);
+      return cached.element;
+    } else {
+      // Cache scaduta, rimuovi
+      mediaCache.delete(url);
+    }
   }
   return null;
 }
 
-// Pulizia cache semplificata
+// Pulizia cache ottimizzata
 function cleanupMediaCache() {
   const now = Date.now();
-  const maxAge = 15 * 60 * 1000; // 15 minuti
+  const maxAge = PERFORMANCE_CONFIG.cacheTTL;
   
   for (const [url, cached] of mediaCache.entries()) {
     if (now - cached.loaded > maxAge) {
@@ -242,220 +258,283 @@ function cleanupMediaCache() {
       mediaCache.delete(url);
     }
   }
+  
+  // Pulizia anche dei renderer dei canvas
+  for (const [id, renderer] of canvasVideoRenderers.entries()) {
+    if (renderer && !renderer.isVisible) {
+      renderer.destroy();
+      canvasVideoRenderers.delete(id);
+    }
+  }
 }
 
-      // Cleanup automatico ogni 5 minuti
-    setInterval(cleanupMediaCache, 5 * 60 * 1000);
+// Cleanup automatico ogni 5 minuti
+setInterval(cleanupMediaCache, 5 * 60 * 1000);
 
-  // Preload automatico delle immagini visibili all'avvio
-  function startInitialPreload() {
-    // 1. Preload immagini visibili nel DOM
-    const visibleImages = document.querySelectorAll('img[src]:not([data-lazy])');
-    const domImages = Array.from(visibleImages).map(img => img.src);
+// Preload intelligente delle immagini visibili all'avvio (OTTIMIZZATO)
+function startInitialPreload() {
+  // 1. Preload solo immagini visibili nel DOM (non lazy)
+  const visibleImages = document.querySelectorAll('img[src]:not([data-lazy])');
+  const domImages = Array.from(visibleImages).map(img => img.src);
+  
+  // 2. Preload solo le prime 3 immagini di anteprima dei canvas (priorità alta)
+  const canvasThumbnails = [];
+  
+  // PATCH: Usa i dati delle gallery appena caricate invece di currentSiteData
+  if (galleries && typeof galleries === 'object') {
+    console.log('🔍 Raccogliendo anteprime canvas dalle gallerie...');
     
-    // 2. Preload immagini di anteprima dei canvas dalle gallerie
-    const canvasThumbnails = [];
+    let thumbnailCount = 0;
+    const maxThumbnails = 3; // Limita a 3 thumbnail per performance
     
-    if (currentSiteData && typeof currentSiteData === 'object') {
-      console.log('🔍 Raccogliendo anteprime canvas dalle gallerie...');
+    // Itera attraverso tutte le gallerie nei dati
+    Object.keys(galleries).forEach(galleryKey => {
+      if (thumbnailCount >= maxThumbnails) return; // Stop dopo 3 thumbnail
       
-      // Itera attraverso tutte le gallerie nei dati
-      Object.keys(currentSiteData).forEach(galleryKey => {
-        const gallery = currentSiteData[galleryKey];
-        
-        if (Array.isArray(gallery)) {
-          gallery.forEach(item => {
-            // Raccogli immagini di anteprima (src) per canvas
-            if (item.canvas && item.src) {
-              canvasThumbnails.push(item.src);
-              console.log(`📸 Canvas thumbnail trovata: ${item.title || 'Untitled'} -> ${item.src}`);
-            }
-            
-            // Opzionale: precarica anche immagini modali principali se sono canvas
-            if (item.canvas && item.modalImage) {
-              canvasThumbnails.push(item.modalImage);
-              console.log(`🖼️ Canvas modal image trovata: ${item.title || 'Untitled'} -> ${item.modalImage}`);
-            }
-          });
-        }
-      });
-    }
-    
-    // 3. Combina tutte le immagini da precaricare
-    const allImages = [...domImages, ...canvasThumbnails];
-    const uniqueImages = [...new Set(allImages)]; // Rimuovi duplicati
-    
-    if (uniqueImages.length > 0) {
-      console.log(`🚀 Initial preload: ${domImages.length} DOM images + ${canvasThumbnails.length} canvas thumbnails = ${uniqueImages.length} total`);
-      preloadMedia(uniqueImages, 'high');
-    } else {
-      console.log('📭 Nessuna immagine da precaricare trovata');
-    }
-  }
-
-  // Funzione per forzare il caricamento immediato di tutti i canvas
-  function forceLoadAllCanvas() {
-    const allCanvas = document.querySelectorAll('.gallery-canvas');
-    console.log(`🎨 Forcing immediate load of ${allCanvas.length} canvas elements...`);
-    
-    let loadedCount = 0;
-    allCanvas.forEach((canvas, index) => {
-      // Verifica se il canvas è già stato processato
-      if (canvas.id && (canvas.id.includes('canvas-') || canvas.id.includes('procedural-'))) {
-        return; // Già processato
-      }
+      const gallery = galleries[galleryKey];
       
-      // Forza il caricamento del canvas se non è ancora stato processato
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        // Crea contenuto procedurale di base
-        createCanvasContent(ctx, 'Canvas', canvas.width, canvas.height);
-        loadedCount++;
-        console.log(`🎨 Force-loaded canvas #${index + 1}`);
-      }
-    });
-    
-    if (loadedCount > 0) {
-      console.log(`✅ Force-loaded ${loadedCount} additional canvas elements`);
-    }
-  }
-
-  // Funzione per inizializzare immediatamente tutti i canvas video esistenti
-  function initializeAllCanvasVideos() {
-    const allCanvasVideos = document.querySelectorAll('.gallery-canvas[id*="canvas-"]');
-    console.log(`🎬 Initializing ${allCanvasVideos.length} canvas video elements immediately...`);
-    
-    allCanvasVideos.forEach((canvas) => {
-      const canvasId = canvas.id;
-      const renderer = canvasVideoRenderers.get(canvasId);
-      
-      if (renderer && renderer.isVisible === false) {
-        // Forza l'inizializzazione immediata
-        renderer.isVisible = true;
-        if (renderer.video && renderer.video.readyState >= 2) {
-          renderer.startVideo();
-          console.log(`🎬 Canvas video ${canvasId} started immediately`);
-        }
+      if (Array.isArray(gallery)) {
+        gallery.forEach(item => {
+          if (thumbnailCount >= maxThumbnails) return; // Stop dopo 3 thumbnail
+          
+          // Raccogli solo immagini di anteprima (src) per canvas
+          if (item.canvas && item.src) {
+            canvasThumbnails.push(item.src);
+            thumbnailCount++;
+            console.log(`📸 Canvas thumbnail trovata: ${item.title || 'Untitled'} -> ${item.src}`);
+          }
+        });
       }
     });
   }
-
-  // Avvia preloading iniziale dopo 2 secondi (per dare tempo ai dati di caricarsi)
-  setTimeout(startInitialPreload, 2000);
   
-  // ========= SISTEMA DI FEEDBACK UTENTE =========
-  let loadingIndicatorTimeout;
+  // 3. Combina tutte le immagini da precaricare
+  const allImages = [...domImages, ...canvasThumbnails];
+  const uniqueImages = [...new Set(allImages)]; // Rimuovi duplicati
   
-  // Mostra indicatore di caricamento per operazioni lunghe
-  function showLoadingFeedback(message = 'Caricamento...') {
-    clearTimeout(loadingIndicatorTimeout);
-    
-    // Mostra indicatore solo se il caricamento richiede più di 2 secondi
-    loadingIndicatorTimeout = setTimeout(() => {
-      const existing = document.getElementById('media-loading-indicator');
-      if (existing) return;
-      
-      const indicator = document.createElement('div');
-      indicator.id = 'media-loading-indicator';
-      indicator.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        font-family: 'Montserrat', Arial, sans-serif;
-        font-size: 0.9rem;
-        z-index: 10000;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(64, 224, 208, 0.3);
-      `;
-      indicator.textContent = message;
-      document.body.appendChild(indicator);
-      
-      // Rimuovi automaticamente dopo 10 secondi
-      setTimeout(() => {
-        if (indicator.parentNode) {
-          indicator.parentNode.removeChild(indicator);
-        }
-      }, 10000);
-    }, 2000);
+  if (uniqueImages.length > 0) {
+    console.log(`🚀 Initial preload: ${domImages.length} DOM images + ${canvasThumbnails.length} canvas thumbnails = ${uniqueImages.length} total`);
+    preloadMedia(uniqueImages, 'high');
+  } else {
+    console.log('📭 Nessuna immagine da precaricare trovata');
   }
-  
-  // Nascondi indicatore di caricamento
-  function hideLoadingFeedback() {
-    clearTimeout(loadingIndicatorTimeout);
-    const indicator = document.getElementById('media-loading-indicator');
-    if (indicator && indicator.parentNode) {
-      indicator.style.opacity = '0';
-      setTimeout(() => {
-        if (indicator.parentNode) {
-          indicator.parentNode.removeChild(indicator);
-        }
-      }, 300);
-    }
-  }
-  
-  // Aggiungi feedback globale per preloading
-  window.addEventListener('beforeunload', hideLoadingFeedback);
-  
-  // ========= FINE FEEDBACK UTENTE =========
+}
 
-  // ========= MONITORAGGIO RETE E ADATTIVO =========
-  let networkQuality = 'good'; // good, slow, poor
-  let preloadingEnabled = true;
+// ========= SISTEMA DI LAZY LOADING INTELLIGENTE PER CANVAS =========
+
+// Intersection Observer per lazy loading dei canvas
+let canvasObserver = null;
+
+function initCanvasObserver() {
+  if (canvasObserver) return;
   
-  // Monitora la qualità della connessione
-  function assessNetworkQuality() {
-    if ('connection' in navigator) {
-      const connection = navigator.connection;
-      const effectiveType = connection.effectiveType;
-      
-      if (effectiveType === '4g') {
-        networkQuality = 'good';
-        preloadingEnabled = true;
-      } else if (effectiveType === '3g') {
-        networkQuality = 'slow';
-        preloadingEnabled = true; // Mantieni attivo ma con throttling più alto
-      } else {
-        networkQuality = 'poor';
-        preloadingEnabled = false; // Disabilita preloading
+  canvasObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const canvas = entry.target;
+        loadCanvasContent(canvas);
+        canvasObserver.unobserve(canvas); // Carica una sola volta
       }
-      
-      console.log(`📡 Network quality: ${networkQuality} (${effectiveType}) - Preloading: ${preloadingEnabled}`);
-    }
+    });
+  }, { 
+    threshold: PERFORMANCE_CONFIG.lazyThreshold,
+    rootMargin: '50px' // Inizia a caricare 50px prima che sia visibile
+  });
+  
+  console.log('👁️ Canvas observer inizializzato');
+}
+
+// Funzione per caricare il contenuto del canvas quando diventa visibile
+function loadCanvasContent(canvas) {
+  const canvasId = canvas.id;
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) {
+    console.warn('❌ Context 2D non disponibile per canvas:', canvasId);
+    return;
   }
   
-  // Controlla la qualità di rete ogni 30 secondi
+  // Controlla se è già stato caricato
+  if (canvas.dataset.loaded === 'true') {
+    console.log('✅ Canvas già caricato:', canvasId);
+    return;
+  }
+  
+  // Marca come caricato
+  canvas.dataset.loaded = 'true';
+  console.log('🔄 Caricamento contenuto canvas:', canvasId);
+  
+  // Se c'è un'immagine da caricare (canvas statico)
+  if (canvas.dataset.imageSrc) {
+    console.log('🖼️ Caricamento immagine per canvas:', canvasId, canvas.dataset.imageSrc);
+    const img = new Image();
+    img.crossOrigin = 'anonymous'; // Importante per Firebase Storage
+    
+    img.onload = function() {
+      console.log('✅ Immagine caricata con successo:', canvasId);
+      drawImageToCanvas(ctx, img, canvas.width, canvas.height);
+    };
+    
+    img.onerror = function(e) {
+      console.error('❌ Errore caricamento immagine:', canvasId, e);
+      createCanvasContent(ctx, 'Canvas', canvas.width, canvas.height);
+    };
+    
+    img.src = canvas.dataset.imageSrc;
+    return;
+  }
+  
+  // Canvas video - usa il renderer esistente
+  if (canvasId && canvasVideoRenderers.has(canvasId)) {
+    const renderer = canvasVideoRenderers.get(canvasId);
+    if (renderer) {
+      renderer.onVisible();
+      console.log(`🎬 Canvas video lazy loaded: ${canvasId}`);
+    }
+    return;
+  }
+  
+  // Canvas procedurale - crea contenuto immediatamente
+  createCanvasContent(ctx, 'Canvas', canvas.width, canvas.height);
+  console.log(`🎨 Procedural canvas lazy loaded: ${canvasId}`);
+}
+
+// Funzione helper per disegnare immagine su canvas
+function drawImageToCanvas(ctx, img, canvasW, canvasH) {
+  const imgW = img.width;
+  const imgH = img.height;
+  
+  let scale;
+  if (imgH > imgW) {
+    scale = Math.min((canvasW * 0.6) / imgW, canvasH / imgH);
+  } else {
+    scale = Math.min(canvasW / imgW, canvasH / imgH);
+  }
+  
+  const drawW = imgW * scale;
+  const drawH = imgH * scale;
+  const offsetX = (canvasW - drawW) / 2;
+  const offsetY = (canvasH - drawH) / 2;
+  
+  ctx.clearRect(0, 0, canvasW, canvasH);
+  ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+}
+
+// ========= FINE SISTEMA LAZY LOADING =========
+
+// ========= SISTEMA DI FEEDBACK UTENTE OTTIMIZZATO =========
+let loadingIndicatorTimeout;
+
+// Mostra indicatore di caricamento per operazioni lunghe
+function showLoadingFeedback(message = 'Caricamento...') {
+  clearTimeout(loadingIndicatorTimeout);
+  
+  // Mostra indicatore solo se il caricamento richiede più di 1.5 secondi (ridotto da 2s)
+  loadingIndicatorTimeout = setTimeout(() => {
+    const existing = document.getElementById('media-loading-indicator');
+    if (existing) return;
+    
+    const indicator = document.createElement('div');
+    indicator.id = 'media-loading-indicator';
+    indicator.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-family: 'Montserrat', Arial, sans-serif;
+      font-size: 0.9rem;
+      z-index: 10000;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(64, 224, 208, 0.3);
+    `;
+    indicator.textContent = message;
+    document.body.appendChild(indicator);
+    
+    // Rimuovi automaticamente dopo 8 secondi (ridotto da 10s)
+    setTimeout(() => {
+      if (indicator.parentNode) {
+        indicator.parentNode.removeChild(indicator);
+      }
+    }, 8000);
+  }, 1500);
+}
+
+// Nascondi indicatore di caricamento
+function hideLoadingFeedback() {
+  clearTimeout(loadingIndicatorTimeout);
+  const indicator = document.getElementById('media-loading-indicator');
+  if (indicator && indicator.parentNode) {
+    indicator.style.opacity = '0';
+    setTimeout(() => {
+      if (indicator.parentNode) {
+        indicator.parentNode.removeChild(indicator);
+      }
+    }, 300);
+  }
+}
+
+// Aggiungi feedback globale per preloading
+window.addEventListener('beforeunload', hideLoadingFeedback);
+
+// ========= FINE FEEDBACK UTENTE =========
+
+// ========= MONITORAGGIO RETE E ADATTIVO OTTIMIZZATO =========
+let networkQuality = 'good'; // good, slow, poor
+let preloadingEnabled = true;
+
+// Monitora la qualità della connessione
+function assessNetworkQuality() {
   if ('connection' in navigator) {
-    assessNetworkQuality();
-    navigator.connection.addEventListener('change', assessNetworkQuality);
-    setInterval(assessNetworkQuality, 30000);
+    const connection = navigator.connection;
+    const effectiveType = connection.effectiveType;
+    
+    if (effectiveType === '4g') {
+      networkQuality = 'good';
+      preloadingEnabled = true;
+    } else if (effectiveType === '3g') {
+      networkQuality = 'slow';
+      preloadingEnabled = true; // Mantieni attivo ma con throttling più alto
+    } else {
+      networkQuality = 'poor';
+      preloadingEnabled = false; // Disabilita preloading
+    }
+    
+    console.log(`📡 Network quality: ${networkQuality} (${effectiveType}) - Preloading: ${preloadingEnabled}`);
+  }
+}
+
+// Controlla la qualità di rete ogni 30 secondi
+if ('connection' in navigator) {
+  assessNetworkQuality();
+  navigator.connection.addEventListener('change', assessNetworkQuality);
+  setInterval(assessNetworkQuality, 30000);
+}
+
+// Wrapper per preloadMedia che considera la qualità di rete
+const smartPreloadMedia = function(urls, priority = 'normal') {
+  if (!preloadingEnabled && priority !== 'high') {
+    console.log('⚠️ Preloading skipped due to poor network quality');
+    return;
   }
   
-  // Wrapper per preloadMedia che considera la qualità di rete
-  const smartPreloadMedia = function(urls, priority = 'normal') {
-    if (!preloadingEnabled && priority !== 'high') {
-      console.log('⚠️ Preloading skipped due to poor network quality');
-      return;
-    }
-    
-    // Riduci il caricamento simultaneo se la rete è lenta
-    if (networkQuality === 'slow') {
-      console.log('🐌 Slow network detected, reducing concurrent loads');
-    }
-    
-    // Chiama la funzione originale di preloading
-    preloadMedia(urls, priority);
-  };
+  // Riduci il caricamento simultaneo se la rete è lenta
+  if (networkQuality === 'slow') {
+    console.log('🐌 Slow network detected, reducing concurrent loads');
+  }
   
-  // Sostituisci le chiamate a preloadMedia nelle gallery con smartPreloadMedia
-  window.smartPreloadMedia = smartPreloadMedia;
+  // Chiama la funzione originale di preloading
+  preloadMedia(urls, priority);
+};
 
-  // ========= FINE MONITORAGGIO RETE =========
+// Sostituisci le chiamate a preloadMedia nelle gallery con smartPreloadMedia
+window.smartPreloadMedia = smartPreloadMedia;
 
-  // ============ FINE SISTEMA BUFFERING ============
+// ========= FINE MONITORAGGIO RETE =========
+
+// ============ FINE SISTEMA BUFFERING OTTIMIZZATO ============
 
 // Ensure APP_ENV is available immediately (may load env script async)
 (function () {
@@ -508,7 +587,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Debug console per tracking errori
   console.log('🚀 Portfolio: Inizializzazione...');
 
-  // Scroll progress indicator
+  // Scroll progress indicator (OTTIMIZZATO)
   function initScrollIndicator() {
     try {
       // Crea l'indicatore di scroll
@@ -526,15 +605,30 @@ document.addEventListener('DOMContentLoaded', function () {
         progressBar.style.width = scrollPercent + '%';
       }
 
-      window.addEventListener('scroll', updateScrollProgress);
+      // Usa debounce per ottimizzare le performance
+      const debouncedUpdateScrollProgress = debounce(updateScrollProgress, PERFORMANCE_CONFIG.scrollDebounce);
+      window.addEventListener('scroll', debouncedUpdateScrollProgress, { passive: true });
       updateScrollProgress();
-      console.log('✅ Scroll indicator inizializzato');
+      console.log('✅ Scroll indicator inizializzato (ottimizzato)');
     } catch (error) {
       console.error('❌ Errore scroll indicator:', error);
     }
   }
 
-  // Scroll spy per evidenziare sezione attiva
+  // Funzione debounce per ottimizzare gli eventi di scroll
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
+  // Scroll spy per evidenziare sezione attiva (OTTIMIZZATO)
   function initScrollSpy() {
     try {
       const sections = document.querySelectorAll('.section');
@@ -565,9 +659,11 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       }
 
-      window.addEventListener('scroll', updateActiveSection);
+      // Usa debounce per ottimizzare le performance
+      const debouncedUpdateActiveSection = debounce(updateActiveSection, PERFORMANCE_CONFIG.scrollDebounce);
+      window.addEventListener('scroll', debouncedUpdateActiveSection, { passive: true });
       updateActiveSection();
-      console.log('✅ Scroll spy inizializzato');
+      console.log('✅ Scroll spy inizializzato (ottimizzato)');
     } catch (error) {
       console.error('❌ Errore scroll spy:', error);
     }
@@ -846,8 +942,6 @@ document.addEventListener('DOMContentLoaded', function () {
     window.addEventListener('touchcancel', clearPointer);
   })();
 
-  let galleries = {};
-
   // Funzione per creare canvas con stili personalizzati
   function createCanvasContent(ctx, title, width, height) {
     const centerX = width / 2;
@@ -934,7 +1028,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // 🎬 CANVAS VIDEO SYSTEM - Lightweight video textures
+  // 🎬 CANVAS VIDEO SYSTEM - Lightweight video textures (OTTIMIZZATO)
   class CanvasVideoRenderer {
     constructor(canvas, videoSrc, fallbackImageSrc, immediateInit = false) {
       this.canvas = canvas;
@@ -947,8 +1041,9 @@ document.addEventListener('DOMContentLoaded', function () {
       this.animationId = null;
       this.observer = null;
       this.lastFrameTime = 0;
-      this.targetFPS = 15; // Limit FPS for performance
+      this.targetFPS = PERFORMANCE_CONFIG.maxFPS; // FPS ridotto per performance
       this.frameInterval = 1000 / this.targetFPS;
+      this.isLoaded = false; // Flag per evitare caricamenti multipli
 
       if (immediateInit) {
         this.initImmediate();
@@ -967,19 +1062,17 @@ document.addEventListener('DOMContentLoaded', function () {
             this.onHidden();
           }
         });
-      }, { threshold: 0.1 });
+      }, { threshold: PERFORMANCE_CONFIG.lazyThreshold });
 
       this.observer.observe(this.canvas);
 
-      // Load fallback image first
+      // Load fallback image first (sempre caricato per placeholder)
       if (this.fallbackImageSrc) {
         this.loadFallbackImage();
       }
 
-      // Start loading video immediately for preview
-      if (this.videoSrc) {
-        this.loadVideo();
-      }
+      // Video caricato solo quando diventa visibile (lazy loading)
+      // Non caricare immediatamente per migliorare le performance
     }
 
     // Funzione per inizializzazione immediata (senza lazy loading)
@@ -1056,8 +1149,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     onVisible() {
       this.isVisible = true;
-      // Resume video if it was paused
-      if (this.video && !this.isPlaying) {
+      
+      // Carica il video solo se non è già stato caricato
+      if (!this.isLoaded && this.videoSrc) {
+        this.loadVideo();
+        this.isLoaded = true;
+      } else if (this.video && !this.isPlaying) {
+        // Resume video if it was paused
         this.startVideo();
       }
     }
@@ -1177,9 +1275,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // Store canvas video renderers for cleanup
-  const canvasVideoRenderers = new Map();
-
   // Funzione per inizializzare una gallery
   function initGallery(sectionId, images) {
     const track = document.querySelector(`#${sectionId}-track`);
@@ -1273,57 +1368,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const ctx = mediaEl.getContext('2d');
 
-        // 🎬 NEW: Check if this canvas should have video preview
-        // Only create video renderer if it's explicitly marked as canvas-video
+        // 🎬 OTTIMIZZATO: Lazy loading per tutti i tipi di canvas
         if (img.canvasVideo && img.video) {
-          // Create canvas video renderer for dynamic preview
+          // Canvas video con lazy loading
           const canvasId = `${sectionId}-canvas-${index}`;
           mediaEl.id = canvasId;
 
-          const renderer = new CanvasVideoRenderer(mediaEl, img.video, img.src, true);
+          const renderer = new CanvasVideoRenderer(mediaEl, img.video, img.src, false); // false = lazy loading
           canvasVideoRenderers.set(canvasId, renderer);
 
-          console.log(`🎬 Canvas video created with immediate loading: ${canvasId} (${img.video})`);
+          console.log(`🎬 Canvas video created with lazy loading: ${canvasId} (${img.video})`);
         } else if (img.src || img.modalImage) {
-          // Static image canvas (existing logic) - CARICAMENTO IMMEDIATO
-          const imageObj = new Image();
+          // Canvas statico con immagine - lazy loading
           const canvasId = `${sectionId}-static-canvas-${index}`;
           mediaEl.id = canvasId;
+          mediaEl.dataset.imageSrc = img.src || img.modalImage; // Salva l'URL per il lazy loading
           
-          imageObj.onload = function () {
-            const canvasW = mediaEl.width;
-            const canvasH = mediaEl.height;
-            const imgW = imageObj.width;
-            const imgH = imageObj.height;
-            let scale;
-            if (imgH > imgW) {
-              scale = Math.min((canvasW * 0.6) / imgW, canvasH / imgH);
-            } else {
-              scale = Math.min(canvasW / imgW, canvasH / imgH);
-            }
-            const drawW = imgW * scale;
-            const drawH = imgH * scale;
-            const offsetX = (canvasW - drawW) / 2;
-            const offsetY = (canvasH - drawH) / 2;
-            ctx.clearRect(0, 0, canvasW, canvasH);
-            ctx.drawImage(imageObj, offsetX, offsetY, drawW, drawH);
-            console.log(`🖼️ Static canvas loaded immediately: ${canvasId}`);
-          };
-
-          // Se l'immagine non esiste o dà errore, mostra un placeholder testuale
-          imageObj.onerror = function () {
-            console.warn('⚠️ Canvas fallback, immagine non trovata:', imageObj.src);
-            createCanvasContent(ctx, img.title, mediaEl.width, mediaEl.height);
-          };
-          
-          // Carica immediatamente l'immagine (senza lazy loading)
-          imageObj.src = img.src || img.modalImage;
+          // Crea placeholder iniziale
+          createCanvasContent(ctx, img.title, mediaEl.width, mediaEl.height);
+          console.log(`🖼️ Static canvas placeholder created: ${canvasId}`);
         } else {
-          // Procedural canvas content - CARICAMENTO IMMEDIATO
+          // Canvas procedurale - lazy loading
           const canvasId = `${sectionId}-procedural-canvas-${index}`;
           mediaEl.id = canvasId;
           createCanvasContent(ctx, img.title, mediaEl.width, mediaEl.height);
-          console.log(`🎨 Procedural canvas loaded immediately: ${canvasId}`);
+          console.log(`🎨 Procedural canvas created: ${canvasId}`);
         }
       } else {
         /* Utilizza ImageOptimizer per immagini responsive e lazy */
@@ -1626,10 +1695,40 @@ document.addEventListener('DOMContentLoaded', function () {
     Object.entries(data).forEach(([k, v]) => initGallery(k, v));
     afterGalleryInit();
     
-    // Forza il caricamento immediato di tutti i canvas dopo l'inizializzazione
+    // PATCH: Avvia preloading delle anteprime canvas DOPO che le gallery sono caricate
+    // Questo assicura che currentSiteData sia popolato anche in produzione
     setTimeout(() => {
-      forceLoadAllCanvas();
-      initializeAllCanvasVideos();
+      startInitialPreload();
+    }, 500);
+    
+    // Inizializza l'observer per il lazy loading dei canvas
+    setTimeout(() => {
+      initCanvasObserver();
+      
+      // Osserva tutti i canvas per il lazy loading
+      const allCanvas = document.querySelectorAll('.gallery-canvas');
+      allCanvas.forEach(canvas => {
+        if (canvasObserver) {
+          canvasObserver.observe(canvas);
+        }
+        
+        // PATCH: Forza il caricamento dei canvas che hanno data-loaded="true" ma non mostrano contenuto
+        if (canvas.dataset.loaded === 'true' && canvas.dataset.imageSrc) {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            // Controlla se il canvas è vuoto (solo background)
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const isEmpty = imageData.data.every(pixel => pixel === 0);
+            
+            if (isEmpty) {
+              console.log('🔧 Forzando caricamento immagine per canvas già marcato:', canvas.id);
+              canvas.dataset.loaded = 'false'; // Reset per permettere il caricamento
+              loadCanvasContent(canvas);
+            }
+          }
+        }
+      });
+      console.log(`👁️ Observer attivo per ${allCanvas.length} canvas`);
     }, 200);
     
     if (window.innerWidth <= 900 && typeof enableModernMobileCanvasGallery === 'function') {
@@ -2075,13 +2174,30 @@ document.addEventListener('DOMContentLoaded', () => {
     item.addEventListener('pointerdown', clearPulse, { once: true });
   });
 
-  // Forza il caricamento immediato di tutti i canvas già presenti nel DOM
+  // Inizializza l'observer per i canvas già presenti nel DOM
   setTimeout(() => {
-    if (typeof forceLoadAllCanvas === 'function') {
-      forceLoadAllCanvas();
-    }
-    if (typeof initializeAllCanvasVideos === 'function') {
-      initializeAllCanvasVideos();
+    if (canvasObserver) {
+      const existingCanvas = document.querySelectorAll('.gallery-canvas');
+      existingCanvas.forEach(canvas => {
+        canvasObserver.observe(canvas);
+        
+        // PATCH: Forza il caricamento dei canvas che hanno data-loaded="true" ma non mostrano contenuto
+        if (canvas.dataset.loaded === 'true' && canvas.dataset.imageSrc) {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            // Controlla se il canvas è vuoto (solo background)
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const isEmpty = imageData.data.every(pixel => pixel === 0);
+            
+            if (isEmpty) {
+              console.log('🔧 Forzando caricamento immagine per canvas esistente:', canvas.id);
+              canvas.dataset.loaded = 'false'; // Reset per permettere il caricamento
+              loadCanvasContent(canvas);
+            }
+          }
+        }
+      });
+      console.log(`👁️ Observer attivo per ${existingCanvas.length} canvas esistenti`);
     }
   }, 500);
 
@@ -2410,13 +2526,15 @@ const init = async () => {
     // Check for updates once per day (24h)
     setInterval(checkForUpdates, 86400000);
 
-    // Avvia preloading delle anteprime canvas dopo che i dati sono caricati
-    setTimeout(startInitialPreload, 500);
-
-    // Forza il caricamento immediato di tutti i canvas esistenti
+    // Inizializza l'observer per i canvas esistenti
     setTimeout(() => {
-      forceLoadAllCanvas();
-      initializeAllCanvasVideos();
+      if (canvasObserver) {
+        const existingCanvas = document.querySelectorAll('.gallery-canvas');
+        existingCanvas.forEach(canvas => {
+          canvasObserver.observe(canvas);
+        });
+        console.log(`👁️ Observer attivo per ${existingCanvas.length} canvas esistenti`);
+      }
     }, 1000);
 
     console.log('✅ Site initialized successfully');

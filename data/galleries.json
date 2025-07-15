@@ -50,18 +50,17 @@
       "title": "Canvas Video Demo",
       "canvas": true,
       "description": "Flora è la più \"amata\" del gruppo e non ha praticamente nessuno che le stia davvero antipatico. Anche quando c'è tensione, cerca sempre di risolvere con gentilezza e comprensione.  Se vuoi, posso anche spiegarti le dinamiche interne tra le Winx e i loro caratteri (chi va più d'accordo con chi)! Vuoi? 🌸💖",
-      "src": "images/art_2k_end.png",
-      "video": "video/ART.mp4",
-      "canvasVideo": true
+      "type": "video",
+      "src": "images/peroni1-1752571977516.jpg",
+      "video": "https://firebasestorage.googleapis.com/v0/b/portfolio-eb526/o/videos%2F1752528887826_1i8ncfyb3.mp4?alt=media&token=046200f7-3bcd-4968-8f37-7d9fc046926c"
     },
     {
       "title": "GRASS BALL",
       "canvas": true,
       "description": "software utilizzati e piccola descrizoine",
-      "type": "image",
+      "type": "video",
       "src": "",
-      "video": "video/grassball-1752503521126.mp4",
-      "canvasVideo": true
+      "video": "https://firebasestorage.googleapis.com/v0/b/portfolio-eb526/o/videos%2F1752531021737_ln6t4hrii.mp4?alt=media&token=05eb693a-65d6-4798-9bb0-9b8f49bd5557"
     },
     {
       "title": "adffasf",

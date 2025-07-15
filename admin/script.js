@@ -1020,7 +1020,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       F.canvas.checked = !!slide.canvas;
       F.src.value = slide.src || '';
 
-      // PATCH: Se la slide è di tipo image, mostra sempre la UI Immagine/Canvas
+      // PATCH: Se la slide ha un tipo salvato, rispettalo sempre
       if(slide.type === 'image'){
         F.type.value = 'image';
         // Gestione modale image/canvas
@@ -1052,6 +1052,31 @@ document.addEventListener('DOMContentLoaded', ()=>{
         }
         F.desc.value = slide.description || '';
         return showTypeFields('image'), overlay.classList.remove('hidden');
+      }
+      
+      // PATCH: Gestione tipo video
+      if(slide.type === 'video'){
+        F.type.value = 'video';
+        F.video.value = slide.video || '';
+        F.desc.value = slide.description || '';
+        return showTypeFields('video'), overlay.classList.remove('hidden');
+      }
+      
+      // PATCH: Gestione tipo gallery
+      if(slide.type === 'gallery'){
+        F.type.value = 'gallery';
+        galleryArr = [...(slide.modalGallery || [])];
+        
+        // Handle canvas video selection for existing gallery slides
+        if (slide.canvasVideo && slide.video) {
+          selectedCanvasVideo = slide.video;
+        } else {
+          selectedCanvasVideo = '';
+        }
+        
+        renderGallery();
+        F.desc.value = slide.description || '';
+        return showTypeFields('gallery'), overlay.classList.remove('hidden');
       }
 
       // PATCH: Riconoscimento corretto image/canvas con modale video
