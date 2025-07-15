@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Test - Firebase</title>
+    <style>
+        body {
+            background: #1a1a2e;
+            color: #40e0d0;
+            font-family: 'Montserrat', Arial, sans-serif;
+            padding: 20px;
+            text-align: center;
+        }
+        .test-button {
+            background: #40e0d0;
+            color: #1a1a2e;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .test-button:hover {
+            background: #30c0b0;
+            transform: scale(1.05);
+        }
+        .status {
+            margin: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: rgba(64, 224, 208, 0.1);
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+    </style>
+</head>
+<body>
+    <h1>🎵 Audio Test - Firebase</h1>
+    
+    <div class="status" id="status">
+        <p>Testando la disponibilità degli audio files...</p>
+    </div>
+    
+    <div>
+        <button class="test-button" onclick="testAudio('meirks.mp3')">Test meirks.mp3</button>
+        <button class="test-button" onclick="testAudio('meirks2.mp3')">Test meirks2.mp3</button>
+        <button class="test-button" onclick="testAudio('meirks3.mp3')">Test meirks3.mp3</button>
+        <button class="test-button" onclick="testAudio('meirks4.mp3')">Test meirks4.mp3</button>
+    </div>
+    
+    <div>
+        <button class="test-button" onclick="testRandomAudio()">🎲 Test Audio Casuale</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        const audioFiles = [
+            '/assets/meirks.mp3',
+            '/assets/meirks2.mp3', 
+            '/assets/meirks3.mp3',
+            '/assets/meirks4.mp3'
+        ];
+        
+        const results = [];
+        
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.innerHTML = `<p class="${type}">${message}</p>`;
+        }
+        
+        function addResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const result = document.createElement('div');
+            result.className = `status ${type}`;
+            result.innerHTML = `<p>${new Date().toLocaleTimeString()}: ${message}</p>`;
+            resultsDiv.appendChild(result);
+        }
+        
+        function testAudio(fileName) {
+            const audioFile = `/assets/${fileName}`;
+            updateStatus(`Testando ${fileName}...`, 'warning');
+            
+            const audio = new Audio();
+            audio.crossOrigin = 'anonymous';
+            
+            const startTime = Date.now();
+            
+            audio.addEventListener('canplaythrough', () => {
+                const loadTime = Date.now() - startTime;
+                addResult(`✅ ${fileName} caricato con successo (${loadTime}ms)`, 'success');
+                updateStatus(`${fileName} - OK!`, 'success');
+                
+                // Prova a riprodurre
+                const playPromise = audio.play();
+                if (playPromise !== undefined) {
+                    playPromise
+                        .then(() => {
+                            addResult(`🎵 ${fileName} riprodotto con successo`, 'success');
+                        })
+                        .catch((error) => {
+                            addResult(`❌ ${fileName} non può essere riprodotto: ${error.message}`, 'error');
+                        });
+                }
+            });
+            
+            audio.addEventListener('error', (e) => {
+                addResult(`❌ Errore caricamento ${fileName}: ${e.message}`, 'error');
+                updateStatus(`${fileName} - ERRORE!`, 'error');
+            });
+            
+            audio.src = audioFile;
+        }
+        
+        function testRandomAudio() {
+            const randomFile = audioFiles[Math.floor(Math.random() * audioFiles.length)];
+            const fileName = randomFile.split('/').pop();
+            updateStatus(`Testando audio casuale: ${fileName}`, 'warning');
+            testAudio(fileName);
+        }
+        
+        // Test automatico all'avvio
+        window.addEventListener('load', () => {
+            updateStatus('Iniziando test automatico...', 'warning');
+            
+            audioFiles.forEach((audioFile, index) => {
+                const fileName = audioFile.split('/').pop();
+                setTimeout(() => {
+                    testAudio(fileName);
+                }, index * 1000); // Test ogni secondo
+            });
+        });
+    </script>
+</body>
+</html> 

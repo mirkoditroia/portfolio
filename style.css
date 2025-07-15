@@ -622,7 +622,7 @@ main {
   /* FIX: Previene layout shift riservando lo spazio */
   min-height: 210px;
   min-width: 270px; /* 90% di 300px */
-  background: linear-gradient(135deg, #1a1a2e, #2d1b45); /* Skeleton background */
+  background: linear-gradient(135deg, #142031, #142031); /* Skeleton background */
   position: relative;
   overflow: hidden;
 }
@@ -631,7 +631,7 @@ main {
 .gallery-canvas::before {
   content: '';
   position: absolute;
-  top: 0;
+  top: 0;   
   left: -100%;
   width: 100%;
   height: 100%;

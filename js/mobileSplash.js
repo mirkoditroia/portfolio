@@ -45,7 +45,7 @@
 
   // Sottotitolo "ottimizzazione"
   const subtitle = document.createElement('div');
-  subtitle.textContent = 'Sito in ottimizzazione';
+  subtitle.textContent = 'Site optimization in progress';
   subtitle.style.cssText = `
     font-family: 'Montserrat', Arial, sans-serif;
     font-size: 0.9rem;
@@ -61,7 +61,7 @@
 
   // Messaggio di pazienza
   const message = document.createElement('div');
-  message.textContent = 'Un attimo di pazienza...';
+  message.textContent = 'Hang on a moment...';
   message.style.cssText = `
     font-family: 'Montserrat', Arial, sans-serif;
     font-size: 0.75rem;

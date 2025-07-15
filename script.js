@@ -621,6 +621,192 @@ window.smartPreloadMedia = smartPreloadMedia;
 
 // ============ FINE SISTEMA BUFFERING OTTIMIZZATO ============
 
+// ========= SISTEMA AUDIO SITE-NAME =========
+let siteNameAudio = null;
+let audioContext = null;
+let isAudioPlaying = false;
+let currentPlayingAudio = null;
+
+// Lista dei file audio disponibili con fallback per Firebase
+const audioFiles = [
+  '/assets/meirks.mp3',
+  '/assets/meirks2.mp3', 
+  '/assets/meirks3.mp3',
+  '/assets/meirks4.mp3'
+];
+
+// Preload degli audio per Firebase
+const audioCache = new Map();
+
+function preloadAudioFiles() {
+  audioFiles.forEach(audioFile => {
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.crossOrigin = 'anonymous'; // Importante per Firebase
+    
+    audio.addEventListener('canplaythrough', () => {
+      console.log(`🎵 Audio preloadato: ${audioFile.split('/').pop()}`);
+    });
+    
+    audio.addEventListener('error', (e) => {
+      console.warn(`⚠️ Errore preload audio ${audioFile}:`, e);
+    });
+    
+    audio.src = audioFile;
+    audioCache.set(audioFile, audio);
+  });
+}
+
+function initSiteNameAudio() {
+  const siteNameElement = document.getElementById('site-name');
+  if (!siteNameElement) return;
+  
+  // Preload degli audio files
+  preloadAudioFiles();
+  
+  // Crea elemento audio principale
+  siteNameAudio = document.createElement('audio');
+  siteNameAudio.preload = 'auto';
+  siteNameAudio.volume = 0.7;
+  siteNameAudio.crossOrigin = 'anonymous'; // Importante per Firebase
+  siteNameAudio.style.display = 'none';
+  document.body.appendChild(siteNameAudio);
+  
+  // Aggiungi stile hover per indicare che è cliccabile
+  siteNameElement.style.cursor = 'pointer';
+  siteNameElement.style.transition = 'all 0.3s ease';
+  
+  // Effetto hover (solo desktop)
+  if (window.innerWidth > 768) {
+    siteNameElement.addEventListener('mouseenter', () => {
+      if (!isAudioPlaying) {
+        siteNameElement.style.textShadow = '0 0 20px #40e0d0, 0 0 40px #40e0d0';
+        siteNameElement.style.transform = 'scale(1.05)';
+      }
+    });
+    
+    siteNameElement.addEventListener('mouseleave', () => {
+      siteNameElement.style.textShadow = '';
+      siteNameElement.style.transform = 'scale(1)';
+    });
+  }
+  
+  // Gestione click per audio con fallback
+  siteNameElement.addEventListener('click', playSiteNameAudio);
+  siteNameElement.addEventListener('touchstart', playSiteNameAudio);
+  
+  console.log('🎵 Audio site-name inizializzato con selezione casuale (Firebase-ready)');
+}
+
+function playSiteNameAudio() {
+  if (!siteNameAudio || isAudioPlaying) {
+    console.log('🎵 Audio già in riproduzione, ignoro il click');
+    return;
+  }
+  
+  const siteNameElement = document.getElementById('site-name');
+  if (!siteNameElement) return;
+  
+  // Seleziona casualmente un file audio
+  const randomAudioFile = audioFiles[Math.floor(Math.random() * audioFiles.length)];
+  const fileName = randomAudioFile.split('/').pop();
+  
+  // Marca come in riproduzione
+  isAudioPlaying = true;
+  
+  // Effetto visivo durante la riproduzione (mobile)
+  if (window.innerWidth <= 768) {
+            siteNameElement.style.textShadow = '0 0 20px #40e0d0, 0 0 40px #40e0d0';
+    siteNameElement.style.transform = 'scale(0.95)';
+  }
+  
+  // Prova prima con l'audio preloadato dalla cache
+  const cachedAudio = audioCache.get(randomAudioFile);
+  if (cachedAudio && cachedAudio.readyState >= 2) {
+    // Usa l'audio dalla cache
+    currentPlayingAudio = cachedAudio;
+    cachedAudio.currentTime = 0;
+    cachedAudio.volume = 0.7;
+    
+    // Aggiungi event listener per la fine
+    cachedAudio.addEventListener('ended', handleAudioEnd, { once: true });
+    
+    const playPromise = cachedAudio.play();
+    
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log(`🎵 Audio riprodotto dalla cache: ${fileName}`);
+        })
+        .catch((error) => {
+          console.log(`🎵 Audio dalla cache fallito (${fileName}):`, error.message);
+          handleAudioEnd(); // Reset stato
+          // Fallback all'audio principale
+          playWithMainAudio(randomAudioFile, fileName);
+        });
+    }
+  } else {
+    // Fallback all'audio principale
+    playWithMainAudio(randomAudioFile, fileName);
+  }
+}
+
+function handleAudioEnd() {
+  isAudioPlaying = false;
+  currentPlayingAudio = null;
+  
+  const siteNameElement = document.getElementById('site-name');
+  if (siteNameElement) {
+    // Reset effetti visivi
+    siteNameElement.style.textShadow = '';
+    siteNameElement.style.transform = 'scale(1)';
+    
+    // Deseleziona su mobile (rimuove focus/selection)
+    if (window.innerWidth <= 768) {
+      siteNameElement.blur();
+      if (window.getSelection) {
+        window.getSelection().removeAllRanges();
+      }
+      if (document.selection) {
+        document.selection.empty();
+      }
+    }
+  }
+  
+  console.log('🎵 Audio terminato, stato resettato');
+}
+
+function playWithMainAudio(audioFile, fileName) {
+  // Imposta il nuovo file audio
+  siteNameAudio.src = audioFile;
+  currentPlayingAudio = siteNameAudio;
+  
+  // Aggiungi event listener per la fine
+  siteNameAudio.addEventListener('ended', handleAudioEnd, { once: true });
+  
+  const playPromise = siteNameAudio.play();
+  
+  if (playPromise !== undefined) {
+    playPromise
+      .then(() => {
+        console.log(`🎵 Audio riprodotto: ${fileName}`);
+      })
+      .catch((error) => {
+        console.log(`🎵 Audio non può essere riprodotto (${fileName}):`, error.message);
+        handleAudioEnd(); // Reset stato
+        // Log aggiuntivo per debug Firebase
+        console.warn('🔍 Debug Firebase audio:', {
+          audioFile,
+          error: error.message,
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString()
+        });
+      });
+  }
+}
+
+// ========= FINE SISTEMA AUDIO SITE-NAME =========
+
 // Ensure APP_ENV is available immediately (may load env script async)
 (function () {
   if (window.APP_ENV) return; // already set by env.*.js
@@ -3050,6 +3236,9 @@ function enableModernMobileCanvasGallery() {
 document.addEventListener('DOMContentLoaded', enableModernMobileCanvasGallery);
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Inizializza audio site-name
+  initSiteNameAudio();
+  
   // Funzione helper per aggiornare label e heading
   function updateSectionLabels(sections) {
     if (Array.isArray(sections)) {
