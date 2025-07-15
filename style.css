@@ -2086,6 +2086,173 @@ main{margin-top:0 !important;}
   }
 }
 
+/* Performance Mode Styles */
+.performance-mode {
+  /* Riduci animazioni */
+  --animation-duration: 0.3s;
+  --transition-duration: 0.2s;
+}
+
+.performance-mode * {
+  animation-duration: var(--animation-duration) !important;
+  transition-duration: var(--transition-duration) !important;
+}
+
+.performance-mode .gallery-item {
+  animation: none !important;
+  transform: none !important;
+}
+
+.performance-mode .swiper-slide {
+  transition: none !important;
+}
+
+.critical-performance-mode {
+  /* Disabilita effetti pesanti */
+  --animation-duration: 0s;
+  --transition-duration: 0s;
+}
+
+.critical-performance-mode * {
+  animation: none !important;
+  transition: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+.critical-performance-mode .shader-banner {
+  display: none !important;
+}
+
+.critical-performance-mode .desktop-shader,
+.critical-performance-mode .mobile-shader {
+  display: none !important;
+}
+
+.critical-performance-mode .particle-canvas {
+  display: none !important;
+}
+
+/* Performance Indicator */
+.performance-indicator {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: monospace;
+  z-index: 10000;
+  display: none;
+}
+
+.performance-indicator.show {
+  display: block;
+}
+
+.performance-indicator.warning {
+  background: rgba(255, 193, 7, 0.9);
+  color: #000;
+}
+
+.performance-indicator.critical {
+  background: rgba(220, 53, 69, 0.9);
+  color: #fff;
+}
+
+/* Reactivation button styles */
+.reactivation-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.95);
+  border: 2px solid var(--accent-color, #40e0d0);
+  border-radius: 12px;
+  padding: 16px;
+  z-index: 10000;
+  animation: slideInUp 0.3s ease;
+  box-shadow: 0 8px 32px rgba(64, 224, 208, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.reactivation-button.fade-out {
+  animation: slideOutDown 0.5s ease forwards;
+}
+
+.reactivation-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #fff;
+}
+
+.reactivation-icon {
+  font-size: 24px;
+  opacity: 0.8;
+}
+
+.reactivation-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.reactivation-title {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 2px;
+  color: var(--accent-color, #40e0d0);
+}
+
+.reactivation-subtitle {
+  font-size: 11px;
+  opacity: 0.7;
+  line-height: 1.2;
+}
+
+.reactivation-btn {
+  background: var(--accent-color, #40e0d0);
+  color: #000;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.reactivation-btn:hover {
+  background: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(64, 224, 208, 0.4);
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .hero h1 { font-size: 2rem; }
@@ -2849,4 +3016,51 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
   .description-panel-content::-webkit-scrollbar {
     width: 4px;
   }
+}
+
+.reactivation-button.expanded {
+  min-width: 220px;
+  min-height: 56px;
+  right: 20px;
+  bottom: 20px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.95);
+  box-shadow: 0 8px 32px rgba(64,224,208,0.3);
+  transition: all 0.3s cubic-bezier(.4,1.4,.6,1);
+  opacity: 1;
+  cursor: default;
+}
+.reactivation-button.minimized {
+  width: 48px;
+  height: 48px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  right: 16px;
+  bottom: 16px;
+  background: rgba(0,0,0,0.85);
+  box-shadow: 0 4px 16px rgba(64,224,208,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+  cursor: pointer;
+  z-index: 10000;
+  transition: all 0.3s cubic-bezier(.4,1.4,.6,1);
+}
+.reactivation-mini-icon {
+  font-size: 2rem;
+  color: var(--accent-color, #40e0d0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+.reactivation-button.minimized:hover {
+  opacity: 1;
+  box-shadow: 0 8px 32px rgba(64,224,208,0.4);
 }

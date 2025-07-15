@@ -2270,198 +2270,11 @@ const applySiteConfig = (site) => {
 let currentSiteConfig = null;
 
 // Check for site config updates
-const checkForSiteUpdates = async () => {
-  try {
-    console.log('🔍 Checking for site configuration updates...');
 
-    // Load fresh data DIRECTLY from Firestore
-    let newSiteConfig;
-    if (window.APP_ENV === 'prod' && window.getSiteProd) {
-      try {
-        console.log('🔥 Loading fresh site data DIRECTLY from Firestore...');
-        newSiteConfig = await window.getSiteProd();
-        console.log('🔥 Raw Firestore data received:', newSiteConfig);
-      } catch (firebaseError) {
-        console.warn('🔥 Firestore failed during update check, falling back to local data:', firebaseError);
-        newSiteConfig = await loadSiteConfig(true);
-      }
-    } else {
-      console.log('🔥 Loading site data from local/dev environment...');
-      newSiteConfig = await loadSiteConfig(true);
-    }
 
-    if (currentSiteConfig) {
-      // Simple comparison of key fields
-      const currentVersion = currentSiteConfig.version || '';
-      const newVersion = newSiteConfig.version || '';
-      const currentHeroText = currentSiteConfig.heroText || '';
-      const newHeroText = newSiteConfig.heroText || '';
-      const currentBio = currentSiteConfig.bio || '';
-      const newBio = newSiteConfig.bio || '';
 
-      console.log('🔍 Comparing site data:', {
-        currentVersion,
-        newVersion,
-        currentHeroText: currentHeroText.substring(0, 50) + '...',
-        newHeroText: newHeroText.substring(0, 50) + '...',
-        currentBio: currentBio.substring(0, 50) + '...',
-        newBio: newBio.substring(0, 50) + '...'
-      });
 
-      // Check if anything changed
-      const hasChanges = (
-        currentVersion !== newVersion ||
-        currentHeroText !== newHeroText ||
-        currentBio !== newBio ||
-        JSON.stringify(currentSiteConfig.contacts) !== JSON.stringify(newSiteConfig.contacts)
-      );
 
-      if (hasChanges) {
-        console.log('🔄 Site configuration changes detected!');
-
-        // Show version update notification
-        if (currentVersion !== newVersion) {
-          console.log(`🔄 Version changed: ${currentVersion} → ${newVersion}`);
-          showUpdateNotification(newVersion);
-        } else {
-          showUpdateNotification('Contenuto aggiornato');
-        }
-
-        // Apply changes
-        applySiteConfig(newSiteConfig);
-
-        // Clear force refresh flags
-        localStorage.removeItem('force-site-refresh');
-        localStorage.removeItem('cache-invalidation-timestamp');
-
-      } else {
-        console.log('✅ No changes detected');
-      }
-    } else {
-      console.log('🔄 Initial site configuration load');
-    }
-
-    currentSiteConfig = newSiteConfig;
-
-  } catch (err) {
-    console.error('❌ Error checking for site updates:', err);
-  }
-};
-
-// Show update notification to user
-const showUpdateNotification = (newVersion) => {
-  const notification = document.createElement('div');
-  notification.id = 'update-notification';
-  notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: linear-gradient(135deg, #40e0d0, #ff0080);
-      color: white;
-      padding: 16px 20px;
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-      z-index: 10000;
-      font-size: 14px;
-      font-weight: 500;
-      max-width: 300px;
-      animation: slideInRight 0.3s ease-out;
-      cursor: pointer;
-      backdrop-filter: blur(10px);
-    `;
-
-  notification.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="font-size: 20px;">🚀</div>
-        <div>
-          <div style="font-weight: 600; margin-bottom: 4px;">Sito aggiornato!</div>
-          <div style="opacity: 0.9; font-size: 12px;">Versione ${newVersion}</div>
-        </div>
-        <div style="margin-left: auto; font-size: 18px; opacity: 0.7;">×</div>
-      </div>
-    `;
-
-  // Add animation keyframes
-  if (!document.getElementById('update-notification-styles')) {
-    const style = document.createElement('style');
-    style.id = 'update-notification-styles';
-    style.textContent = `
-        @keyframes slideInRight {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOutRight {
-          from { transform: translateX(0); opacity: 1; }
-          to { transform: translateX(100%); opacity: 0; }
-        }
-      `;
-    document.head.appendChild(style);
-  }
-
-  // Remove existing notification if present
-  const existing = document.getElementById('update-notification');
-  if (existing) existing.remove();
-
-  document.body.appendChild(notification);
-
-  // Auto-remove after 5 seconds
-  setTimeout(() => {
-    if (notification.parentNode) {
-      notification.style.animation = 'slideOutRight 0.3s ease-in';
-      setTimeout(() => notification.remove(), 300);
-    }
-  }, 5000);
-
-  // Click to dismiss
-  notification.addEventListener('click', () => {
-    notification.style.animation = 'slideOutRight 0.3s ease-in';
-    setTimeout(() => notification.remove(), 300);
-  });
-};
-
-// Listen for admin updates via localStorage
-const listenForAdminUpdates = () => {
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'admin-update-trigger' && e.newValue) {
-      try {
-        const updateInfo = JSON.parse(e.newValue);
-        console.log('🔄 Admin update detected:', updateInfo.displayName);
-
-        // Force immediate config reload
-        setTimeout(() => {
-          checkForSiteUpdates();
-        }, 1000);
-      } catch (err) {
-        console.error('Error parsing admin update trigger:', err);
-      }
-    }
-
-    if (e.key === 'site-needs-refresh' && e.newValue === 'true') {
-      console.log('🔄 Site refresh needed flag detected');
-      setTimeout(() => {
-        checkForSiteUpdates();
-      }, 1500);
-    }
-  });
-
-  // Check for refresh flag on page load
-  const checkForRefreshFlag = () => {
-    const needsRefresh = localStorage.getItem('site-needs-refresh');
-    if (needsRefresh === 'true') {
-      console.log('🔄 Site needs refresh flag found on page load');
-      setTimeout(() => {
-        checkForSiteUpdates();
-        localStorage.removeItem('site-needs-refresh');
-      }, 2000);
-    }
-  };
-
-  // Check on page load
-  checkForRefreshFlag();
-
-  // Check when page regains focus
-  window.addEventListener('focus', checkForRefreshFlag);
-};
 
 // Initial load - use direct Firestore in production
 const initialLoad = async () => {
@@ -2493,15 +2306,6 @@ const initialLoad = async () => {
     currentSiteConfig = site;
     applySiteConfig(site);
 
-    // ---- Reduce update checks: run once a day (24h = 86_400_000 ms) ----
-    setInterval(checkForSiteUpdates, 86400000);
-
-    // Keep a single immediate check after 5 s to catch rapid admin deploys
-    setTimeout(checkForSiteUpdates, 5000);
-
-    // Listen for admin updates
-    listenForAdminUpdates();
-
   } catch (err) {
     console.error('❌ Errore initial site load:', err);
 
@@ -2511,7 +2315,6 @@ const initialLoad = async () => {
       const site = await loadSiteConfig();
       currentSiteConfig = site;
       applySiteConfig(site);
-      listenForAdminUpdates();
     } catch (fallbackError) {
       console.error('❌ Even fallback failed:', fallbackError);
     }
@@ -2840,6 +2643,78 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// Performance warning functions
+function showPerformanceWarning(severity, issues, metrics) {
+  // Crea indicatore performance se non esiste
+  let indicator = document.getElementById('performance-indicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'performance-indicator';
+    indicator.className = 'performance-indicator';
+    document.body.appendChild(indicator);
+  }
+  
+  // Aggiorna contenuto e stile
+  const fps = metrics.fps || 0;
+  const frameTime = metrics.frameTime || 0;
+  
+  indicator.innerHTML = `
+    <div style="font-weight: bold; margin-bottom: 4px;">
+      ${severity === 'critical' ? '🚨 CRITICO' : '⚠️ ATTENZIONE'}
+    </div>
+    <div>FPS: ${fps}</div>
+    <div>Frame: ${frameTime.toFixed(1)}ms</div>
+    <div style="font-size: 10px; opacity: 0.8;">
+      ${issues.slice(0, 2).join(', ')}
+    </div>
+  `;
+  
+  indicator.className = `performance-indicator show ${severity}`;
+  
+  // Auto-hide dopo 5 secondi se non critico
+  if (severity !== 'critical') {
+    setTimeout(() => {
+      if (indicator.classList.contains('show')) {
+        indicator.classList.remove('show');
+      }
+    }, 5000);
+  }
+}
+
+function hidePerformanceWarning() {
+  const indicator = document.getElementById('performance-indicator');
+  if (indicator) {
+    indicator.classList.remove('show');
+  }
+}
+
+// Debug performance (solo in development)
+if (window.APP_ENV === 'local' && window.location.search.includes('debug=performance')) {
+  window.debugPerformance = () => {
+    if (window.performanceMonitor) {
+      const metrics = window.performanceMonitor.getMetrics();
+      const lagState = window.performanceMonitor.getLagState();
+      console.log('📊 Performance Metrics:', metrics);
+      console.log('🚨 Lag State:', lagState);
+      
+      // Test performance manuale
+      window.performanceMonitor.testPerformance().then(result => {
+        console.log('🧪 Manual Performance Test:', result);
+      });
+    }
+  };
+  
+  // Log performance ogni 5 secondi in debug mode
+  setInterval(() => {
+    if (window.performanceMonitor) {
+      const metrics = window.performanceMonitor.getMetrics();
+      if (metrics.fps > 0) {
+        console.log(`📊 FPS: ${metrics.fps}, Frame Time: ${metrics.frameTime.toFixed(1)}ms`);
+      }
+    }
+  }, 5000);
+}
+
 console.log('Portfolio script loaded');
 
 // Cleanup function for canvas video renderers
@@ -3050,6 +2925,12 @@ const listenForUpdates = () => {
 const init = async () => {
   try {
     console.log('🚀 Initializing site...');
+
+    // Initialize Performance Monitor (versione semplificata)
+    if (window.PerformanceMonitor) {
+      window.performanceMonitor = new PerformanceMonitor();
+      console.log('🚀 Performance Monitor inizializzato (versione semplificata)');
+    }
 
     // Load initial data
     const siteData = await loadSiteData();
@@ -3566,3 +3447,29 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 });
+
+// Funzioni di test per qualità GLSL
+window.testGLSLHigh = function() {
+  if (window.performanceMonitor) {
+    window.performanceMonitor.testGLSLQuality('high');
+  }
+};
+
+window.testGLSLMedium = function() {
+  if (window.performanceMonitor) {
+    window.performanceMonitor.testGLSLQuality('medium');
+  }
+};
+
+window.testGLSLLow = function() {
+  if (window.performanceMonitor) {
+    window.performanceMonitor.testGLSLQuality('low');
+  }
+};
+
+// Debug: mostra stato performance
+window.showPerformanceStatus = function() {
+  if (window.performanceMonitor) {
+    console.log('📊 Stato Performance:', window.performanceMonitor.getStatus());
+  }
+};

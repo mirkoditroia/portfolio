@@ -74,3 +74,5 @@ function initNavbar() {
     }
   });
 } 
+
+// Rimuovi la logica complessa di splash - ora gestita automaticamente da mobileSplash.js
