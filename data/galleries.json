@@ -133,15 +133,7 @@
       "modalImage": "images/art_2k_end.png",
       "description": "Arte generativa creata con algoritmi."
     },
-    {
-      "title": "Particle System",
-      "canvas": true,
-      "description": "Sistema di particelle interattivo.",
-      "modalGallery": [
-        "images/frame_1040.jpg",
-        "images/art_2k_end.png"
-      ]
-    },
+
     {
       "title": "Mixed Media Gallery",
       "canvas": true,

@@ -774,7 +774,7 @@ main {
   gap: 16px;
   width: 100%;
   overflow: hidden;
-  touch-action: pan-x; /* Allow horizontal panning */
+  touch-action: pan-x pan-y; /* Allow both horizontal and vertical panning */
   /* Enhanced scroll performance */
   scroll-behavior: smooth;
   will-change: scroll-position;
@@ -975,6 +975,74 @@ main {
   .gallery-item:active {
     transform: scale(0.98);
   }
+  
+  /* Permetti scrolling verticale su tutto il sito mobile */
+  body, html {
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  main {
+    touch-action: pan-x pan-y;
+  }
+  
+  .section {
+    touch-action: pan-x pan-y;
+  }
+  
+  .hero {
+    touch-action: pan-x pan-y;
+  }
+}
+
+/* Ottimizzazioni specifiche per dispositivi mobile fisici */
+@media (max-width: 768px) and (hover: none) and (pointer: coarse) {
+  .gallery-carousel {
+    /* Permetti scrolling verticale su tutto lo schermo mobile */
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .gallery-track {
+    /* Ottimizza il rendering su mobile fisico */
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+  
+  .gallery-item {
+    /* Migliora l'area di touch su mobile fisico - permetti scrolling verticale */
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: pan-x pan-y;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Disabilita animazioni non necessarie su mobile fisico per migliorare performance */
+  .gallery-item:hover {
+    transform: none;
+  }
+  
+  .gallery-item:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+  
+  /* Permetti scrolling verticale su tutti gli elementi principali */
+  body, html {
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  main {
+    touch-action: pan-x pan-y;
+  }
+  
+  .section {
+    touch-action: pan-x pan-y;
+  }
 }
 
 /* Indicatore di scroll */
@@ -1073,7 +1141,7 @@ main {
     width: 280px !important;
     height: 320px;
     cursor: pointer;
-    touch-action: manipulation;
+    touch-action: pan-x pan-y;
     padding: 4px;
   }
   
@@ -1088,7 +1156,7 @@ main {
   
   .gallery-canvas {
     height: 180px;
-    touch-action: manipulation; /* Simple touch handling */
+    touch-action: pan-x pan-y; /* Permetti scrolling verticale */
   }
   
   /* Modal Gallery Tablet */
@@ -1304,7 +1372,7 @@ main {
     width: 260px !important;
     height: 280px;
     cursor: pointer;
-    touch-action: manipulation;
+    touch-action: pan-x pan-y;
     padding: 4px;
     text-align: center;
     background: rgba(20,30,48,0.92);
@@ -1332,7 +1400,7 @@ main {
   .gallery-canvas {
     height: 160px;
     margin-top: 12px;
-    touch-action: manipulation;
+    touch-action: pan-x pan-y;
   }
   
   .gallery-title {
@@ -1552,7 +1620,7 @@ main {
     height: 240px;
     border-radius: 16px;
     cursor: pointer;
-    touch-action: manipulation;
+    touch-action: pan-x pan-y;
     padding: 4px;
     text-align: center;
     background: rgba(20,30,48,0.92);
@@ -1581,7 +1649,7 @@ main {
     height: 140px;
     margin-top: 10px;
     border-radius: 12px;
-    touch-action: manipulation; /* Simple touch handling */
+    touch-action: pan-x pan-y; /* Permetti scrolling verticale */
   }
   
   .gallery-title {
@@ -1923,6 +1991,30 @@ main {
   }
 }
 
+/* Desktop shader canvas */
+.desktop-shader {
+  position: absolute;
+  top: -30px;
+  left: 0;
+  width: 100%;
+  height: calc(100% + 60px);
+  display: none;
+  pointer-events: none;
+}
+
+/* Desktop: show canvas, hide iframe */
+@media (min-width: 901px) {
+  .desktop-shader {
+    display: block !important;
+  }
+  .shader-banner iframe {
+    display: none !important;
+  }
+  .mobile-shader {
+    display: none !important;
+  }
+}
+
 /* Disable heavy GLSL shader on mobile to improve performance */
 @media (max-width: 900px) {
   .shader-banner {
@@ -1930,42 +2022,14 @@ main {
   }
 }
 
-/* --- Mobile Hero 'Aura' Animation --- */
-@keyframes aura-pulse {
-  0%,100% { transform: scale(1); opacity: .7; }
-  50%     { transform: scale(1.15); opacity: 1; }
-}
-@keyframes aura-spin {
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
+
 @media (max-width: 900px) {
   .hero {
     min-height: 60vh;
     background: #0f2027; /* fallback */
     overflow: hidden;
   }
-  .hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at var(--x,50%) var(--y,40%),
-                rgba(64,224,208,.35) 0%, rgba(0,0,0,0) 65%);
-    animation: aura-pulse 8s ease-in-out infinite;
-    filter: blur(40px);
-  }
-  .hero::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: conic-gradient(
-       from 0deg,
-       rgba(255,0,128,.25),
-       rgba(64,224,208,.15),
-       rgba(255,0,128,.25));
-    animation: aura-spin 40s linear infinite;
-    opacity: .3;
-  }
+
   .center-logo   { animation: fadeInUp 1.2s ease-out .3s both; }
 }
 
@@ -1974,24 +2038,9 @@ main {
   .hero{ padding-top:0 !important; margin-top:0 !important; }
 }
 
-@media (max-width: 900px) {
-  /* hide aura layers when shader is present */
-  .shader-banner + .center-logo {
-    /* sibling selector ensures shader exists */
-  }
-  .shader-banner + .center-logo ~ * {}
-  .shader-banner { display:block; }
-  /* disable aura layers */
-  .hero::before, .hero::after { display:none !important; }
-}
 
-/* Particle canvas */
-.particle-canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;filter:blur(2px);}
 
-@media(max-width:900px){
-  .shader-banner{display:none !important;}
-  .particle-canvas{display:none !important;}
-}
+
 
 .model-canvas{display:none !important;}
 
@@ -2018,9 +2067,8 @@ main {
 .center-logo{opacity:0;transition:opacity 2.9s ease-in-out;}
 .center-logo.loaded{opacity:1;}
 
-/* Hide previous aura effect and add mobile shader canvas */
+/* Mobile shader canvas */
 @media(max-width:900px){
-  .hero::before{display:none !important;}
   .mobile-shader{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2;}
 }
 @media(min-width:901px){

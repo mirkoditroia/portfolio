@@ -1121,97 +1121,40 @@ document.addEventListener('DOMContentLoaded', function () {
   (function () {
     const iframe = document.getElementById('shader-iframe');
     if (!iframe) return;
-    // Recupera la configurazione dal backend/admin (es: window.currentSiteConfig.shaderUrl o simile)
-    let paused = false;
-    if (window.currentSiteConfig && typeof window.currentSiteConfig.shaderPaused !== 'undefined') {
-      paused = !!window.currentSiteConfig.shaderPaused;
-    } else {
-      // fallback: controlla se l'URL contiene paused
+    
+    // Wait for site config to be loaded
+    const applyShaderConfig = () => {
+      if (!window.currentSiteConfig) {
+        // Retry after a short delay if config not loaded yet
+        setTimeout(applyShaderConfig, 100);
+        return;
+      }
+      
+      // Recupera la configurazione dal backend/admin
+      let paused = false;
+      if (window.currentSiteConfig && typeof window.currentSiteConfig.shaderPaused !== 'undefined') {
+        paused = !!window.currentSiteConfig.shaderPaused;
+      } else {
+        // fallback: controlla se l'URL contiene paused
+        try {
+          const u = new URL(iframe.src);
+          paused = u.searchParams.get('paused') === 'true';
+        } catch (err) { paused = false; }
+      }
+      
       try {
         const u = new URL(iframe.src);
-        paused = u.searchParams.get('paused') === 'true';
-      } catch (err) { paused = false; }
-    }
-    try {
-      const u = new URL(iframe.src);
-      u.searchParams.set('paused', paused ? 'true' : 'false');
-      iframe.src = u.toString();
-      console.log('[GLSL] Shader iframe desktop: paused =', paused);
-    } catch (err) { console.warn('shader url', err); }
+        u.searchParams.set('paused', paused ? 'true' : 'false');
+        iframe.src = u.toString();
+        console.log('[GLSL] Shader iframe desktop: paused =', paused);
+      } catch (err) { console.warn('shader url', err); }
+    };
+    
+    // Apply config when ready
+    applyShaderConfig();
   })();
 
-  /* ---------------- Mobile particle effect ---------------- */
-  (function () {
-    if (window.innerWidth > 900) return;
-    const canvas = document.getElementById('particle-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let w, h, particles = [], pointer = { x: null, y: null, active: false };
-    function resize() { w = canvas.width = canvas.clientWidth; h = canvas.height = canvas.clientHeight; }
-    resize(); window.addEventListener('resize', () => { resize(); seedParticles(); });
 
-    const density = 0.00025; // particles per pixel
-    function seedParticles() {
-      particles = [];
-      const count = Math.floor(w * h * density);
-      for (let i = 0; i < count; i++) {
-        particles.push({
-          x: Math.random() * w,
-          y: Math.random() * h,
-          vx: (Math.random() - 0.5) * 0.4,
-          vy: (Math.random() - 0.5) * 0.4,
-          r: 1.2 + Math.random() * 2.2,
-          alpha: 0.4 + Math.random() * 0.6,
-          hue: Math.random() * 360
-        });
-      }
-    }
-    seedParticles();
-
-    function update() {
-      // trail effect
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.fillStyle = 'rgba(15,32,39,0.08)';
-      ctx.fillRect(0, 0, w, h);
-      ctx.globalCompositeOperation = 'lighter';
-      particles.forEach(p => {
-        if (pointer.active) {
-          const dx = pointer.x - p.x, dy = pointer.y - p.y, dist = Math.hypot(dx, dy) + 0.1;
-          const pull = (1 / dist) * 2;
-          p.vx += dx * pull * 0.001;
-          p.vy += dy * pull * 0.001;
-        }
-        p.x += p.vx;
-        p.y += p.vy;
-        // wrap around
-        if (p.x < 0) p.x += w; if (p.x > w) p.x -= w; if (p.y < 0) p.y += h; if (p.y > h) p.y -= h;
-        ctx.globalAlpha = p.alpha;
-        const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 2);
-        grd.addColorStop(0, `hsla(${p.hue},100%,60%,1)`);
-        grd.addColorStop(1, `hsla(${p.hue},100%,60%,0)`);
-        ctx.fillStyle = grd;
-        ctx.shadowColor = `hsla(${p.hue},100%,60%,0.6)`;
-        ctx.shadowBlur = 8;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
-      });
-      requestAnimationFrame(update);
-    }
-    update();
-
-    function setPointer(x, y) { pointer.x = x; pointer.y = y; pointer.active = true; }
-    function clearPointer() { pointer.active = false; }
-
-    window.addEventListener('mousemove', e => setPointer(e.clientX, e.clientY));
-    window.addEventListener('mouseleave', clearPointer);
-    window.addEventListener('touchstart', e => {
-      const t = e.touches[0]; setPointer(t.clientX, t.clientY);
-    }, { passive: true });
-    window.addEventListener('touchmove', e => {
-      const t = e.touches[0]; setPointer(t.clientX, t.clientY);
-    }, { passive: true });
-    window.addEventListener('touchend', clearPointer);
-    window.addEventListener('touchcancel', clearPointer);
-  })();
 
   // Funzione per creare canvas con stili personalizzati
   function createCanvasContent(ctx, title, width, height) {
@@ -1725,8 +1668,20 @@ document.addEventListener('DOMContentLoaded', function () {
       const perView = (typeof sw.params.slidesPerView === 'number') ? sw.params.slidesPerView : sw.slidesPerViewDynamic();
       const space = sw.params.spaceBetween || 0;
       const slideW = sw.slides[0] ? sw.slides[0].offsetWidth + space : 0;
-      const maxIndex = Math.max(0, sw.slides.length - Math.ceil(perView));
-      sw.__maxTranslate = -slideW * maxIndex; // valore negativo
+      
+      // Calcolo corretto per slidesPerView frazionari (es. 1.5, 2.5)
+      const effectiveSlidesPerView = Math.ceil(perView);
+      const maxIndex = Math.max(0, sw.slides.length - effectiveSlidesPerView);
+      
+      // Per mobile con slidesPerView frazionari, aggiungi un offset per evitare vuoto
+      const mobileOffset = (perView < 2 && perView > 1) ? 1 : 0;
+      const adjustedMaxIndex = Math.max(0, maxIndex - mobileOffset);
+      
+      // Su mobile fisico, riduci leggermente il limite per evitare problemi di precisione
+      const finalMaxIndex = isRealMobile ? Math.max(0, adjustedMaxIndex - 0.1) : adjustedMaxIndex;
+      
+      sw.__maxTranslate = -slideW * finalMaxIndex; // valore negativo
+      console.log(`🔧 [${sectionId}] Clamp: perView=${perView}, maxIndex=${finalMaxIndex}, maxTranslate=${sw.__maxTranslate}, mobile=${isRealMobile}`);
     };
 
     // Funzione che forza il transform a non superare il limite
@@ -1737,6 +1692,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Evita ricorsione infinita usando un semplice lock
       if (sw.__clampLock) return;
 
+      // Controllo limite superiore (fine carosello)
       if (tx < sw.__maxTranslate) {
         sw.__clampLock = true;
         sw.setTranslate(sw.__maxTranslate);
@@ -1745,13 +1701,20 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         sw.allowSlideNext = true;
       }
-      // prev limite inizio
-      if (sw.getTranslate() === 0) {
+      
+      // Controllo limite inferiore (inizio carosello)
+      if (tx >= 0) {
         sw.allowSlidePrev = false;
       } else {
         sw.allowSlidePrev = true;
       }
     };
+
+    // Rileva se siamo su dispositivo mobile fisico
+    const isRealMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && 
+                        ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    
+    console.log(`📱 [${sectionId}] Dispositivo mobile fisico: ${isRealMobile}`);
 
     const swiper = new Swiper(swiperContainer, {
       slidesPerView: 3,
@@ -1761,39 +1724,73 @@ document.addEventListener('DOMContentLoaded', function () {
         nextEl: '.swiper-button-next',
         prevEl: '.swiper-button-prev',
       },
+      // Configurazioni ottimizzate per mobile fisico
+      resistance: isRealMobile ? false : true, // Disabilita resistenza su mobile fisico
+      resistanceRatio: isRealMobile ? 0 : 0.85,
+      touchRatio: isRealMobile ? 1 : 1,
+      touchAngle: 45,
+      grabCursor: true,
+      // Miglioramenti per touch su mobile fisico
+      touchStartPreventDefault: false,
+      touchMoveStopPropagation: false,
+      iOSEdgeSwipeDetection: true,
+      iOSEdgeSwipeThreshold: 20,
       breakpoints: {
         320: {
           slidesPerView: 1,
-          spaceBetween: 16
+          spaceBetween: 16,
+          resistanceRatio: isRealMobile ? 0 : 0.7,
+          touchRatio: isRealMobile ? 1 : 0.8,
+          touchStartPreventDefault: false,
+          touchMoveStopPropagation: false
         },
         480: {
-          slidesPerView: 1.5,
-          spaceBetween: 16
+          slidesPerView: 1,
+          spaceBetween: 16,
+          resistanceRatio: isRealMobile ? 0 : 0.9,
+          touchRatio: isRealMobile ? 1 : 0.9,
+          touchStartPreventDefault: false,
+          touchMoveStopPropagation: false
         },
         600: {
           slidesPerView: 2,
-          spaceBetween: 20
+          spaceBetween: 20,
+          resistanceRatio: isRealMobile ? 0 : 0.9,
+          touchRatio: isRealMobile ? 1 : 0.95,
+          touchStartPreventDefault: false,
+          touchMoveStopPropagation: false
         },
         900: {
-          slidesPerView: 2.5,
-          spaceBetween: 30
+          slidesPerView: 2,
+          spaceBetween: 30,
+          resistanceRatio: isRealMobile ? 0 : 1,
+          touchRatio: isRealMobile ? 1 : 1,
+          touchStartPreventDefault: false,
+          touchMoveStopPropagation: false
         },
         1200: {
           slidesPerView: 3,
-          spaceBetween: 40
+          spaceBetween: 40,
+          resistanceRatio: isRealMobile ? 0 : 0.85,
+          touchRatio: isRealMobile ? 1 : 1,
+          touchStartPreventDefault: false,
+          touchMoveStopPropagation: false
         }
       },
       speed: 300,
       on: {
         init() {
           updateClamp(this);
+          dynamicBlock(this);
         },
         resize() {
           updateClamp(this);
           clampTranslate(this);
+          dynamicBlock(this);
         },
         slideChange() {
           clampTranslate(this);
+          dynamicBlock(this);
         },
         setTranslate(sw, translate) {
           clampTranslate(sw);
@@ -1805,7 +1802,77 @@ document.addEventListener('DOMContentLoaded', function () {
     window.addEventListener('resize', () => setTimeout(() => {
       updateClamp(swiper);
       clampTranslate(swiper);
+      dynamicBlock(swiper);
     }, 120));
+
+    // Controllo aggiuntivo per le frecce di navigazione
+    const updateNavigationButtons = () => {
+      const prevBtn = swiperContainer.querySelector('.swiper-button-prev');
+      const nextBtn = swiperContainer.querySelector('.swiper-button-next');
+      
+      if (prevBtn) {
+        prevBtn.style.opacity = swiper.allowSlidePrev ? '1' : '0.3';
+        prevBtn.style.pointerEvents = swiper.allowSlidePrev ? 'auto' : 'none';
+      }
+      
+      if (nextBtn) {
+        nextBtn.style.opacity = swiper.allowSlideNext ? '1' : '0.3';
+        nextBtn.style.pointerEvents = swiper.allowSlideNext ? 'auto' : 'none';
+      }
+    };
+
+    // Aggiorna i pulsanti dopo ogni cambio di slide
+    swiper.on('slideChange', updateNavigationButtons);
+    swiper.on('init', updateNavigationButtons);
+
+    // Gestione specifica per mobile fisico
+    if (isRealMobile) {
+      // Disabilita controlli troppo restrittivi su mobile fisico
+      swiper.on('touchEnd', () => {
+        setTimeout(() => {
+          // Controllo più permissivo su mobile fisico
+          const currentTranslate = swiper.getTranslate();
+          if (currentTranslate < swiper.__maxTranslate - 10) { // Tolleranza di 10px
+            swiper.setTranslate(swiper.__maxTranslate);
+          }
+          if (currentTranslate > 10) { // Tolleranza di 10px
+            swiper.setTranslate(0);
+          }
+          dynamicBlock(swiper);
+          updateNavigationButtons();
+        }, 100); // Delay maggiore per mobile fisico
+      });
+
+      // Gestione touch migliorata per mobile fisico
+      swiper.on('touchStart', () => {
+        console.log(`📱 [${sectionId}] Touch start su mobile fisico`);
+      });
+
+      swiper.on('touchMove', () => {
+        // Permetti movimento più fluido su mobile fisico
+      });
+
+    } else {
+      // Controllo standard per desktop/simulazione
+      swiper.on('touchEnd', () => {
+        setTimeout(() => {
+          clampTranslate(swiper);
+          dynamicBlock(swiper);
+          updateNavigationButtons();
+        }, 50);
+      });
+    }
+
+    // Controllo su slideChange per assicurarsi che non si superino i limiti
+    swiper.on('slideChange', () => {
+      const currentTranslate = swiper.getTranslate();
+      if (currentTranslate < swiper.__maxTranslate) {
+        swiper.setTranslate(swiper.__maxTranslate);
+      }
+      if (currentTranslate > 0) {
+        swiper.setTranslate(0);
+      }
+    });
 
     return swiper;
   }
@@ -1909,47 +1976,65 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Gestione click semplificata per mobile
-  function addClickHandler(element, handler) {
-    let touchStartTime = 0;
-    let touchMoved = false;
+      // Gestione click semplificata per mobile
+    function addClickHandler(element, handler) {
+      let touchStartTime = 0;
+      let touchMoved = false;
+      let touchStartX = 0;
+      let touchStartY = 0;
 
-    // Gestione touch per mobile
-    element.addEventListener('touchstart', function (e) {
-      touchStartTime = Date.now();
-      touchMoved = false;
-      element.style.opacity = '0.8';
-    }, { passive: true });
+      // Gestione touch per mobile
+      element.addEventListener('touchstart', function (e) {
+        touchStartTime = Date.now();
+        touchMoved = false;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        element.style.opacity = '0.8';
+      }, { passive: true });
 
-    element.addEventListener('touchmove', function (e) {
-      touchMoved = true;
-    }, { passive: true });
-
-    element.addEventListener('touchend', function (e) {
-      element.style.opacity = '1';
-      const touchDuration = Date.now() - touchStartTime;
-
-      // Solo se è un tap veloce e non c'è stato movimento
-      if (!touchMoved && touchDuration < 300) {
-        e.preventDefault();
-        e.stopPropagation();
-        // Rimuovi focus prima di eseguire il handler
-        if (document.activeElement && document.activeElement !== element) {
-          document.activeElement.blur();
+      element.addEventListener('touchmove', function (e) {
+        if (e.touches.length > 0) {
+          const touchX = e.touches[0].clientX;
+          const touchY = e.touches[0].clientY;
+          const deltaX = Math.abs(touchX - touchStartX);
+          const deltaY = Math.abs(touchY - touchStartY);
+          
+          // Considera movimento se si muove più di 10px in qualsiasi direzione
+          if (deltaX > 10 || deltaY > 10) {
+            touchMoved = true;
+          }
         }
-        setTimeout(() => handler(e), 50); // Piccolo delay per evitare conflitti
-      }
-    }, { passive: false });
+      }, { passive: true });
 
-    // Fallback per desktop
-    element.addEventListener('click', function (e) {
-      if (e.isTrusted) {
-        e.preventDefault();
-        e.stopPropagation();
-        handler(e);
-      }
-    });
-  }
+      element.addEventListener('touchend', function (e) {
+        element.style.opacity = '1';
+        const touchDuration = Date.now() - touchStartTime;
+
+        // Su mobile fisico, aumenta la tolleranza per il movimento
+        const moveThreshold = isRealMobile ? 15 : 10;
+        const timeThreshold = isRealMobile ? 400 : 300;
+
+        // Solo se è un tap veloce e non c'è stato movimento significativo
+        if (!touchMoved && touchDuration < timeThreshold) {
+          e.preventDefault();
+          e.stopPropagation();
+          // Rimuovi focus prima di eseguire il handler
+          if (document.activeElement && document.activeElement !== element) {
+            document.activeElement.blur();
+          }
+          setTimeout(() => handler(e), isRealMobile ? 100 : 50); // Delay maggiore per mobile fisico
+        }
+      }, { passive: false });
+
+      // Fallback per desktop
+      element.addEventListener('click', function (e) {
+        if (e.isTrusted) {
+          e.preventDefault();
+          e.stopPropagation();
+          handler(e);
+        }
+      });
+    }
 
   // Carica dati dinamici e inizializza
   console.log('🌍 Environment:', window.APP_ENV);
@@ -2496,16 +2581,151 @@ document.addEventListener('DOMContentLoaded', () => {
   const logoEl = document.querySelector('.center-logo');
   const shaderLoader = document.getElementById('shaderLoader');
   const hideShaderLoader = () => { if (shaderLoader) shaderLoader.classList.add('hide'); };
+  
+  // Track shader loading for both desktop and mobile
+  let desktopShaderLoaded = false;
+  let mobileShaderLoaded = false;
+  let iframeLoaded = false;
+  
+  const checkAllShadersLoaded = () => {
+    const isDesktop = window.innerWidth > 900;
+    const isMobile = window.innerWidth <= 900;
+    
+    if (isDesktop && desktopShaderLoaded) {
+      if (logoEl) logoEl.classList.add('loaded');
+      hideShaderLoader();
+    } else if (isMobile && mobileShaderLoaded) {
+      if (logoEl) logoEl.classList.add('loaded');
+      hideShaderLoader();
+    } else if (iframeLoaded) {
+      if (logoEl) logoEl.classList.add('loaded');
+      hideShaderLoader();
+    }
+  };
+  
   if (shader) {
     shader.addEventListener('load', () => {
       shader.classList.add('loaded');
-      if (logoEl) logoEl.classList.add('loaded');
-      hideShaderLoader();
+      iframeLoaded = true;
+      checkAllShadersLoaded();
     });
-  } else {
+  }
+  
+  // Fallback if no shaders load
+  setTimeout(() => {
     if (logoEl) logoEl.classList.add('loaded');
     hideShaderLoader();
-  }
+  }, 5000);
+
+  /* Desktop GLSL shader */
+  (async function () {
+    if (window.innerWidth <= 900) return; // only desktop
+    const canvas = document.getElementById('desktop-shader');
+    if (!canvas) { console.warn('[DesktopShader] canvas not found'); return; }
+    const hasGL = typeof GlslCanvas !== 'undefined';
+    const loadShaderText = async () => {
+      // Try to load from local file first
+      try {
+        const res = await fetch('data/desktop_shader.glsl');
+        if (res.ok) {
+          const shaderText = await res.text();
+          console.log('🖥️ Desktop shader loaded from local file');
+          return shaderText;
+        }
+      } catch (e) {
+        console.warn('Local desktop shader file failed, trying other sources:', e);
+      }
+
+      // Fallback to Firestore in production
+      if (window.APP_ENV === 'prod' && window.getSiteProd) {
+        try {
+          const site = await window.getSiteProd();
+          if (site.desktopShader) {
+            console.log('🖥️ Desktop shader loaded from Firestore');
+            return site.desktopShader;
+          }
+        } catch (e) {
+          console.warn('Firestore desktopShader failed', e);
+        }
+      }
+
+      // Fallback to API endpoint
+      try {
+        const res = await fetch('/api/desktopShader');
+        if (res.ok) {
+          console.log('🖥️ Desktop shader loaded from API');
+          return await res.text();
+        }
+      } catch (e) { console.warn('fetch desktopShader API failed', e); }
+
+      // Final fallback to inline shader
+      const fragEl = document.getElementById('desktop-shader-code');
+      if (fragEl && fragEl.textContent) {
+        console.log('🖥️ Desktop shader loaded from inline script');
+        return fragEl.textContent;
+      }
+
+      console.error('❌ No desktop shader source available');
+      return null;
+    };
+
+    if (hasGL) {
+      const shaderText = await loadShaderText();
+      if (!shaderText) { console.error('No shader text available'); return; }
+      const sandbox = new GlslCanvas(canvas);
+      sandbox.load(shaderText);
+      console.log('[DesktopShader] GLSL initialized');
+      desktopShaderLoaded = true;
+      checkAllShadersLoaded();
+      const resize = () => { 
+        const ratio = window.devicePixelRatio || 1; 
+        canvas.width = canvas.clientWidth * ratio; 
+        canvas.height = canvas.clientHeight * ratio; 
+      };
+      resize(); 
+      window.addEventListener('resize', resize);
+    } else {
+      console.warn('[DesktopShader] GlslCanvas undefined – trying dynamic import');
+      import('https://cdn.skypack.dev/glslCanvas').then(mod => {
+        const Glsl = mod.default || mod.GlslCanvas || window.GlslCanvas;
+        if (!Glsl) { throw new Error('glslCanvas not resolved'); }
+        return loadShaderText().then(text => {
+          const sandbox = new Glsl(canvas);
+          sandbox.load(text);
+          console.log('[DesktopShader] GLSL initialized (dynamic)');
+          desktopShaderLoaded = true;
+          checkAllShadersLoaded();
+          const resize = () => { 
+            const ratio = window.devicePixelRatio || 1; 
+            canvas.width = canvas.clientWidth * ratio; 
+            canvas.height = canvas.clientHeight * ratio; 
+          };
+          resize(); 
+          window.addEventListener('resize', resize);
+        });
+      }).catch(err => {
+        console.error('glslCanvas dynamic import failed', err);
+        // Fallback 2D gradient
+        const ctx = canvas.getContext('2d');
+        function resize2d() { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; }
+        resize2d(); window.addEventListener('resize', resize2d);
+        function draw(t) { 
+          requestAnimationFrame(draw); 
+          const w = canvas.width, h = canvas.height; 
+          const time = t * 0.0004; 
+          const grd = ctx.createRadialGradient(w * 0.5 + Math.sin(time) * w * 0.2, h * 0.4 + Math.cos(time * 1.3) * h * 0.2, 0, w / 2, h / 2, Math.max(w, h) * 0.7); 
+          const hue = (time * 40) % 360; 
+          grd.addColorStop(0, `hsl(${hue},70%,55%)`); 
+          grd.addColorStop(1, '#001820'); 
+          ctx.fillStyle = grd; 
+          ctx.fillRect(0, 0, w, h); 
+        } 
+        draw();
+        desktopShaderLoaded = true;
+        checkAllShadersLoaded();
+      });
+    }
+  })();
 
   /* Mobile GLSL shader fetched from API */
   (async function () {
@@ -2565,7 +2785,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const sandbox = new GlslCanvas(canvas);
       sandbox.load(shaderText);
       console.log('[MobileShader] GLSL initialized');
-      hideShaderLoader();
+      mobileShaderLoaded = true;
+      checkAllShadersLoaded();
       const resize = () => { const ratio = window.devicePixelRatio || 1; const scale = 0.5; canvas.width = canvas.clientWidth * scale * ratio; canvas.height = canvas.clientHeight * scale * ratio; };
       resize(); window.addEventListener('resize', resize);
     } else {
@@ -2577,7 +2798,8 @@ document.addEventListener('DOMContentLoaded', () => {
           const sandbox = new Glsl(canvas);
           sandbox.load(text);
           console.log('[MobileShader] GLSL initialized (dynamic)');
-          hideShaderLoader();
+          mobileShaderLoaded = true;
+          checkAllShadersLoaded();
           const resize = () => { const ratio = window.devicePixelRatio || 1; const scale = 0.5; canvas.width = canvas.clientWidth * scale * ratio; canvas.height = canvas.clientHeight * scale * ratio; };
           resize(); window.addEventListener('resize', resize);
         });
@@ -2588,7 +2810,8 @@ document.addEventListener('DOMContentLoaded', () => {
         function resize2d() { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; }
         resize2d(); window.addEventListener('resize', resize2d);
         function draw(t) { requestAnimationFrame(draw); const w = canvas.width, h = canvas.height; const time = t * 0.0004; const grd = ctx.createRadialGradient(w * 0.5 + Math.sin(time) * w * 0.2, h * 0.4 + Math.cos(time * 1.3) * h * 0.2, 0, w / 2, h / 2, Math.max(w, h) * 0.7); const hue = (time * 40) % 360; grd.addColorStop(0, `hsl(${hue},70%,55%)`); grd.addColorStop(1, '#001820'); ctx.fillStyle = grd; ctx.fillRect(0, 0, w, h); } draw();
-        hideShaderLoader();
+        mobileShaderLoaded = true;
+        checkAllShadersLoaded();
       });
     }
   })();
@@ -2637,6 +2860,9 @@ window.addEventListener('beforeunload', cleanupCanvasVideos);
 // Apply site data to the page
 const applySiteData = (site) => {
   try {
+    // Store current site config globally for shader access
+    window.currentSiteConfig = site;
+    
     // Hero text
     if (site.heroText) {
       document.querySelectorAll('.fa3io-text').forEach(el => {
@@ -2655,6 +2881,28 @@ const applySiteData = (site) => {
     const versionEl = document.getElementById('version');
     if (versionEl && site.version) {
       versionEl.textContent = site.version;
+    }
+
+    // Shader URL - Apply to iframe if provided
+    if (site.shaderUrl) {
+      const iframe = document.getElementById('shader-iframe');
+      if (iframe) {
+        try {
+          // Parse the URL to preserve existing parameters
+          const url = new URL(site.shaderUrl);
+          
+          // Preserve important parameters if not already set
+          if (!url.searchParams.has('gui')) url.searchParams.set('gui', 'false');
+          if (!url.searchParams.has('t')) url.searchParams.set('t', '10');
+          if (!url.searchParams.has('muted')) url.searchParams.set('muted', 'true');
+          
+          // Apply the new URL
+          iframe.src = url.toString();
+          console.log('🎨 Shader URL applied:', url.toString());
+        } catch (err) {
+          console.warn('❌ Invalid shader URL:', site.shaderUrl, err);
+        }
+      }
     }
 
     // Contacts
@@ -2761,6 +3009,24 @@ const checkForUpdates = async () => {
           showUpdateNotification('Contenuto aggiornato');
         }
       }
+      
+      // Check for shader URL changes specifically
+      if (currentSiteData && newSiteData && currentSiteData.shaderUrl !== newSiteData.shaderUrl) {
+        console.log('🎨 Shader URL changed, updating iframe...');
+        const iframe = document.getElementById('shader-iframe');
+        if (iframe && newSiteData.shaderUrl) {
+          try {
+            const url = new URL(newSiteData.shaderUrl);
+            if (!url.searchParams.has('gui')) url.searchParams.set('gui', 'false');
+            if (!url.searchParams.has('t')) url.searchParams.set('t', '10');
+            if (!url.searchParams.has('muted')) url.searchParams.set('muted', 'true');
+            iframe.src = url.toString();
+            console.log('🎨 Shader URL updated:', url.toString());
+          } catch (err) {
+            console.warn('❌ Invalid shader URL update:', newSiteData.shaderUrl, err);
+          }
+        }
+      }
     }
 
     currentSiteData = newSiteData;
@@ -2795,6 +3061,25 @@ const init = async () => {
 
     // Check for updates once per day (24h)
     setInterval(checkForUpdates, 86400000);
+    
+    // Apply shader URL after initialization
+    if (siteData.shaderUrl) {
+      setTimeout(() => {
+        const iframe = document.getElementById('shader-iframe');
+        if (iframe) {
+          try {
+            const url = new URL(siteData.shaderUrl);
+            if (!url.searchParams.has('gui')) url.searchParams.set('gui', 'false');
+            if (!url.searchParams.has('t')) url.searchParams.set('t', '10');
+            if (!url.searchParams.has('muted')) url.searchParams.set('muted', 'true');
+            iframe.src = url.toString();
+            console.log('🎨 Shader URL applied on init:', url.toString());
+          } catch (err) {
+            console.warn('❌ Invalid shader URL on init:', siteData.shaderUrl, err);
+          }
+        }
+      }, 500);
+    }
 
     // Inizializza l'observer per i canvas esistenti
     setTimeout(() => {

@@ -256,6 +256,34 @@ app.put('/api/mobileShader', async (req,res)=>{
   }
 });
 
+// -------- Desktop Shader --------
+app.get('/api/desktopShader', async (_req,res)=>{
+  try{
+    const raw = await fs.readFile('data/desktop_shader.glsl','utf8');
+    res.type('text/plain').send(raw);
+  }catch(err){
+    console.error('READ desktop_shader.glsl',err);
+    res.status(500).json({error:'read-desktop-shader-failed'});
+  }
+});
+
+app.put('/api/desktopShader', async (req,res)=>{
+  if(req.query.token !== TOKEN){
+    return res.status(401).json({error:'invalid-token'});
+  }
+  const text = req.body;
+  if(typeof text !== 'string'){
+    return res.status(400).json({error:'invalid-body'});
+  }
+  try{
+    await fs.writeFile('data/desktop_shader.glsl',text);
+    res.sendStatus(200);
+  }catch(err){
+    console.error('WRITE desktop_shader.glsl',err);
+    res.status(500).json({error:'write-desktop-shader-failed'});
+  }
+});
+
 // Only start a standalone server when not running inside Firebase Functions
 if (!process.env.FUNCTION_NAME && !process.env.K_SERVICE && !process.env.FIREBASE_CONFIG) {
   app.listen(PORT, () => console.log(`🚀 Portfolio server on http://localhost:${PORT}`));

@@ -18,7 +18,6 @@
 - Shader WebGL complessi
 - Canvas 2D/3D animations
 - Iframe Shadertoy (caricamento esterno)
-- Particle systems
 
 ### 4. CODICE NON OTTIMIZZATO ⚙️
 - CSS: 1628 righe

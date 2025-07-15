@@ -1406,6 +1406,63 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
   })(); 
 
+  // Desktop shader editor
+  (function(){
+    const ta=document.getElementById('desktop-shader-text');
+    const btn=document.getElementById('save-desktop-shader-btn');
+    if(!ta||!btn) return;
+    
+    // Load shader text
+    const loadShader = async () => {
+      if(window.APP_ENV === 'prod' && window.getSiteProd) {
+        try {
+          const site = await window.getSiteProd();
+          return site.desktopShader || '// No desktop shader found in Firestore';
+        } catch(err) {
+          console.error('Firestore desktop shader load error:', err);
+          return '// Firestore load failed';
+        }
+      } else {
+        try {
+          const res = await fetch('/api/desktopShader');
+          if(res.ok) return await res.text();
+          return '// API fetch failed';
+        } catch(err) {
+          return '// fetch failed';
+        }
+      }
+    };
+    
+    loadShader().then(txt => { ta.value = txt; });
+    
+    btn.addEventListener('click', async () => {
+      if(window.APP_ENV === 'prod') {
+        try {
+          await window.saveSiteProd({ desktopShader: ta.value });
+          alert('Desktop shader salvato in Firestore!');
+          window.adminLog?.('Desktop shader salvato');
+        } catch(err) {
+          console.error(err);
+          alert('Errore salvataggio desktop shader');
+        }
+        return;
+      }
+      
+      const token = prompt('Token amministratore per salvare desktop shader:');
+      if(!token) return;
+      fetch(`/api/desktopShader?token=${encodeURIComponent(token)}`, {
+        method:'PUT',
+        headers:{'Content-Type':'text/plain'},
+        body:ta.value
+      }).then(r=>{
+        if(r.ok){
+          alert('Desktop shader salvato!');
+          window.adminLog?.(`✅ Desktop shader salvato (${ta.value.length} caratteri)`);
+        }else{ alert('Errore salvataggio'); window.adminLog?.('❌ Errore salvataggio desktop shader'); }
+      }).catch(()=>{alert('Errore rete'); window.adminLog?.('❌ Errore rete salvataggio desktop shader');});
+    });
+  })(); 
+
 // ---------- UI HELPERS ----------
 function selectNav(targetId){
   document.querySelectorAll('.nav-link').forEach(btn=>{
