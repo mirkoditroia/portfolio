@@ -360,12 +360,81 @@ function loadCanvasContent(canvas) {
     return;
   }
   
+  // Indicatore di caricamento cyberpunk
+  const drawCyberpunkLoader = (ctx, canvasW, canvasH) => {
+    const centerX = canvasW / 2;
+    const centerY = canvasH / 2;
+    
+    // Background scuro con gradiente
+    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, Math.max(canvasW, canvasH) * 0.8);
+    gradient.addColorStop(0, 'rgba(26, 26, 46, 0.9)');
+    gradient.addColorStop(1, 'rgba(20, 30, 48, 0.95)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvasW, canvasH);
+    
+    // Punti pulsanti cyberpunk
+    const time = Date.now() * 0.003;
+    const dotCount = 3;
+    const radius = Math.min(canvasW, canvasH) * 0.08;
+    const spacing = radius * 3;
+    
+    for (let i = 0; i < dotCount; i++) {
+      const x = centerX + (i - 1) * spacing;
+      const y = centerY;
+      
+      // Effetto pulsante con timing sfalsato
+      const pulse = Math.sin(time + i * 0.8) * 0.5 + 0.5;
+      const size = radius * (0.6 + pulse * 0.4);
+      const alpha = 0.3 + pulse * 0.7;
+      
+      // Glow effect
+      ctx.shadowColor = '#40e0d0';
+      ctx.shadowBlur = 15 * pulse;
+      
+      // Punto principale
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(64, 224, 208, ${alpha})`;
+      ctx.fill();
+      
+      // Bordo luminoso
+      ctx.strokeStyle = `rgba(64, 224, 208, ${alpha * 0.8})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    
+    // Reset shadow
+    ctx.shadowBlur = 0;
+    
+    // Testo "LOADING" con effetto flicker
+    const flicker = Math.sin(time * 2) * 0.3 + 0.7;
+    ctx.fillStyle = `rgba(64, 224, 208, ${flicker * 0.6})`;
+    ctx.font = 'bold 12px Montserrat, Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('LOADING', centerX, centerY + radius * 2.5);
+  };
+  
+  // Flag per tracciare se il contenuto è stato caricato
+  if (!canvas.dataset.contentLoaded) {
+    canvas.dataset.contentLoaded = 'false';
+  }
+  
+  // Mostra loader cyberpunk e anima finché il contenuto non è caricato
+  const animateCyberpunkLoader = () => {
+    if (canvas.dataset.contentLoaded === 'true') return; // Stop se caricato
+    drawCyberpunkLoader(ctx, canvas.width, canvas.height);
+    requestAnimationFrame(animateCyberpunkLoader);
+  };
+  
+  // Avvia l'animazione se il contenuto non è caricato
+  if (canvas.dataset.contentLoaded === 'false') {
+    animateCyberpunkLoader();
+  }
+  
   // Marca come caricato
   canvas.dataset.loaded = 'true';
   console.log('🔄 Caricamento contenuto canvas:', canvasId);
-  
-  // Mostra rotellina di caricamento
-  showCanvasSpinner(canvas);
   
   // Se c'è un'immagine da caricare (canvas statico)
   if (canvas.dataset.imageSrc) {
@@ -375,15 +444,13 @@ function loadCanvasContent(canvas) {
     
     img.onload = function() {
       console.log('✅ Immagine caricata con successo:', canvasId);
-      hideCanvasSpinner(canvas);
       drawImageToCanvas(ctx, img, canvas.width, canvas.height);
+      canvas.dataset.contentLoaded = 'true'; // Marca contenuto come caricato
     };
     
     img.onerror = function(e) {
       console.error('❌ Errore caricamento immagine:', canvasId, e);
-      hideCanvasSpinner(canvas);
-      // Mantieni canvas vuoto in caso di errore
-      console.log('⚠️ Canvas rimane vuoto per errore caricamento');
+      createCanvasContent(ctx, 'Canvas', canvas.width, canvas.height);
     };
     
     img.src = canvas.dataset.imageSrc;
@@ -395,15 +462,22 @@ function loadCanvasContent(canvas) {
     const renderer = canvasVideoRenderers.get(canvasId);
     if (renderer) {
       renderer.onVisible();
+      // Marca come caricato dopo un breve delay per permettere al video di caricarsi
+      setTimeout(() => {
+        canvas.dataset.contentLoaded = 'true';
+      }, 500);
       console.log(`🎬 Canvas video lazy loaded: ${canvasId}`);
-      // La rotellina verrà nascosta dal renderer quando il video è pronto
     }
     return;
   }
   
-  // Canvas senza contenuto specifico - mantieni rotellina
-  console.log(`🎯 Canvas vuoto mantenuto: ${canvasId}`);
+  // Canvas procedurale - crea contenuto immediatamente
+  createCanvasContent(ctx, 'Canvas', canvas.width, canvas.height);
+  canvas.dataset.contentLoaded = 'true'; // Marca contenuto come caricato
+  console.log(`🎨 Procedural canvas lazy loaded: ${canvasId}`);
 }
+
+
 
 // Funzione helper per disegnare immagine su canvas
 function drawImageToCanvas(ctx, img, canvasW, canvasH) {
@@ -424,86 +498,14 @@ function drawImageToCanvas(ctx, img, canvasW, canvasH) {
   
   ctx.clearRect(0, 0, canvasW, canvasH);
   ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+  
+  // Marca il contenuto come caricato se il canvas ha un dataset
+  if (ctx.canvas && ctx.canvas.dataset) {
+    ctx.canvas.dataset.contentLoaded = 'true';
+  }
 }
 
 // ========= FINE SISTEMA LAZY LOADING =========
-
-// ========= SISTEMA ROTELLINA CARICAMENTO CANVAS =========
-
-// Funzione per creare la rotellina di caricamento moderna
-function createCanvasSpinner(canvas) {
-  console.log('🎯 createCanvasSpinner chiamata per canvas:', canvas.id);
-  const spinner = document.createElement('div');
-  spinner.className = 'canvas-spinner';
-  spinner.style.cssText = `
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 40px;
-    height: 40px;
-    border: 2px solid rgba(64, 224, 208, 0.3);
-    border-top: 2px solid #40e0d0;
-    border-radius: 50%;
-    animation: canvasSpin 1s linear infinite;
-    z-index: 10;
-    box-shadow: 0 0 15px rgba(64, 224, 208, 0.4);
-  `;
-  
-  // Aggiungi CSS per l'animazione se non esiste già
-  if (!document.getElementById('canvas-spinner-styles')) {
-    const style = document.createElement('style');
-    style.id = 'canvas-spinner-styles';
-    style.textContent = `
-      @keyframes canvasSpin {
-        0% { transform: translate(-50%, -50%) rotate(0deg); }
-        100% { transform: translate(-50%, -50%) rotate(360deg); }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-  
-  return spinner;
-}
-
-// Funzione per mostrare la rotellina su un canvas
-function showCanvasSpinner(canvas) {
-  if (canvas.querySelector('.canvas-spinner')) return; // Già presente
-  
-  const spinner = createCanvasSpinner(canvas);
-  canvas.appendChild(spinner);
-  canvas.classList.add('loading');
-}
-
-// Funzione per nascondere la rotellina da un canvas
-function hideCanvasSpinner(canvas) {
-  const spinner = canvas.querySelector('.canvas-spinner');
-  if (spinner) {
-    spinner.remove();
-  }
-  canvas.classList.remove('loading');
-}
-
-// ========= FINE SISTEMA ROTELLINA CARICAMENTO =========
-
-// Test immediato per verificare che le funzioni siano caricate
-console.log('🎯 ==========================================');
-console.log('🎯 SISTEMA ROTELLINA CARICAMENTO CARICATO!');
-console.log('🎯 ==========================================');
-console.log('🎯 createCanvasSpinner disponibile:', typeof createCanvasSpinner);
-console.log('🎯 showCanvasSpinner disponibile:', typeof showCanvasSpinner);
-console.log('🎯 hideCanvasSpinner disponibile:', typeof hideCanvasSpinner);
-
-// Test forzato: applica rotelline a tutti i canvas esistenti
-setTimeout(() => {
-  const allCanvas = document.querySelectorAll('.gallery-canvas');
-  console.log('🎯 Trovati', allCanvas.length, 'canvas da processare');
-  
-  allCanvas.forEach((canvas, index) => {
-    console.log('🎯 Applicando rotellina a canvas', index, ':', canvas.id);
-    showCanvasSpinner(canvas);
-  });
-}, 1000);
 
 // ========= SISTEMA DI FEEDBACK UTENTE OTTIMIZZATO =========
 let loadingIndicatorTimeout;
@@ -1192,18 +1194,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     loadFallbackImage() {
-      // Mostra rotellina di caricamento per l'immagine di fallback
-      showCanvasSpinner(this.canvas);
-      
       const img = new Image();
       img.onload = () => {
-        hideCanvasSpinner(this.canvas);
         this.drawImageToCanvas(img);
       };
       img.onerror = () => {
-        hideCanvasSpinner(this.canvas);
-        // If fallback image fails, mantieni canvas vuoto
-        console.log('⚠️ Fallback image failed, canvas rimane vuoto');
+        // If fallback image fails, create procedural content
+        // createCanvasContent(this.ctx, 'Canvas', this.canvas.width, this.canvas.height);
       };
       img.src = this.fallbackImageSrc;
     }
@@ -1257,9 +1254,6 @@ document.addEventListener('DOMContentLoaded', function () {
     loadVideo() {
       if (!this.videoSrc) return;
 
-      // Mostra rotellina di caricamento
-      showCanvasSpinner(this.canvas);
-
       this.video = document.createElement('video');
       this.video.src = this.videoSrc;
       this.video.loop = true;
@@ -1272,15 +1266,13 @@ document.addEventListener('DOMContentLoaded', function () {
       this.video.style.height = '135px';
 
       this.video.addEventListener('loadeddata', () => {
-        // Nascondi rotellina e avvia video
-        hideCanvasSpinner(this.canvas);
+        // Start video immediately when loaded, regardless of visibility
         this.startVideo();
       });
 
       this.video.addEventListener('error', () => {
         console.warn('⚠️ Canvas video failed to load:', this.videoSrc);
-        // Nascondi rotellina e fallback a immagine statica
-        hideCanvasSpinner(this.canvas);
+        // Fallback to static image
         if (this.fallbackImageSrc) {
           this.loadFallbackImage();
         }
@@ -1467,9 +1459,6 @@ document.addEventListener('DOMContentLoaded', function () {
           const canvasId = `${sectionId}-canvas-${index}`;
           mediaEl.id = canvasId;
 
-          // Mostra rotellina fin dall'inizio per canvas video
-          showCanvasSpinner(mediaEl);
-
           const renderer = new CanvasVideoRenderer(mediaEl, img.video, img.src, false); // false = lazy loading
           canvasVideoRenderers.set(canvasId, renderer);
 
@@ -1480,15 +1469,14 @@ document.addEventListener('DOMContentLoaded', function () {
           mediaEl.id = canvasId;
           mediaEl.dataset.imageSrc = img.src || img.modalImage; // Salva l'URL per il lazy loading
           
-          // Mostra solo rotellina di caricamento (no contenuto procedurale)
-          showCanvasSpinner(mediaEl);
-          console.log(`🖼️ Static canvas con rotellina: ${canvasId}`);
+          // Crea placeholder iniziale
+          createCanvasContent(ctx, img.title, mediaEl.width, mediaEl.height);
+          console.log(`🖼️ Static canvas placeholder created: ${canvasId}`);
         } else {
-          // Canvas senza contenuto - mostra solo rotellina
-          const canvasId = `${sectionId}-empty-canvas-${index}`;
+          // Canvas procedurale - lazy loading
+          const canvasId = `${sectionId}-procedural-canvas-${index}`;
           mediaEl.id = canvasId;
-          showCanvasSpinner(mediaEl);
-          console.log(`🎯 Canvas vuoto con rotellina: ${canvasId}`);
+          console.log(`🎨 Procedural canvas created: ${canvasId}`);
         }
       } else {
         /* Utilizza ImageOptimizer per immagini responsive e lazy */
