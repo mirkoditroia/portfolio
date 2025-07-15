@@ -364,6 +364,9 @@ function loadCanvasContent(canvas) {
   canvas.dataset.loaded = 'true';
   console.log('🔄 Caricamento contenuto canvas:', canvasId);
   
+  // Mostra rotellina di caricamento
+  showCanvasSpinner(canvas);
+  
   // Se c'è un'immagine da caricare (canvas statico)
   if (canvas.dataset.imageSrc) {
     console.log('🖼️ Caricamento immagine per canvas:', canvasId, canvas.dataset.imageSrc);
@@ -372,12 +375,15 @@ function loadCanvasContent(canvas) {
     
     img.onload = function() {
       console.log('✅ Immagine caricata con successo:', canvasId);
+      hideCanvasSpinner(canvas);
       drawImageToCanvas(ctx, img, canvas.width, canvas.height);
     };
     
     img.onerror = function(e) {
       console.error('❌ Errore caricamento immagine:', canvasId, e);
-      createCanvasContent(ctx, 'Canvas', canvas.width, canvas.height);
+      hideCanvasSpinner(canvas);
+      // Mantieni canvas vuoto in caso di errore
+      console.log('⚠️ Canvas rimane vuoto per errore caricamento');
     };
     
     img.src = canvas.dataset.imageSrc;
@@ -390,13 +396,13 @@ function loadCanvasContent(canvas) {
     if (renderer) {
       renderer.onVisible();
       console.log(`🎬 Canvas video lazy loaded: ${canvasId}`);
+      // La rotellina verrà nascosta dal renderer quando il video è pronto
     }
     return;
   }
   
-  // Canvas procedurale - crea contenuto immediatamente
-  createCanvasContent(ctx, 'Canvas', canvas.width, canvas.height);
-  console.log(`🎨 Procedural canvas lazy loaded: ${canvasId}`);
+  // Canvas senza contenuto specifico - mantieni rotellina
+  console.log(`🎯 Canvas vuoto mantenuto: ${canvasId}`);
 }
 
 // Funzione helper per disegnare immagine su canvas
@@ -421,6 +427,83 @@ function drawImageToCanvas(ctx, img, canvasW, canvasH) {
 }
 
 // ========= FINE SISTEMA LAZY LOADING =========
+
+// ========= SISTEMA ROTELLINA CARICAMENTO CANVAS =========
+
+// Funzione per creare la rotellina di caricamento moderna
+function createCanvasSpinner(canvas) {
+  console.log('🎯 createCanvasSpinner chiamata per canvas:', canvas.id);
+  const spinner = document.createElement('div');
+  spinner.className = 'canvas-spinner';
+  spinner.style.cssText = `
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 2px solid rgba(64, 224, 208, 0.3);
+    border-top: 2px solid #40e0d0;
+    border-radius: 50%;
+    animation: canvasSpin 1s linear infinite;
+    z-index: 10;
+    box-shadow: 0 0 15px rgba(64, 224, 208, 0.4);
+  `;
+  
+  // Aggiungi CSS per l'animazione se non esiste già
+  if (!document.getElementById('canvas-spinner-styles')) {
+    const style = document.createElement('style');
+    style.id = 'canvas-spinner-styles';
+    style.textContent = `
+      @keyframes canvasSpin {
+        0% { transform: translate(-50%, -50%) rotate(0deg); }
+        100% { transform: translate(-50%, -50%) rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  return spinner;
+}
+
+// Funzione per mostrare la rotellina su un canvas
+function showCanvasSpinner(canvas) {
+  if (canvas.querySelector('.canvas-spinner')) return; // Già presente
+  
+  const spinner = createCanvasSpinner(canvas);
+  canvas.appendChild(spinner);
+  canvas.classList.add('loading');
+}
+
+// Funzione per nascondere la rotellina da un canvas
+function hideCanvasSpinner(canvas) {
+  const spinner = canvas.querySelector('.canvas-spinner');
+  if (spinner) {
+    spinner.remove();
+  }
+  canvas.classList.remove('loading');
+}
+
+// ========= FINE SISTEMA ROTELLINA CARICAMENTO =========
+
+// Test immediato per verificare che le funzioni siano caricate
+console.log('🎯 ==========================================');
+console.log('🎯 SISTEMA ROTELLINA CARICAMENTO CARICATO!');
+console.log('🎯 ==========================================');
+console.log('🎯 createCanvasSpinner disponibile:', typeof createCanvasSpinner);
+console.log('🎯 showCanvasSpinner disponibile:', typeof showCanvasSpinner);
+console.log('🎯 hideCanvasSpinner disponibile:', typeof hideCanvasSpinner);
+
+// Test forzato: applica rotelline a tutti i canvas esistenti
+setTimeout(() => {
+  const allCanvas = document.querySelectorAll('.gallery-canvas');
+  console.log('🎯 Trovati', allCanvas.length, 'canvas da processare');
+  
+  allCanvas.forEach((canvas, index) => {
+    console.log('🎯 Applicando rotellina a canvas', index, ':', canvas.id);
+    showCanvasSpinner(canvas);
+  });
+}, 1000);
 
 // ========= SISTEMA DI FEEDBACK UTENTE OTTIMIZZATO =========
 let loadingIndicatorTimeout;
@@ -1109,13 +1192,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     loadFallbackImage() {
+      // Mostra rotellina di caricamento per l'immagine di fallback
+      showCanvasSpinner(this.canvas);
+      
       const img = new Image();
       img.onload = () => {
+        hideCanvasSpinner(this.canvas);
         this.drawImageToCanvas(img);
       };
       img.onerror = () => {
-        // If fallback image fails, create procedural content
-        createCanvasContent(this.ctx, 'Canvas', this.canvas.width, this.canvas.height);
+        hideCanvasSpinner(this.canvas);
+        // If fallback image fails, mantieni canvas vuoto
+        console.log('⚠️ Fallback image failed, canvas rimane vuoto');
       };
       img.src = this.fallbackImageSrc;
     }
@@ -1169,6 +1257,9 @@ document.addEventListener('DOMContentLoaded', function () {
     loadVideo() {
       if (!this.videoSrc) return;
 
+      // Mostra rotellina di caricamento
+      showCanvasSpinner(this.canvas);
+
       this.video = document.createElement('video');
       this.video.src = this.videoSrc;
       this.video.loop = true;
@@ -1181,13 +1272,15 @@ document.addEventListener('DOMContentLoaded', function () {
       this.video.style.height = '135px';
 
       this.video.addEventListener('loadeddata', () => {
-        // Start video immediately when loaded, regardless of visibility
+        // Nascondi rotellina e avvia video
+        hideCanvasSpinner(this.canvas);
         this.startVideo();
       });
 
       this.video.addEventListener('error', () => {
         console.warn('⚠️ Canvas video failed to load:', this.videoSrc);
-        // Fallback to static image
+        // Nascondi rotellina e fallback a immagine statica
+        hideCanvasSpinner(this.canvas);
         if (this.fallbackImageSrc) {
           this.loadFallbackImage();
         }
@@ -1374,6 +1467,9 @@ document.addEventListener('DOMContentLoaded', function () {
           const canvasId = `${sectionId}-canvas-${index}`;
           mediaEl.id = canvasId;
 
+          // Mostra rotellina fin dall'inizio per canvas video
+          showCanvasSpinner(mediaEl);
+
           const renderer = new CanvasVideoRenderer(mediaEl, img.video, img.src, false); // false = lazy loading
           canvasVideoRenderers.set(canvasId, renderer);
 
@@ -1384,15 +1480,15 @@ document.addEventListener('DOMContentLoaded', function () {
           mediaEl.id = canvasId;
           mediaEl.dataset.imageSrc = img.src || img.modalImage; // Salva l'URL per il lazy loading
           
-          // Crea placeholder iniziale
-          createCanvasContent(ctx, img.title, mediaEl.width, mediaEl.height);
-          console.log(`🖼️ Static canvas placeholder created: ${canvasId}`);
+          // Mostra solo rotellina di caricamento (no contenuto procedurale)
+          showCanvasSpinner(mediaEl);
+          console.log(`🖼️ Static canvas con rotellina: ${canvasId}`);
         } else {
-          // Canvas procedurale - lazy loading
-          const canvasId = `${sectionId}-procedural-canvas-${index}`;
+          // Canvas senza contenuto - mostra solo rotellina
+          const canvasId = `${sectionId}-empty-canvas-${index}`;
           mediaEl.id = canvasId;
-          createCanvasContent(ctx, img.title, mediaEl.width, mediaEl.height);
-          console.log(`🎨 Procedural canvas created: ${canvasId}`);
+          showCanvasSpinner(mediaEl);
+          console.log(`🎯 Canvas vuoto con rotellina: ${canvasId}`);
         }
       } else {
         /* Utilizza ImageOptimizer per immagini responsive e lazy */
