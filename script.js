@@ -2537,48 +2537,55 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!canvas) { console.warn('[MobileShader] canvas not found'); return; }
     const hasGL = typeof GlslCanvas !== 'undefined';
     const loadShaderText = async () => {
-      // Try to load from local file first
-      try {
-        const res = await fetch('data/mobile_shader.glsl');
-        if (res.ok) {
-          const shaderText = await res.text();
-          console.log('📱 Mobile shader loaded from local file');
-          return shaderText;
-        }
-      } catch (e) {
-        console.warn('Local mobile shader file failed, trying other sources:', e);
-      }
-
-      // Fallback to Firestore in production
+      // In production, try Firestore first
       if (window.APP_ENV === 'prod' && window.getSiteProd) {
         try {
           const site = await window.getSiteProd();
           if (site.mobileShader) {
-            console.log('📱 Mobile shader loaded from Firestore');
             return site.mobileShader;
           }
         } catch (e) {
-          console.warn('Firestore mobileShader failed', e);
+          // On mobile, if Firestore fails, try local file immediately
+          const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          if (isMobile) {
+            try {
+              const res = await fetch('data/mobile_shader.glsl');
+              if (res.ok) {
+                return await res.text();
+              }
+            } catch (localError) {
+              // Continue to next fallback
+            }
+          }
         }
+      }
+
+      // Try to load from local file (for development or fallback)
+      try {
+        const res = await fetch('data/mobile_shader.glsl');
+        if (res.ok) {
+          return await res.text();
+        }
+      } catch (e) {
+        // Continue to next fallback
       }
 
       // Fallback to API endpoint
       try {
         const res = await fetch('/api/mobileShader');
         if (res.ok) {
-          console.log('📱 Mobile shader loaded from API');
           return await res.text();
         }
-      } catch (e) { console.warn('fetch mobileShader API failed', e); }
+      } catch (e) { 
+        // Continue to next fallback
+      }
 
       // Final fallback to inline shader
       const fragEl = document.getElementById('mobile-shader-code');
-      if (fragEl && fragEl.textContent) {
-        console.log('📱 Mobile shader loaded from inline script');
+      if (fragEl && fragEl.textContent && fragEl.textContent.trim()) {
         return fragEl.textContent;
       }
 
-      console.error('❌ No mobile shader source available');
       return null;
     };
 
@@ -2716,6 +2723,8 @@ if (window.APP_ENV === 'local' && window.location.search.includes('debug=perform
 }
 
 console.log('Portfolio script loaded');
+
+
 
 // Cleanup function for canvas video renderers
 function cleanupCanvasVideos() {
