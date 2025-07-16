@@ -81,9 +81,11 @@ ESEMPI POSIZIONI:
   background: rgba(20, 30, 48, 0.95) !important;
   display: flex !important;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   min-height: 80px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  padding: 0 32px;
+  max-width: 100%;
 }
 
 
@@ -94,8 +96,6 @@ ESEMPI POSIZIONI:
   font-weight: 700;
   font-size: 1.2rem;
   color: #fff;
-  margin-left:32px;
-  margin-right:auto;
 }
 
 .logo img {
@@ -105,11 +105,12 @@ ESEMPI POSIZIONI:
 }
 
 .menu {
-  display:flex;
-  gap:24px;
-  justify-content:center;
-  align-items:center;
-  flex:1 1 0;
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  max-width: 60%;
 }
 
 .menu a {
@@ -151,6 +152,14 @@ ESEMPI POSIZIONI:
 
 .menu a:hover::after {
   width: 100%;
+}
+
+/* Spazio invisibile per bilanciare il layout e centrare il menu */
+.banner::after {
+  content: '';
+  width: 120px; /* Stessa larghezza del logo */
+  visibility: hidden;
+  flex-shrink: 0;
 }
 
 main {
@@ -1954,6 +1963,7 @@ main {
     z-index: 1001;
     max-height: calc(100vh - 56px);
     overflow-y: auto;
+    max-width: 100%;
   }
 
   .banner .menu.active {
@@ -1988,6 +1998,26 @@ main {
     display: flex !important;
     visibility: visible !important;
     opacity: 1 !important;
+  }
+}
+
+/* Regole per schermi intermedi dove il menu potrebbe essere troppo affollato */
+@media (min-width: 901px) and (max-width: 1200px) {
+  .menu {
+    gap: 16px;
+    max-width: 55%;
+  }
+  
+  .menu a {
+    font-size: 0.9rem;
+  }
+}
+
+/* Regole per schermi molto grandi */
+@media (min-width: 1201px) {
+  .menu {
+    gap: 28px;
+    max-width: 65%;
   }
 }
 

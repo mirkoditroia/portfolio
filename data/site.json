@@ -50,12 +50,12 @@
       "label": "Interactive"
     },
     {
-      "status": "show",
+      "status": "hide",
       "key": "creativecoding",
       "label": "Creative Coding"
     },
     {
-      "status": "soon",
+      "status": "hide",
       "key": "ai",
       "label": "AI"
     }
