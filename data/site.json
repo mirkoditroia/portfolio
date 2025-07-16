@@ -14,22 +14,22 @@
     },
     {
       "label": "Instagram",
-      "value": "https://instagram.com/vfxulo",
+      "value": "https://instagram.com/meirks",
       "visible": true
     },
     {
       "label": "GitHub",
-      "value": "https://github.com/vfxulo",
+      "value": "https://github.com/meirks",
       "visible": true
     },
     {
       "label": "YouTube",
-      "value": "https://youtube.com/@vfxulo",
+      "value": "https://youtube.com/@meirks",
       "visible": false
     },
     {
       "label": "TikTok",
-      "value": "https://tiktok.com/@vfxulo",
+      "value": "https://tiktok.com/@meirks",
       "visible": false
     }
   ],

@@ -2252,7 +2252,7 @@ const loadSiteData = async () => {
     return siteData;
   } catch (err) {
     console.error('[Site] loadSiteData error', err);
-    return { heroText: 'VFXULO', bio: 'Portfolio', version: 'v1.0.0', contacts: [] };
+    return { heroText: 'MÊIRKS', bio: 'Portfolio', version: 'v1.0.0', contacts: [] };
   }
 };
 
@@ -2427,7 +2427,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!canvas) { console.warn('[DesktopShader] canvas not found'); return; }
     const hasGL = typeof GlslCanvas !== 'undefined';
     const loadShaderText = async () => {
-      // Try to load from local file first
+      // In production, try Firestore first
+      if (window.APP_ENV === 'prod' && window.getSiteProd) {
+        try {
+          const site = await window.getSiteProd();
+          if (site.desktopShader) {
+            console.log('🖥️ Desktop shader loaded from Firestore');
+            return site.desktopShader;
+          }
+        } catch (e) {
+          console.warn('Firestore desktopShader failed, trying local file:', e);
+        }
+      }
+
+      // Try to load from local file (for development or fallback)
       try {
         const res = await fetch('data/desktop_shader.glsl');
         if (res.ok) {
@@ -2437,19 +2450,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } catch (e) {
         console.warn('Local desktop shader file failed, trying other sources:', e);
-      }
-
-      // Fallback to Firestore in production
-      if (window.APP_ENV === 'prod' && window.getSiteProd) {
-        try {
-          const site = await window.getSiteProd();
-          if (site.desktopShader) {
-            console.log('🖥️ Desktop shader loaded from Firestore');
-            return site.desktopShader;
-          }
-        } catch (e) {
-          console.warn('Firestore desktopShader failed', e);
-        }
       }
 
       // Fallback to API endpoint

@@ -1,4 +1,4 @@
-# 🎨 Portfolio VFXulo - Sistema Multi-Ambiente
+# 🎨 Portfolio MÊIRKS - Sistema Multi-Ambiente
 
 Un portfolio dinamico per artisti VFX/3D con gestione completa tramite admin panel e supporto multi-ambiente (Local, Pre-prod, Production).
 
@@ -282,10 +282,10 @@ firebase deploy
 #### **Configurazione Sito** (`site.json` / Firestore)
 ```json
 {
-  "heroText": "vfxulo",
+      "heroText": "mêirks",
   "bio": "Artista VFX e 3D...",
   "contacts": [
-    {"label": "Email", "value": "info@vfxulo.com", "visible": true},
+          {"label": "Email", "value": "info@meirks.com", "visible": true},
     {"label": "LinkedIn", "value": "https://linkedin.com/in/username", "visible": true},
     {"label": "Instagram", "value": "https://instagram.com/username", "visible": true},
     {"label": "GitHub", "value": "https://github.com/username", "visible": true},
@@ -427,7 +427,7 @@ MIT License - Vedi `LICENSE` file per dettagli.
 
 ## 👨‍💻 Autore
 
-**VFXulo** - Realizzato al 100% con l'indispensabile aiuto di Cursor e i suoi agenti galattici 🚀
+**MÊIRKS** - Realizzato al 100% con l'indispensabile aiuto di Cursor e i suoi agenti galattici 🚀
 
 ---
 

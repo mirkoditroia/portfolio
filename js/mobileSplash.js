@@ -3,7 +3,7 @@
   // Configurazione
   const SPLASH_DURATION = 4500; // ms
   const AUDIO_URL = '/assets/meirks.mp3'; // Cambia con il tuo file audio
-  const SITE_NAME = window.APP_SITE_NAME || 'VFXULO'; // Puoi settare window.APP_SITE_NAME prima di includere questo script
+  const SITE_NAME = window.APP_SITE_NAME || 'MÊIRKS'; // Puoi settare window.APP_SITE_NAME prima di includere questo script
   const ENABLE_AUDIO = false; // Imposta a true per abilitare l'audio (può essere bloccato dal browser)
 
   // Solo mobile
@@ -166,7 +166,7 @@
   // Configurazione
   const SPLASH_DURATION = 3500; // ms
   const AUDIO_URL = '/assets/meirks.mp3';
-  const SITE_NAME = window.APP_SITE_NAME || 'VFXULO';
+  const SITE_NAME = window.APP_SITE_NAME || 'MÊIRKS';
   const ENABLE_AUDIO = false;
 
   // Evita doppia esecuzione

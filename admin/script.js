@@ -471,7 +471,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(apiInput) apiInput.value = site.apiBase || '';
     // site name
     const siteNameInput=document.getElementById('site-name-input');
-    if(siteNameInput) siteNameInput.value = site.siteName || 'VFXULO';
+            if(siteNameInput) siteNameInput.value = site.siteName || 'MÊIRKS';
     const heroInput=document.getElementById('hero-text-input');
     if(heroInput) heroInput.value = site.heroText || '';
     // show logo
