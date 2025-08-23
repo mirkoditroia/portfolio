@@ -286,6 +286,8 @@ main {
   align-items: center;
   gap: 16px;
 }
+/* Migliora respiro titolo nelle sezioni galleria */
+.section.art3d > h2 { padding: 0 20px; }
 
 .section h2::before {
   content: "";
@@ -673,8 +675,16 @@ main {
   color: #fff;
   font-size: 1.2rem;
   letter-spacing: 1px;
-  padding: 0 10px;
+  padding: 0 14px;
   word-wrap: break-word;
+}
+
+/* Gestione thumbnail 16:9 nelle card */
+.gallery-item .gallery-img.is-16x9 {
+  aspect-ratio: 16 / 9 !important;
+  width: 100% !important;
+  height: auto !important;
+  object-fit: cover !important;
 }
 
 /* Stili personalizzati per Swiper */
@@ -1077,6 +1087,15 @@ main {
 
 /* TABLET RESPONSIVE */
 @media (max-width: 900px) {
+  /* Forza media verticali in card su tablet/mobile */
+  .gallery-img,
+  .gallery-canvas {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 3 / 4 !important;
+    object-fit: cover !important;
+  }
+  .gallery-item { height: auto !important; }
   .banner {
     flex-direction: column;
     height: auto;
@@ -1217,6 +1236,8 @@ main {
   .modal-gallery-btn {
     display: none !important; /* Hide buttons on tablet */
   }
+  /* Più respiro titolo sezioni su tablet/mobile */
+  .section.art3d > h2 { padding: 0 18px; }
 }
 
 /* MOBILE RESPONSIVE */
@@ -1225,7 +1246,15 @@ main {
     padding: 8px 8px;
     gap: 8px;
   }
-  
+  /* Vertical canvas e card auto-height */
+  .gallery-img,
+  .gallery-canvas {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 3 / 4 !important;
+    object-fit: cover !important;
+  }
+  .gallery-item { height: auto !important; }
   .logo {
     font-size: 1.1rem;
     gap: 8px;
@@ -1462,10 +1491,25 @@ main {
   .modal-gallery-slide:not(:last-child) {
     border-right: 1px solid rgba(64, 224, 208, 0.2) !important;
   }
+  /* Più respiro titolo sezioni su mobile */
+  .section.art3d > h2 { padding: 0 14px; }
+
+  /* Spazio in fondo alla card e titolo più leggibile */
+  .gallery-item { padding-bottom: 12px !important; }
+  .gallery-title { padding: 0 16px; margin-bottom: 6px; }
 }
 
 /* SMALL MOBILE RESPONSIVE */
 @media (max-width: 480px) {
+  /* Extra: rinforza ratio verticale su small mobile */
+  .gallery-img,
+  .gallery-canvas {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 3 / 4 !important;
+    object-fit: cover !important;
+  }
+  .gallery-item { height: auto !important; }
   body {
     font-size: 0.9rem;
   }
@@ -1740,10 +1784,20 @@ main {
     height: 40px;
     font-size: 1.8rem;
   }
+  /* Più respiro titolo sezioni su small mobile */
+  .section.art3d > h2 { padding: 0 12px; }
 }
 
 /* EXTRA SMALL MOBILE */
 @media (max-width: 360px) {
+  /* Ultra small: mantieni verticale e auto-height */
+  .gallery-img,
+  .gallery-canvas { 
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 3 / 4 !important;
+  }
+  .gallery-item { height: auto !important; }
   .hero h1 {
     font-size: 1.2rem;
   }
@@ -1915,6 +1969,26 @@ main {
   .logo{margin:0 auto 8px;}
   .gallery-img,
   .gallery-canvas{width:100%!important;height:auto!important;object-fit:cover;}
+  /* Force portrait ratio on mobile for canvas cards */
+  .gallery-canvas{
+    aspect-ratio: 3 / 4; /* vertical card */
+    max-height: 72vw; /* keep within viewport for small phones */
+    object-fit: cover;
+  }
+  /* Modern compact spacing for mobile carousel */
+  .gallery-carousel{
+    padding: 0 8px !important;
+    gap: 0 !important;
+  }
+  .gallery-track{
+    gap: 10px !important;
+  }
+  .gallery-item{
+    height: auto !important;
+    border-radius: 18px !important;
+    box-shadow: 0 6px 22px rgba(0,0,0,.25) !important;
+    padding: 6px !important;
+  }
 }
 
 /* ------------------- Compact Mobile Banner ------------------- */
@@ -2119,6 +2193,7 @@ main{margin-top:0 !important;}
 @media (max-width: 600px) {
   .gallery-carousel {
     height: auto !important; /* lascia crescere con contenuto */
+    padding: 0 8px !important;
   }
 }
 

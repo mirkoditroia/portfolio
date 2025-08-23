@@ -1576,8 +1576,9 @@ document.addEventListener('DOMContentLoaded', function () {
         mediaEl.width = 300;
         mediaEl.height = 210;
         if (window.innerWidth <= 600) {
-          mediaEl.width = 240;
-          mediaEl.height = 160;
+          // Mobile: canvas verticale 3:4 per un design moderno e coerente
+          mediaEl.width = 270;
+          mediaEl.height = 360;
         }
 
         const ctx = mediaEl.getContext('2d');
@@ -1613,12 +1614,29 @@ document.addEventListener('DOMContentLoaded', function () {
         if (window.createResponsiveImage) {
           // Crea <img> con placeholder base64, attributi data-* e classe "lazy-image"
           mediaEl = window.createResponsiveImage(imgFilename, img.title, 'gallery-img');
+          // Marca automaticamente thumbnail 16:9
+          mediaEl.addEventListener('load', () => {
+            try {
+              const ratio = mediaEl.naturalWidth / mediaEl.naturalHeight;
+              if (Math.abs(ratio - (16/9)) < 0.05) {
+                mediaEl.classList.add('is-16x9');
+              }
+            } catch(e) {}
+          }, { once: true });
         } else {
           // Fallback: comportamento precedente
           mediaEl = document.createElement('img');
           mediaEl.className = 'gallery-img';
           mediaEl.src = img.src;
           mediaEl.alt = img.title;
+          mediaEl.addEventListener('load', () => {
+            try {
+              const ratio = mediaEl.naturalWidth / mediaEl.naturalHeight;
+              if (Math.abs(ratio - (16/9)) < 0.05) {
+                mediaEl.classList.add('is-16x9');
+              }
+            } catch(e) {}
+          }, { once: true });
           mediaEl.onerror = () => {
             mediaEl.style.display = 'none';
             console.log('Immagine non trovata:', mediaEl.src);
@@ -1720,6 +1738,8 @@ document.addEventListener('DOMContentLoaded', function () {
       slidesPerView: 3,
       spaceBetween: 40,
       grabCursor: true,
+      passiveListeners: true,
+      threshold: isRealMobile ? 10 : 5,
       navigation: {
         nextEl: '.swiper-button-next',
         prevEl: '.swiper-button-prev',
@@ -1728,7 +1748,8 @@ document.addEventListener('DOMContentLoaded', function () {
       resistance: isRealMobile ? false : true, // Disabilita resistenza su mobile fisico
       resistanceRatio: isRealMobile ? 0 : 0.85,
       touchRatio: isRealMobile ? 1 : 1,
-      touchAngle: 45,
+      // Angolo più stretto per evitare conflitti con lo scroll verticale
+      touchAngle: 30,
       grabCursor: true,
       // Miglioramenti per touch su mobile fisico
       touchStartPreventDefault: false,
@@ -1741,6 +1762,7 @@ document.addEventListener('DOMContentLoaded', function () {
           spaceBetween: 16,
           resistanceRatio: isRealMobile ? 0 : 0.7,
           touchRatio: isRealMobile ? 1 : 0.8,
+          touchAngle: 30,
           touchStartPreventDefault: false,
           touchMoveStopPropagation: false
         },
@@ -1749,6 +1771,7 @@ document.addEventListener('DOMContentLoaded', function () {
           spaceBetween: 16,
           resistanceRatio: isRealMobile ? 0 : 0.9,
           touchRatio: isRealMobile ? 1 : 0.9,
+          touchAngle: 30,
           touchStartPreventDefault: false,
           touchMoveStopPropagation: false
         },
@@ -1757,6 +1780,7 @@ document.addEventListener('DOMContentLoaded', function () {
           spaceBetween: 20,
           resistanceRatio: isRealMobile ? 0 : 0.9,
           touchRatio: isRealMobile ? 1 : 0.95,
+          touchAngle: 35,
           touchStartPreventDefault: false,
           touchMoveStopPropagation: false
         },

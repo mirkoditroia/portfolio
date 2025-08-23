@@ -7,11 +7,16 @@ services:
     branch: main
     rootDir: .
     # Install deps, then prepare env file for Render pre-prod
-    buildCommand: "npm install && cp config/env.preprod.js config/env.local.js"
+    buildCommand: "npm ci || npm install && cp config/env.preprod.js config/env.local.js"
     startCommand: "node server.js"
     healthCheckPath: "/api/site"
+    autoDeploy: true
     envVars:
       - key: ADMIN_TOKEN
         value: "CHANGE_ME"
       - key: UPLOAD_DIR
         value: "uploads" 
+    disk:
+      name: persistent-data
+      mountPath: /opt/render/project/src
+      sizeGB: 1
