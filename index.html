@@ -5,6 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MÊIRKS | Creative Coder 3D, VFX & Interactive Art</title>
   <meta name="description" content="Portfolio di arte digitale, VFX, 3D e programmazione creativa. Esplora opere interattive e innovazioni tecnologiche.">
+  <meta name="theme-color" content="#0f2027">
+  <meta name="color-scheme" content="dark">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="MÊIRKS · Creative Tech Portfolio">
+  <meta property="og:description" content="Arte digitale, VFX, 3D e interattività. Portfolio aggiornato.">
+  <meta property="og:image" content="images/og-cover.jpg">
+  <meta property="og:url" content="/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MÊIRKS · Creative Tech Portfolio">
+  <meta name="twitter:description" content="Arte digitale, VFX, 3D e interattività. Portfolio aggiornato.">
+  <meta name="twitter:image" content="images/og-cover.jpg">
   <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
   <link rel="stylesheet" href="style.css">
@@ -17,7 +28,7 @@
       <span id="site-name">MÊIRKS </span>
     </div>
     <button class="menu-toggle" id="menuToggle" aria-label="Apri menu">&#9776;</button>
-    <nav class="menu" role="navigation" aria-label="Menu principale">
+    <nav class="menu" role="navigation" aria-label="Menu principale" id="primary-menu">
       <a href="#vfx"           data-section-key="vfx"           aria-label="Vai alla sezione VFX"></a>
       <a href="#art3d"        data-section-key="art3d"        aria-label="Vai alla sezione Arte 3D"></a>
       <a href="#interactive"  data-section-key="interactive"  aria-label="Vai alla sezione Arte Interattiva"></a>
@@ -125,7 +136,7 @@
     backdrop-filter: blur(10px);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
   ">
-    <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
+    <<div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
       <div id="env-info">
         <span id="environment">ENV: loading...</span> • 
         <span id="version">v1.1.0-alpha</span>
@@ -195,6 +206,9 @@ void main() {
 }
   </script>
   <script src="script.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
   <!-- Shadertoy iframe already embedded above -->
   <script>
     window.APP_SITE_NAME = "NOME CYBERPUNK";

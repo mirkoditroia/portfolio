@@ -1005,11 +1005,58 @@ document.addEventListener('DOMContentLoaded', function () {
     const menu = document.querySelector('.menu');
 
     if (menuToggle && menu) {
+      // ARIA & focus management
+      menuToggle.setAttribute('aria-haspopup','true');
+      menuToggle.setAttribute('aria-expanded','false');
+      menuToggle.setAttribute('aria-controls','primary-menu');
+      menu.setAttribute('id','primary-menu');
+      menu.setAttribute('role','navigation');
+
+      function openMenu(){
+        menu.classList.add('active');
+        menuToggle.setAttribute('aria-expanded','true');
+        trapFocus(menu);
+      }
+      function closeMenu(){
+        menu.classList.remove('active');
+        menuToggle.setAttribute('aria-expanded','false');
+        releaseFocus();
+        menuToggle.focus();
+      }
+
       menuToggle.addEventListener('click', function () {
-        menu.classList.toggle('active');
-        console.log('Menu toggle clicked, active:', menu.classList.contains('active'));
+        const isOpen = menu.classList.contains('active');
+        isOpen ? closeMenu() : openMenu();
+      });
+
+      // Close on ESC
+      document.addEventListener('keydown', (e)=>{
+        if(e.key==='Escape' && menu.classList.contains('active')) closeMenu();
       });
     }
+  }
+
+  // Simple focus trap helpers
+  let previousFocus = null;
+  function trapFocus(container){
+    previousFocus = document.activeElement;
+    const focusable = container.querySelectorAll('a, button, input, [tabindex]:not([tabindex="-1"])');
+    if(focusable.length===0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length-1];
+    function handleTab(e){
+      if(e.key!=='Tab') return;
+      if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+    }
+    container.addEventListener('keydown', handleTab);
+    container.__trapHandler = handleTab;
+    first.focus();
+  }
+  function releaseFocus(){
+    const container = document.getElementById('primary-menu');
+    if(container && container.__trapHandler){ container.removeEventListener('keydown', container.__trapHandler); delete container.__trapHandler; }
+    if(previousFocus) previousFocus.focus();
   }
 
   function initSmoothScroll() {
@@ -1614,6 +1661,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (window.createResponsiveImage) {
           // Crea <img> con placeholder base64, attributi data-* e classe "lazy-image"
           mediaEl = window.createResponsiveImage(imgFilename, img.title, 'gallery-img');
+          mediaEl.loading = 'lazy';
+          mediaEl.decoding = 'async';
           // Marca automaticamente thumbnail 16:9
           mediaEl.addEventListener('load', () => {
             try {
