@@ -880,41 +880,236 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function renderGallery(){
     if(!galleryListEl) return;
     galleryListEl.innerHTML='';
+    galleryListEl.className = 'gallery-list'; // Add class for styling
+    
     galleryArr.forEach((p,idx)=>{
       const li=document.createElement('li');
+      li.className = 'gallery-item';
+      li.dataset.index = idx;
+      
       // 🎬 NEW: Add media type indicator
       const isVideo = /\.(mp4|webm|mov|avi|mkv)$/i.test(p);
       const mediaIcon = isVideo ? '🎬' : '🖼️';
       const fileName = p.split('/').pop();
+      const fileType = isVideo ? 'VIDEO' : 'IMAGE';
       
-      li.innerHTML=`<span>${mediaIcon} ${fileName}</span> <button class="delete small">X</button>`;
-      li.querySelector('button').addEventListener('click',()=>{
+      // Create preview element
+      const preview = document.createElement('div');
+      preview.className = 'gallery-item-preview';
+      if (isVideo) {
+        preview.innerHTML = '🎬';
+      } else {
+        preview.innerHTML = '🖼️';
+      }
+      
+      // Create drag handle
+      const dragHandle = document.createElement('div');
+      dragHandle.className = 'gallery-item-drag-handle';
+      dragHandle.innerHTML = '☰';
+      
+      // Create info section
+      const info = document.createElement('div');
+      info.className = 'gallery-item-info';
+      info.innerHTML = `
+        <div class="gallery-item-name">${fileName}</div>
+        <div class="gallery-item-type">${fileType}</div>
+      `;
+      
+      // Create actions section
+      const actions = document.createElement('div');
+      actions.className = 'gallery-item-actions';
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'gallery-item-remove';
+      removeBtn.textContent = 'Rimuovi';
+      removeBtn.addEventListener('click',()=>{
         galleryArr.splice(idx,1);
         renderGallery();
+        initGallerySorting(); // Re-initialize sorting after removal
       });
+      actions.appendChild(removeBtn);
+      
+      // Create order indicator
+      const orderIndicator = document.createElement('div');
+      orderIndicator.className = 'sort-order-indicator';
+      orderIndicator.textContent = idx + 1;
+      
+      // Assemble the item
+      li.appendChild(dragHandle);
+      li.appendChild(preview);
+      li.appendChild(info);
+      li.appendChild(actions);
+      li.appendChild(orderIndicator);
+      
       galleryListEl.appendChild(li);
     });
     
     // 🎬 NEW: Update canvas video selection dropdown
     updateGalleryCanvasVideoSelection();
+    
+    // Initialize sorting
+    initGallerySorting();
   }
   
   function renderImageGallery(){
     if(!imageGalleryListEl) return;
     imageGalleryListEl.innerHTML='';
+    imageGalleryListEl.className = 'gallery-list'; // Add class for styling
+    
     imageGalleryArr.forEach((p,idx)=>{
       const li=document.createElement('li');
+      li.className = 'gallery-item';
+      li.dataset.index = idx;
+      
       // 🎬 NEW: Add media type indicator
       const isVideo = /\.(mp4|webm|mov|avi|mkv)$/i.test(p);
       const mediaIcon = isVideo ? '🎬' : '🖼️';
       const fileName = p.split('/').pop();
+      const fileType = isVideo ? 'VIDEO' : 'IMAGE';
       
-      li.innerHTML=`<span>${mediaIcon} ${fileName}</span> <button class="delete small">X</button>`;
-      li.querySelector('button').addEventListener('click',()=>{
+      // Create preview element
+      const preview = document.createElement('div');
+      preview.className = 'gallery-item-preview';
+      if (isVideo) {
+        preview.innerHTML = '🎬';
+      } else {
+        preview.innerHTML = '🖼️';
+      }
+      
+      // Create drag handle
+      const dragHandle = document.createElement('div');
+      dragHandle.className = 'gallery-item-drag-handle';
+      dragHandle.innerHTML = '☰';
+      
+      // Create info section
+      const info = document.createElement('div');
+      info.className = 'gallery-item-info';
+      info.innerHTML = `
+        <div class="gallery-item-name">${fileName}</div>
+        <div class="gallery-item-type">${fileType}</div>
+      `;
+      
+      // Create actions section
+      const actions = document.createElement('div');
+      actions.className = 'gallery-item-actions';
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'gallery-item-remove';
+      removeBtn.textContent = 'Rimuovi';
+      removeBtn.addEventListener('click',()=>{
         imageGalleryArr.splice(idx,1);
         renderImageGallery();
+        initImageGallerySorting(); // Re-initialize sorting after removal
       });
+      actions.appendChild(removeBtn);
+      
+      // Create order indicator
+      const orderIndicator = document.createElement('div');
+      orderIndicator.className = 'sort-order-indicator';
+      orderIndicator.textContent = idx + 1;
+      
+      // Assemble the item
+      li.appendChild(dragHandle);
+      li.appendChild(preview);
+      li.appendChild(info);
+      li.appendChild(actions);
+      li.appendChild(orderIndicator);
+      
       imageGalleryListEl.appendChild(li);
+    });
+    
+    // Initialize sorting
+    initImageGallerySorting();
+  }
+
+  // Initialize drag & drop sorting for gallery list
+  function initGallerySorting() {
+    if (!galleryListEl || !window.Sortable) return;
+    
+    // Destroy existing sortable instance if it exists
+    if (galleryListEl.sortableInstance) {
+      galleryListEl.sortableInstance.destroy();
+    }
+    
+    // Create new sortable instance
+    galleryListEl.sortableInstance = new Sortable(galleryListEl, {
+      handle: '.gallery-item-drag-handle',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      dragClass: 'sortable-drag',
+      onStart: function(evt) {
+        galleryListEl.classList.add('sortable-active');
+      },
+      onEnd: function(evt) {
+        galleryListEl.classList.remove('sortable-active');
+        
+        // Update the array order based on new DOM order
+        const newOrder = [];
+        const items = galleryListEl.querySelectorAll('.gallery-item');
+        items.forEach((item, index) => {
+          const originalIndex = parseInt(item.dataset.index);
+          newOrder.push(galleryArr[originalIndex]);
+          // Update order indicator
+          const indicator = item.querySelector('.sort-order-indicator');
+          if (indicator) {
+            indicator.textContent = index + 1;
+          }
+          // Update dataset index
+          item.dataset.index = index;
+        });
+        
+        // Update the array with new order
+        galleryArr = newOrder;
+        
+        // Update canvas video selection dropdown
+        updateGalleryCanvasVideoSelection();
+        
+        window.adminLog?.('🔄 Ordine galleria aggiornato');
+      }
+    });
+  }
+
+  // Initialize drag & drop sorting for image gallery list
+  function initImageGallerySorting() {
+    if (!imageGalleryListEl || !window.Sortable) return;
+    
+    // Destroy existing sortable instance if it exists
+    if (imageGalleryListEl.sortableInstance) {
+      imageGalleryListEl.sortableInstance.destroy();
+    }
+    
+    // Create new sortable instance
+    imageGalleryListEl.sortableInstance = new Sortable(imageGalleryListEl, {
+      handle: '.gallery-item-drag-handle',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      dragClass: 'sortable-drag',
+      onStart: function(evt) {
+        imageGalleryListEl.classList.add('sortable-active');
+      },
+      onEnd: function(evt) {
+        imageGalleryListEl.classList.remove('sortable-active');
+        
+        // Update the array order based on new DOM order
+        const newOrder = [];
+        const items = imageGalleryListEl.querySelectorAll('.gallery-item');
+        items.forEach((item, index) => {
+          const originalIndex = parseInt(item.dataset.index);
+          newOrder.push(imageGalleryArr[originalIndex]);
+          // Update order indicator
+          const indicator = item.querySelector('.sort-order-indicator');
+          if (indicator) {
+            indicator.textContent = index + 1;
+          }
+          // Update dataset index
+          item.dataset.index = index;
+        });
+        
+        // Update the array with new order
+        imageGalleryArr = newOrder;
+        
+        window.adminLog?.('🔄 Ordine galleria immagini aggiornato');
+      }
     });
   }
 

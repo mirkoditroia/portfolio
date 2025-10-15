@@ -1,0 +1,25 @@
+[
+  {
+    "origin": [
+      "https://meirks.xyz",
+      "https://www.meirks.xyz",
+      "https://portfolio-eb526.web.app",
+      "https://portfolio-eb526.firebaseapp.com",
+      "http://localhost:3000"
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "Content-Range",
+      "Accept-Ranges",
+      "X-Goog-Upload-Status",
+      "X-Goog-Upload-Size-Received",
+      "Access-Control-Allow-Origin",
+      "Access-Control-Allow-Methods",
+      "Access-Control-Allow-Headers",
+      "Access-Control-Expose-Headers"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

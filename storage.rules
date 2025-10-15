@@ -1,0 +1,63 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Immagini - lettura pubblica con CORS, scrittura solo autenticati
+    match /images/{imageId} {
+      allow read: if true 
+                  || request.headers.origin == "https://meirks.xyz"
+                  || request.headers.origin == "https://www.meirks.xyz"
+                  || request.headers.origin == "https://portfolio-eb526.web.app"
+                  || request.headers.origin == "https://portfolio-eb526.firebaseapp.com";
+      allow write: if request.auth != null 
+                  && request.resource.size < 10 * 1024 * 1024  // 10MB max
+                  && request.resource.contentType.matches('image/.*');
+    }
+    
+    // Video - lettura pubblica con CORS, scrittura solo autenticati
+    match /videos/{videoId} {
+      allow read: if true 
+                  || request.headers.origin == "https://meirks.xyz"
+                  || request.headers.origin == "https://www.meirks.xyz"
+                  || request.headers.origin == "https://portfolio-eb526.web.app"
+                  || request.headers.origin == "https://portfolio-eb526.firebaseapp.com";
+      allow write: if request.auth != null 
+                  && request.resource.size < 100 * 1024 * 1024  // 100MB max
+                  && request.resource.contentType.matches('video/.*');
+    }
+    
+    // Assets - lettura pubblica con CORS per tutti i file statici
+    match /assets/{allPaths=**} {
+      allow read: if true 
+                  || request.headers.origin == "https://meirks.xyz"
+                  || request.headers.origin == "https://www.meirks.xyz"
+                  || request.headers.origin == "https://portfolio-eb526.web.app"
+                  || request.headers.origin == "https://portfolio-eb526.firebaseapp.com";
+      allow write: if request.auth != null;
+    }
+    
+    // File con percorsi numerici (es. 1752...mp4)
+    match /{fileId} {
+      allow read: if true 
+                  || request.headers.origin == "https://meirks.xyz"
+                  || request.headers.origin == "https://www.meirks.xyz"
+                  || request.headers.origin == "https://portfolio-eb526.web.app"
+                  || request.headers.origin == "https://portfolio-eb526.firebaseapp.com";
+      allow write: if request.auth != null;
+    }
+    
+    // Test files - per debugging
+    match /test/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Regola generale per tutti gli altri file - lettura pubblica con CORS
+    match /{allPaths=**} {
+      allow read: if true 
+                  || request.headers.origin == "https://meirks.xyz"
+                  || request.headers.origin == "https://www.meirks.xyz"
+                  || request.headers.origin == "https://portfolio-eb526.web.app"
+                  || request.headers.origin == "https://portfolio-eb526.firebaseapp.com";
+      allow write: if request.auth != null;
+    }
+  }
+}

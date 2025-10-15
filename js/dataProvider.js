@@ -21,11 +21,11 @@
   const safeFetchJson = originalFetchJson || fallbackFetchJson;
 
   async function listGalleriesFirestore(){
-    // Wait for Firebase init with timeout
+    // Wait for Firebase init with timeout ridotto
     if(!window.db){
       await new Promise((resolve, reject) => {
         let attempts = 0;
-        const maxAttempts = 600; // 30 seconds timeout
+        const maxAttempts = 100; // 5 seconds timeout (ridotto da 30s)
         const iv = setInterval(() => {
           attempts++;
           if(window.db){ 
@@ -33,7 +33,7 @@
             resolve(); 
           } else if(attempts >= maxAttempts) {
             clearInterval(iv);
-            reject(new Error('Firebase initialization timeout after 10 seconds'));
+            reject(new Error('Firebase initialization timeout after 5 seconds'));
           }
         }, 50);
       });
@@ -57,11 +57,11 @@
   }
 
   async function getSiteFirestore(){
-    // Wait for Firebase init with timeout
+    // Wait for Firebase init with timeout ridotto
     if(!window.db){ 
       await new Promise((resolve, reject) => {
         let attempts = 0;
-        const maxAttempts = 600; // 30 seconds timeout
+        const maxAttempts = 100; // 5 seconds timeout (ridotto da 30s)
         const iv = setInterval(() => {
           attempts++;
           if(window.db){ 
@@ -69,7 +69,7 @@
             resolve(); 
           } else if(attempts >= maxAttempts) {
             clearInterval(iv);
-            reject(new Error('Firebase initialization timeout after 10 seconds'));
+            reject(new Error('Firebase initialization timeout after 5 seconds'));
           }
         }, 50);
       });

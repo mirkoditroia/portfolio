@@ -7,7 +7,8 @@
     "dev": "nodemon server.js",
     "compress-images": "node scripts/compress-images.js",
     "optimize": "npm run compress-images && echo 'Optimization completed!'",
-    "postinstall": "node scripts/generate-env.js"
+    "postinstall": "node scripts/generate-env.js",
+    "setup-cors": "node scripts/setup-cors.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",

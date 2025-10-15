@@ -1,7 +1,7 @@
 // Mobile Splash Screen Module
 (function () {
   // Configurazione
-  const SPLASH_DURATION = 4500; // ms
+  const SPLASH_DURATION = 1000; // ms - Ridotto a 1 secondo
   const AUDIO_URL = '/assets/meirks.mp3'; // Cambia con il tuo file audio
   const SITE_NAME = window.APP_SITE_NAME || 'MÊIRKS'; // Puoi settare window.APP_SITE_NAME prima di includere questo script
   const ENABLE_AUDIO = false; // Imposta a true per abilitare l'audio (può essere bloccato dal browser)
@@ -164,7 +164,7 @@
 // Universal Splash Screen Module
 (function () {
   // Configurazione
-  const SPLASH_DURATION = 3500; // ms
+  const SPLASH_DURATION = 1000; // ms - Ridotto a 1 secondo
   const AUDIO_URL = '/assets/meirks.mp3';
   const SITE_NAME = window.APP_SITE_NAME || 'MÊIRKS';
   const ENABLE_AUDIO = false;

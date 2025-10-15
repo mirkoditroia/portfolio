@@ -16,7 +16,12 @@
   <meta name="twitter:title" content="MÊIRKS · Creative Tech Portfolio">
   <meta name="twitter:description" content="Arte digitale, VFX, 3D e interattività. Portfolio aggiornato.">
   <meta name="twitter:image" content="images/og-cover.jpg">
-  <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+  <!-- Preload risorse critiche -->
+  <link rel="preload" href="/data/site.json" as="fetch" crossorigin>
+  <link rel="preload" href="/data/galleries.json" as="fetch" crossorigin>
+  <link rel="preload" href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet"></noscript>
+  
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="css/lazy-images.css">
@@ -135,14 +140,14 @@
     z-index: 1000;
     backdrop-filter: blur(10px);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
-  ">
+  "
     <<div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
       <div id="env-info">
         <span id="environment">ENV: loading...</span> • 
         <span id="version">v1.1.0-alpha</span>
       </div>
       <div id="credits" style="font-style: italic;">
-        Realizzato al 100% da <strong>mêirks</strong> con l'indispensabile aiuto di Cursor e i suoi agenti galattici 🚀
+        Realizzato al 100% da <strong>mêirks</strong>
       </div>
     </div>
   </footer>

@@ -344,6 +344,106 @@ function initCanvasObserver() {
   console.log('👁️ Canvas observer inizializzato');
 }
 
+// Funzione per reinizializzare gli observer dopo cambio scheda
+function reinitializeCanvasObserver() {
+  // Rimuovi observer esistente se presente
+  if (canvasObserver) {
+    canvasObserver.disconnect();
+    canvasObserver = null;
+  }
+  
+  // Reinizializza l'observer
+  initCanvasObserver();
+  
+  // Trova tutti i canvas che non sono stati caricati o sono in stato inconsistente
+  const allCanvas = document.querySelectorAll('.gallery-canvas');
+  let reObservedCount = 0;
+  
+  allCanvas.forEach(canvas => {
+    // Reset dei flag se necessario
+    if (canvas.dataset.loaded === 'true' && canvas.dataset.contentLoaded !== 'true') {
+      console.log('🔧 Reset canvas flags per:', canvas.id);
+      canvas.dataset.loaded = 'false';
+      canvas.dataset.contentLoaded = 'false';
+    }
+    
+    // Se il canvas non è caricato, osservalo di nuovo
+    if (canvas.dataset.loaded !== 'true') {
+      canvasObserver.observe(canvas);
+      reObservedCount++;
+    }
+  });
+  
+  console.log(`🔄 Canvas observer reinizializzato - ${reObservedCount} canvas riosservati`);
+}
+
+// Event listener per cambio scheda - reinizializza gli observer quando si torna alla scheda
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    // La scheda è diventata visibile - reinizializza gli observer dopo un breve delay
+    setTimeout(() => {
+      console.log('🔄 Scheda tornata visibile - reinizializzazione observer canvas');
+      reinitializeCanvasObserver();
+    }, 100);
+  }
+});
+
+// Event listener per focus della finestra - backup per il cambio scheda
+window.addEventListener('focus', () => {
+  setTimeout(() => {
+    console.log('🔄 Finestra tornata in focus - reinizializzazione observer canvas');
+    reinitializeCanvasObserver();
+  }, 100);
+});
+
+// Funzione di utilità per forzare il ricaricamento di tutti i canvas visibili
+function forceReloadVisibleCanvas() {
+  const allCanvas = document.querySelectorAll('.gallery-canvas');
+  let reloadedCount = 0;
+  
+  allCanvas.forEach(canvas => {
+    // Controlla se il canvas è visibile
+    const rect = canvas.getBoundingClientRect();
+    const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+    
+    if (isVisible) {
+      // Reset dei flag
+      canvas.dataset.loaded = 'false';
+      canvas.dataset.contentLoaded = 'false';
+      
+      // Forza il caricamento
+      loadCanvasContent(canvas);
+      reloadedCount++;
+    }
+  });
+  
+  console.log(`🔄 Forzato ricaricamento di ${reloadedCount} canvas visibili`);
+}
+
+// Funzione di debug per testare il fix del cambio scheda
+function debugCanvasStates() {
+  const allCanvas = document.querySelectorAll('.gallery-canvas');
+  console.log('🔍 Debug stati canvas:');
+  
+  allCanvas.forEach(canvas => {
+    const loaded = canvas.dataset.loaded;
+    const contentLoaded = canvas.dataset.contentLoaded;
+    const imageSrc = canvas.dataset.imageSrc;
+    
+    console.log(`Canvas ${canvas.id}:`, {
+      loaded,
+      contentLoaded,
+      hasImageSrc: !!imageSrc,
+      isVisible: canvas.getBoundingClientRect().top < window.innerHeight
+    });
+  });
+}
+
+// Esponi le funzioni di debug globalmente per test
+window.debugCanvasStates = debugCanvasStates;
+window.forceReloadVisibleCanvas = forceReloadVisibleCanvas;
+window.reinitializeCanvasObserver = reinitializeCanvasObserver;
+
 // Funzione per caricare il contenuto del canvas quando diventa visibile
 function loadCanvasContent(canvas) {
   const canvasId = canvas.id;
@@ -354,10 +454,17 @@ function loadCanvasContent(canvas) {
     return;
   }
   
-  // Controlla se è già stato caricato
-  if (canvas.dataset.loaded === 'true') {
-    console.log('✅ Canvas già caricato:', canvasId);
+  // Controlla se è già stato caricato completamente
+  if (canvas.dataset.loaded === 'true' && canvas.dataset.contentLoaded === 'true') {
+    console.log('✅ Canvas già caricato completamente:', canvasId);
     return;
+  }
+  
+  // Se è marcato come caricato ma il contenuto non è caricato, reset
+  if (canvas.dataset.loaded === 'true' && canvas.dataset.contentLoaded !== 'true') {
+    console.log('🔧 Canvas in stato inconsistente, reset:', canvasId);
+    canvas.dataset.loaded = 'false';
+    canvas.dataset.contentLoaded = 'false';
   }
   
   // Indicatore di caricamento cyberpunk
@@ -2112,71 +2219,99 @@ document.addEventListener('DOMContentLoaded', function () {
   // Carica dati dinamici e inizializza
   console.log('🌍 Environment:', window.APP_ENV);
 
-  // Use listGalleries helper (Firestore in prod, fallback JSON altrove)
-  const galleriesPromise = (window.APP_ENV === 'prod' && window.listGalleries)
-    ? window.listGalleries() // preferisci Firestore in produzione
-    : window.fetchJson('/api/galleries', 'data/galleries.json'); // altri ambienti
-
-  galleriesPromise.then(data => {
-    console.log('📁 Galleries loaded:', Object.keys(data));
-    galleries = data;
-    Object.entries(data).forEach(([k, v]) => initGallery(k, v));
-    afterGalleryInit();
-    
-    // PATCH: Avvia preloading delle anteprime canvas DOPO che le gallery sono caricate
-    // Questo assicura che currentSiteData sia popolato anche in produzione
-    setTimeout(() => {
-      startInitialPreload();
-    }, 500);
-    
-    // Inizializza l'observer per il lazy loading dei canvas
-    setTimeout(() => {
-      initCanvasObserver();
+  // Caricamento ottimizzato delle galleries con timeout ridotto
+  const loadGalleriesOptimized = async () => {
+    try {
+      let data;
+      if (window.APP_ENV === 'prod' && window.listGalleries) {
+        // Produzione: Firestore con timeout di 5 secondi
+        data = await Promise.race([
+          window.listGalleries(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore timeout')), 5000))
+        ]);
+      } else {
+        // Sviluppo/Preprod: file statico
+        data = await window.fetchJson('/api/galleries', 'data/galleries.json');
+      }
       
-      // Osserva tutti i canvas per il lazy loading
-      const allCanvas = document.querySelectorAll('.gallery-canvas');
-      allCanvas.forEach(canvas => {
-        if (canvasObserver) {
-          canvasObserver.observe(canvas);
-        }
+      console.log('📁 Galleries loaded:', Object.keys(data));
+      galleries = data;
+      
+      // Inizializza galleries in batch per performance
+      const galleryEntries = Object.entries(data);
+      const batchSize = 3; // Processa 3 gallery alla volta
+      
+      for (let i = 0; i < galleryEntries.length; i += batchSize) {
+        const batch = galleryEntries.slice(i, i + batchSize);
+        batch.forEach(([k, v]) => initGallery(k, v));
         
-        // PATCH: Forza il caricamento dei canvas che hanno data-loaded="true" ma non mostrano contenuto
-        if (canvas.dataset.loaded === 'true' && canvas.dataset.imageSrc) {
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            // Controlla se il canvas è vuoto (solo background)
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const isEmpty = imageData.data.every(pixel => pixel === 0);
-            
-            if (isEmpty) {
-              console.log('🔧 Forzando caricamento immagine per canvas già marcato:', canvas.id);
-              canvas.dataset.loaded = 'false'; // Reset per permettere il caricamento
-              loadCanvasContent(canvas);
+        // Yield al browser tra i batch
+        if (i + batchSize < galleryEntries.length) {
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      }
+      
+      afterGalleryInit();
+      
+      // Avvia preloading con delay ridotto
+      setTimeout(() => {
+        startInitialPreload();
+      }, 200);
+    
+      // Inizializza l'observer per il lazy loading dei canvas
+      setTimeout(() => {
+        initCanvasObserver();
+        
+        // Osserva tutti i canvas per il lazy loading
+        const allCanvas = document.querySelectorAll('.gallery-canvas');
+        allCanvas.forEach(canvas => {
+          if (canvasObserver) {
+            canvasObserver.observe(canvas);
+          }
+          
+          // PATCH: Forza il caricamento dei canvas che hanno data-loaded="true" ma non mostrano contenuto
+          if (canvas.dataset.loaded === 'true' && canvas.dataset.imageSrc) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              // Controlla se il canvas è vuoto (solo background)
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const isEmpty = imageData.data.every(pixel => pixel === 0);
+              
+              if (isEmpty || canvas.dataset.contentLoaded !== 'true') {
+                console.log('🔧 Forzando caricamento immagine per canvas in stato inconsistente:', canvas.id);
+                canvas.dataset.loaded = 'false'; // Reset per permettere il caricamento
+                canvas.dataset.contentLoaded = 'false';
+                loadCanvasContent(canvas);
+              }
             }
           }
-        }
-      });
-      console.log(`👁️ Observer attivo per ${allCanvas.length} canvas`);
-    }, 200);
-    
-    if (window.innerWidth <= 900 && typeof enableModernMobileCanvasGallery === 'function') {
-      console.log('[MODERN MODAL] enableModernMobileCanvasGallery chiamata DOPO tutte le gallery');
-      enableModernMobileCanvasGallery();
-    }
-  })
-    .catch(err => {
+        });
+        console.log(`👁️ Observer attivo per ${allCanvas.length} canvas`);
+      }, 100);
+      
+      if (window.innerWidth <= 900 && typeof enableModernMobileCanvasGallery === 'function') {
+        console.log('[MODERN MODAL] enableModernMobileCanvasGallery chiamata DOPO tutte le gallery');
+        enableModernMobileCanvasGallery();
+      }
+      
+    } catch (err) {
       console.error('❌ Errore fetch galleries:', err);
-      // Fallback to local file directly
-      fetch('data/galleries.json')
-        .then(r => r.json())
-        .then(data => {
-          console.log('📁 Galleries loaded from fallback:', Object.keys(data));
-          galleries = data;
-          Object.entries(data).forEach(([k, v]) => initGallery(k, v));
-          afterGalleryInit();
-        })
-        .catch(err2 => console.error('❌ Errore fetch galleries fallback:', err2));
-    });
+      // Fallback immediato
+      try {
+        const response = await fetch('data/galleries.json');
+        const data = await response.json();
+        console.log('📁 Galleries loaded from fallback:', Object.keys(data));
+        galleries = data;
+        Object.entries(data).forEach(([k, v]) => initGallery(k, v));
+        afterGalleryInit();
+      } catch (err2) {
+        console.error('❌ Errore fetch galleries fallback:', err2);
+      }
+    }
+  };
+
+  // Avvia il caricamento ottimizzato
+  loadGalleriesOptimized();
 
   function afterGalleryInit() {
     // Lazy-loading: inizializza ImageOptimizer una sola volta
@@ -2420,9 +2555,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const isEmpty = imageData.data.every(pixel => pixel === 0);
             
-            if (isEmpty) {
-              console.log('🔧 Forzando caricamento immagine per canvas esistente:', canvas.id);
+            if (isEmpty || canvas.dataset.contentLoaded !== 'true') {
+              console.log('🔧 Forzando caricamento immagine per canvas esistente in stato inconsistente:', canvas.id);
               canvas.dataset.loaded = 'false'; // Reset per permettere il caricamento
+              canvas.dataset.contentLoaded = 'false';
               loadCanvasContent(canvas);
             }
           }
@@ -3483,10 +3619,8 @@ function enableModernMobileCanvasGallery() {
 
 document.addEventListener('DOMContentLoaded', enableModernMobileCanvasGallery);
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Inizializza audio site-name
-  initSiteNameAudio();
-  
+// Carica immediatamente le sezioni navbar per evitare lag
+(function() {
   // Funzione helper per aggiornare label e heading
   function updateSectionLabels(sections) {
     if (Array.isArray(sections)) {
@@ -3506,28 +3640,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Scegli la fonte dati in base all'ambiente
-  if (window.APP_ENV === 'prod' && typeof window.getSiteProd === 'function') {
-    // Produzione: Firestore
-    window.getSiteProd().then(siteData => {
+  // Carica immediatamente i dati delle sezioni (non aspettare DOMContentLoaded)
+  const loadSiteData = async () => {
+    try {
+      let siteData;
+      if (window.APP_ENV === 'prod' && typeof window.getSiteProd === 'function') {
+        // Produzione: Firestore con timeout ridotto
+        siteData = await Promise.race([
+          window.getSiteProd(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))
+        ]);
+      } else {
+        // Sviluppo/Preprod: file statico
+        const response = await fetch('/data/site.json');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        siteData = await response.json();
+      }
       updateSectionLabels(siteData.sections);
-    }).catch(err => {
-      console.error('Errore caricando site da Firestore:', err);
-    });
-  } else {
-    // Sviluppo/Preprod: file statico
-    fetch('/data/site.json')
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then(config => {
-        updateSectionLabels(config.sections);
-      })
-      .catch(err => {
-        console.error('Errore caricando site.json:', err);
-      });
-  }
+      console.log('✅ Sezioni navbar caricate immediatamente');
+    } catch (err) {
+      console.warn('⚠️ Fallback sezioni navbar:', err);
+      // Fallback con sezioni predefinite
+      const fallbackSections = [
+        { key: 'vfx', label: 'VFX' },
+        { key: 'art3d', label: '3D artworks' },
+        { key: 'interactive', label: 'Interactive' }
+      ];
+      updateSectionLabels(fallbackSections);
+    }
+  };
+
+  // Avvia il caricamento immediatamente
+  loadSiteData();
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Inizializza audio site-name
+  initSiteNameAudio();
 });
 
 // Funzioni di test per qualità GLSL

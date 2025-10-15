@@ -47,7 +47,19 @@ const SITE_FILE  = path.join(__dirname,'data','site.json');
 const SHADER_FILE = path.join(__dirname,'data','mobile_shader.glsl');
 
 // middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://meirks.xyz',
+    'https://www.meirks.xyz', 
+    'https://portfolio-eb526.web.app',
+    'https://portfolio-eb526.firebaseapp.com',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Content-Range', 'Accept-Ranges']
+}));
 app.use(express.json({limit:'2mb'}));
 app.use(express.text({type:'text/plain',limit:'200kb'}));
 
