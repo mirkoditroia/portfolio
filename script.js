@@ -3348,6 +3348,14 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
   const modal = document.createElement('div');
   modal.className = 'modern-modal-gallery';
 
+  const updateModalOrientation = (isPortrait) => {
+    if (isPortrait) {
+      modal.classList.add('portrait-media');
+    } else {
+      modal.classList.remove('portrait-media');
+    }
+  };
+
   // Lock scroll when modal opens
   lockScroll();
 
@@ -3418,6 +3426,7 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
   let current = startIndex;
   function renderSlides() {
     carousel.innerHTML = '';
+    updateModalOrientation(false);
     const slide = document.createElement('div');
     slide.className = 'modern-modal-slide';
     
@@ -3457,6 +3466,11 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
         el.src = src;
         console.log('🎬 Caricamento video:', src);
       }
+      
+      const applyVideoOrientation = () => {
+        if (!el.videoWidth || !el.videoHeight) return;
+        updateModalOrientation(el.videoHeight >= el.videoWidth);
+      };
       
       // Configurazione video ottimizzata
       el.controls = true;
@@ -3517,6 +3531,7 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
       
       // Tentativo di play automatico con gestione errori
       el.addEventListener('loadedmetadata', () => {
+        applyVideoOrientation();
         el.play().catch(err => {
           console.warn('⚠️ Autoplay fallito (normale su alcuni browser):', err);
           // Aggiungi un pulsante play se l'autoplay fallisce
@@ -3526,6 +3541,10 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
           }
         });
       });
+      
+      if (el.readyState >= 1) {
+        applyVideoOrientation();
+      }
       
     } else {
       // Gestione immagini con lazy loading
@@ -3547,6 +3566,16 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
       el.style.maxWidth = '100%';
       el.style.maxHeight = '100%';
       el.style.objectFit = 'contain';
+      
+      const applyImageOrientation = () => {
+        if (!el.naturalWidth || !el.naturalHeight) return;
+        updateModalOrientation(el.naturalHeight >= el.naturalWidth);
+      };
+      if (el.complete && el.naturalWidth) {
+        applyImageOrientation();
+      } else {
+        el.addEventListener('load', applyImageOrientation, { once: true });
+      }
       
       // Gestione errori immagine con retry semplificato
       let imageRetryAttempt = 0;
