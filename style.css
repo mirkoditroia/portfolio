@@ -2705,8 +2705,7 @@ main{margin-top:0 !important;}
   background: rgba(18,22,34,0.98);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  animation: fadeIn 0.25s;
+  justify-content: center;
 }
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -2779,26 +2778,30 @@ main{margin-top:0 !important;}
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
   position: relative;
-  padding: clamp(48px, 10vh, 96px) clamp(18px, 6vw, 46px) clamp(96px, 14vh, 136px);
+  padding: clamp(48px, 10vh, 84px) clamp(18px, 6vw, 46px) clamp(84px, 12vh, 120px);
   box-sizing: border-box;
 }
 .modern-modal-slide {
-  min-width: 100vw;
+  width: min(88vw, 960px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: clamp(14px, 2.5vh, 32px);
-  padding: 0;
+  justify-content: flex-start;
+  gap: clamp(16px, 3vh, 36px);
   box-sizing: border-box;
   transition: transform 0.3s cubic-bezier(.4,0,.2,1);
 }
+.modern-modal-media {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .modern-modal-media img,
 .modern-modal-media video {
-  max-width: 96vw;
-  max-height: 55vh;
+  width: 100%;
+  max-height: clamp(340px, 60vh, 620px);
   border-radius: 18px;
   box-shadow: 0 4px 32px #0008;
   background: #111;
@@ -2812,21 +2815,20 @@ main{margin-top:0 !important;}
   gap: 12px;
 }
 .modern-modal-description {
-  margin-top: clamp(16px, 3vh, 32px);
+  margin-top: clamp(12px, 2vh, 24px);
   padding: 0;
   color: rgba(226, 239, 255, 0.9);
-  font-size: 1.05rem;
-  line-height: 1.6;
+  font-size: 1.02rem;
+  line-height: 1.55;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(10px, 2vh, 22px);
+  gap: clamp(10px, 2vh, 20px);
   opacity: 0.95;
-  max-width: min(560px, 92vw);
+  max-width: min(520px, 86vw);
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: 0;
 }
 .modern-modal-arrow {
   background: #232b3a;
@@ -3036,7 +3038,7 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
   word-wrap: break-word;
   overflow-wrap: break-word;
   hyphens: auto;
-  padding: 0 clamp(20px, 5vw, 32px);
+  padding: 0 clamp(18px, 5vw, 30px);
 }
 
 .description-text--placeholder {
