@@ -2781,8 +2781,7 @@ main{margin-top:0 !important;}
   justify-content: center;
   overflow: hidden;
   position: relative;
-  min-height: 60vw;
-  padding-bottom: clamp(68px, 12vh, 104px);
+  padding: clamp(48px, 10vh, 96px) clamp(18px, 6vw, 46px) clamp(96px, 14vh, 136px);
   box-sizing: border-box;
 }
 .modern-modal-slide {
@@ -2791,8 +2790,8 @@ main{margin-top:0 !important;}
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(12px, 2vh, 28px);
-  padding: clamp(12px, 3vh, 28px) clamp(20px, 5vw, 46px) 0;
+  gap: clamp(14px, 2.5vh, 32px);
+  padding: 0;
   box-sizing: border-box;
   transition: transform 0.3s cubic-bezier(.4,0,.2,1);
 }
@@ -2822,7 +2821,7 @@ main{margin-top:0 !important;}
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(10px, 2vh, 18px);
+  gap: clamp(10px, 2vh, 22px);
   opacity: 0.95;
   max-width: min(560px, 92vw);
   width: 100%;
@@ -3225,12 +3224,11 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
 
 /* Expand/collapse button */
 .description-expand-btn {
-  align-self: flex-end;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-top: 6px;
-  margin-right: clamp(12px, 3vw, 26px);
+  margin-top: 10px;
+  margin-left: 0;
   padding: 8px 18px;
   background: linear-gradient(135deg, rgba(64, 224, 208, 0.18), rgba(64, 224, 208, 0.32));
   border: 1px solid rgba(64, 224, 208, 0.45);
@@ -3247,7 +3245,8 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
   outline: none;
   max-width: calc(100% - 40px);
   box-sizing: border-box;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: center;
 }
 
 .description-expand-btn:hover {
@@ -3280,8 +3279,8 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
 /* Responsive styles for mobile */
 @media (max-width: 899px) {
   .modern-modal-slide {
-    padding: 0 clamp(16px, 6vw, 32px) clamp(48px, 10vh, 76px);
-    gap: clamp(8px, 2vh, 18px);
+    padding: 0 clamp(16px, 6vw, 32px) clamp(70px, 12vh, 92px);
+    gap: clamp(10px, 2vh, 22px);
   }
 
   .modern-modal-media img,
@@ -3293,35 +3292,25 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
   .modern-modal-description {
     font-size: 0.98rem;
     padding: 0;
-    gap: 10px;
+    gap: 12px;
   }
   
   .description-text {
-    padding: 0 clamp(16px, 6vw, 24px);
+    padding: 0 clamp(16px, 6vw, 28px);
   }
   
   .description-expand-btn {
-    align-self: center;
-    margin: clamp(6px, 2vh, 12px) 0 0 0;
-    padding: 10px 20px;
-    font-size: 0.75rem;
-    min-height: 38px;
-    white-space: normal;
-  }
-
-  .modern-modal-gallery.portrait-media .modern-modal-slide {
-    padding-bottom: clamp(32px, 8vh, 56px);
-  }
-
-  .modern-modal-gallery.portrait-media .modern-modal-carousel {
-    padding-bottom: clamp(110px, 18vh, 160px);
+    margin-top: 8px;
+    padding: 9px 18px;
+    font-size: 0.72rem;
+    min-height: 36px;
   }
 }
 
 @media (max-width: 480px) {
   .modern-modal-slide {
-    padding: 0 clamp(14px, 7vw, 26px) clamp(44px, 12vh, 72px);
-    gap: clamp(10px, 3vh, 18px);
+    padding: 0 clamp(14px, 7vw, 26px) clamp(64px, 13vh, 88px);
+    gap: clamp(10px, 2vh, 20px);
   }
 
   .modern-modal-media img,
@@ -3336,24 +3325,15 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
   }
   
   .description-text {
-    padding: 0 clamp(14px, 7vw, 22px);
+    padding: 0 clamp(14px, 7vw, 24px);
   }
   
   .description-expand-btn {
-    align-self: center;
-    margin-top: clamp(8px, 2vh, 14px);
-    padding: 12px 22px;
-    font-size: 0.78rem;
-    min-height: 40px;
-    white-space: normal;
-  }
-
-  .modern-modal-gallery.portrait-media .modern-modal-slide {
-    padding-bottom: clamp(28px, 10vh, 48px);
-  }
-
-  .modern-modal-gallery.portrait-media .modern-modal-carousel {
-    padding-bottom: clamp(120px, 22vh, 170px);
+    margin-top: 6px;
+    padding: 9px 18px;
+    font-size: 0.7rem;
+    min-height: 36px;
+    border-radius: 999px;
   }
 }
 
@@ -3500,28 +3480,4 @@ select:focus {
   outline: none;
   border-color: #40e0d0;
   box-shadow: 0 0 0 2px rgba(64, 224, 208, 0.2);
-}
-
-.modern-modal-carousel {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  position: relative;
-  min-height: 60vw;
-  padding-bottom: clamp(68px, 12vh, 104px);
-  box-sizing: border-box;
-}
-
-.modern-modal-gallery.portrait-media .modern-modal-carousel {
-  padding-bottom: clamp(96px, 15vh, 140px);
-}
-
-.modern-modal-gallery.portrait-media .modern-modal-slide {
-  padding-bottom: clamp(20px, 5vh, 38px);
-}
-
-.modern-modal-gallery.portrait-media .modern-modal-description {
-  margin-top: clamp(12px, 2.5vh, 24px);
 }
