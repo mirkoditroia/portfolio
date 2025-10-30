@@ -857,6 +857,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const clean = path.split('?')[0];
     if (mediaTypePatterns.video.test(clean)) return 'video';
     if (mediaTypePatterns.image.test(clean)) return 'image';
+    if (clean.includes('/videos/') || clean.includes('videos%2F')) return 'video';
+    if (clean.includes('/images/') || clean.includes('images%2F')) return 'image';
     return null;
   }
   
@@ -868,8 +870,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     galleryCanvasPreviewSelect.innerHTML = '<option value="">Usa impostazioni manuali del canvas</option>';
     
     galleryArr.forEach((media) => {
-      const mediaType = detectMediaType(media);
-      if (!mediaType) return;
+      const mediaType = detectMediaType(media) || 'image';
       const fileName = media.split('/').pop();
       const option = document.createElement('option');
       option.value = media;
