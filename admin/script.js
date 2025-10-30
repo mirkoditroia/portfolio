@@ -843,52 +843,82 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const imageGalleryListEl = document.getElementById('se-image-gallery-list');
   let imageGalleryArr = [];
   
-  // ----- Gallery canvas video selection helpers -----
-  const galleryCanvasVideoSelect = document.getElementById('se-gallery-canvas-video');
-  let selectedCanvasVideo = '';
+  // ----- Gallery canvas preview media selection helpers -----
+  const galleryCanvasPreviewSelect = document.getElementById('se-gallery-canvas-video');
+  let selectedCanvasPreview = { src: '', type: '' };
   
-  // Function to update canvas video selection dropdown
-  function updateGalleryCanvasVideoSelection() {
-    if (!galleryCanvasVideoSelect) return;
+  const mediaTypePatterns = {
+    video: /\.(mp4|webm|mov|avi|mkv)$/i,
+    image: /\.(png|jpe?g|gif|webp|bmp|svg)$/i
+  };
+  
+  function detectMediaType(path) {
+    if (!path) return null;
+    const clean = path.split('?')[0];
+    if (mediaTypePatterns.video.test(clean)) return 'video';
+    if (mediaTypePatterns.image.test(clean)) return 'image';
+    return null;
+  }
+  
+  function updateGalleryCanvasPreviewSelection() {
+    if (!galleryCanvasPreviewSelect) return;
+    const previous = { ...selectedCanvasPreview };
+    let hasSelection = false;
     
-    // Clear existing options except the first one
-    galleryCanvasVideoSelect.innerHTML = '<option value="">Nessun video canvas (usa immagine statica)</option>';
+    galleryCanvasPreviewSelect.innerHTML = '<option value="">Usa impostazioni manuali del canvas</option>';
     
-    // Add video options from galleryArr
-    galleryArr.forEach((media, idx) => {
-      // PATCH: estrai la parte prima del ? per il test estensione
-      const cleanMedia = media.split('?')[0];
-      const isVideo = /\.(mp4|webm|mov|avi|mkv)$/i.test(cleanMedia);
-      if (isVideo) {
-        const fileName = media.split('/').pop();
-        const option = document.createElement('option');
-        option.value = media;
-        option.textContent = `🎬 ${fileName}`;
-        galleryCanvasVideoSelect.appendChild(option);
+    galleryArr.forEach((media) => {
+      const mediaType = detectMediaType(media);
+      if (!mediaType) return;
+      const fileName = media.split('/').pop();
+      const option = document.createElement('option');
+      option.value = media;
+      option.dataset.type = mediaType;
+      option.textContent = `${mediaType === 'video' ? '🎬' : '🖼️'} ${fileName}`;
+      if (previous.src && previous.src === media) {
+        option.selected = true;
+        hasSelection = true;
       }
+      galleryCanvasPreviewSelect.appendChild(option);
     });
     
-    // Restore selected value if it exists
-    if (selectedCanvasVideo && galleryCanvasVideoSelect.querySelector(`option[value="${selectedCanvasVideo}"]`)) {
-      galleryCanvasVideoSelect.value = selectedCanvasVideo;
-    } else {
-      selectedCanvasVideo = '';
-      galleryCanvasVideoSelect.value = '';
+    if (!hasSelection) {
+      selectedCanvasPreview = { src: '', type: '' };
+      galleryCanvasPreviewSelect.value = '';
     }
   }
   
-  // Handle canvas video selection change
-  if (galleryCanvasVideoSelect) {
-    galleryCanvasVideoSelect.addEventListener('change', (e) => {
-      selectedCanvasVideo = e.target.value;
-      const canvasCheckbox = F.canvas;
-      
-      // Auto-activate canvas flag if video is selected
-      if (selectedCanvasVideo) {
-        canvasCheckbox.checked = true;
-        console.log('🎬 Canvas video selected:', selectedCanvasVideo, '- Canvas flag auto-activated');
+  if (galleryCanvasPreviewSelect) {
+    galleryCanvasPreviewSelect.addEventListener('change', (e) => {
+      const option = e.target.selectedOptions[0];
+      if (!option || !option.value) {
+        selectedCanvasPreview = { src: '', type: '' };
+        return;
       }
+      selectedCanvasPreview = {
+        src: option.value,
+        type: option.dataset.type || detectMediaType(option.value) || 'image'
+      };
+      F.canvas.checked = true;
+      if (selectedCanvasPreview.type === 'image') {
+        F.src.value = selectedCanvasPreview.src;
+      } else if (selectedCanvasPreview.type === 'video') {
+        if (!F.src.value || !F.src.value.trim()) {
+          F.src.value = selectedCanvasPreview.src;
+        }
+      }
+      console.log('🎛️ Canvas media selected:', selectedCanvasPreview);
     });
+  }
+
+  function setCanvasPreviewFromSlideData(slide) {
+    selectedCanvasPreview = { src: '', type: '' };
+    if (!slide) return;
+    if (slide.canvasVideo && slide.video) {
+      selectedCanvasPreview = { src: slide.video, type: 'video' };
+    } else if (slide.src) {
+      selectedCanvasPreview = { src: slide.src, type: detectMediaType(slide.src) || 'image' };
+    }
   }
 
   function renderGallery(){
@@ -958,7 +988,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
     
     // 🎬 NEW: Update canvas video selection dropdown
-    updateGalleryCanvasVideoSelection();
+    updateGalleryCanvasPreviewSelection();
     
     // Initialize sorting
     initGallerySorting();
@@ -1075,7 +1105,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         galleryArr = newOrder;
         
         // Update canvas video selection dropdown
-        updateGalleryCanvasVideoSelection();
+        updateGalleryCanvasPreviewSelection();
         
         window.adminLog?.('🔄 Ordine galleria aggiornato');
       }
@@ -1191,17 +1221,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }else if(F.type.value==='gallery'){
       slideData.modalGallery = [...galleryArr];
       
-      // 🎬 NEW: Handle canvas video selection for gallery type
-      if (selectedCanvasVideo) {
-        slideData.video = selectedCanvasVideo;
-        slideData.canvasVideo = true;
-        
-        // Use video as thumbnail source only if no custom thumbnail is set
-        if (!slideData.src || slideData.src.trim() === '') {
-          slideData.src = selectedCanvasVideo;
+      if (selectedCanvasPreview.src) {
+        if (selectedCanvasPreview.type === 'video') {
+          slideData.video = selectedCanvasPreview.src;
+          slideData.canvasVideo = true;
+          if (!slideData.src || slideData.src.trim() === '') {
+            slideData.src = selectedCanvasPreview.src;
+          }
+          console.log('🎬 Gallery canvas video configured:', selectedCanvasPreview.src);
+        } else {
+          // Preview immagine: usa come thumbnail e rimuovi flag canvasVideo
+          slideData.src = selectedCanvasPreview.src;
+          if (slideData.canvasVideo) delete slideData.canvasVideo;
+          if (slideData.video && slideData.video === selectedCanvasPreview.src) {
+            delete slideData.video;
+          }
+          console.log('🖼️ Gallery canvas image configured:', selectedCanvasPreview.src);
         }
-        
-        console.log('🎬 Gallery canvas video configured:', selectedCanvasVideo);
       }
     }
 
@@ -1230,8 +1266,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     galleryArr = [];
     imageGalleryArr = [];
     
-    // 🎬 NEW: Reset canvas video selection
-    selectedCanvasVideo = '';
+    // Reset canvas media selection
+    selectedCanvasPreview = { src: '', type: '' };
     
     // Reset image type selector
     const imageTypeSelect = document.getElementById('se-image-type');
@@ -1305,14 +1341,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(slide.type === 'gallery'){
         F.type.value = 'gallery';
         galleryArr = [...(slide.modalGallery || [])];
-        
-        // Handle canvas video selection for existing gallery slides
-        if (slide.canvasVideo && slide.video) {
-          selectedCanvasVideo = slide.video;
-        } else {
-          selectedCanvasVideo = '';
-        }
-        
+        setCanvasPreviewFromSlideData(slide);
         renderGallery();
         F.desc.value = slide.description || '';
         return showTypeFields('gallery'), overlay.classList.remove('hidden');
@@ -1322,7 +1351,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(slide.modalGallery && slide.canvasVideo && slide.video){
         F.type.value = 'gallery';
         galleryArr = [...slide.modalGallery];
-        selectedCanvasVideo = slide.video;
+        setCanvasPreviewFromSlideData(slide);
         renderGallery();
       }
       else if(slide.canvas && slide.video && !slide.modalImage && !slide.modalGallery){
@@ -1378,12 +1407,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         } else {
           F.type.value='gallery'; 
           galleryArr=[...slide.modalGallery]; 
-          // 🎬 NEW: Handle canvas video selection for existing gallery slides
-          if (slide.canvasVideo && slide.video) {
-            selectedCanvasVideo = slide.video;
-          } else {
-            selectedCanvasVideo = '';
-          }
+          setCanvasPreviewFromSlideData(slide);
           renderGallery();
         }
       }else if(slide.canvas){
@@ -1399,7 +1423,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(!slide){ 
       galleryArr=[]; 
       imageGalleryArr=[]; 
-      selectedCanvasVideo = ''; // 🎬 NEW: Reset canvas video selection
+      selectedCanvasPreview = { src: '', type: '' };
       renderGallery(); 
       renderImageGallery(); 
     }
