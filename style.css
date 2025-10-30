@@ -750,20 +750,18 @@ main {
 }
 
 .gallery-img {
-  width: 100%;
-  max-width: 100%;
+  width: 90%;
   height: 210px;
   object-fit: cover;
   border-radius: 16px;
-  margin: 18px 0 0 0;
+  margin-top: 18px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.10);
   cursor: pointer;
   transition: transform var(--dur-anim) var(--ease-std), box-shadow var(--dur-anim) var(--ease-std);
-  display: block;
 }
 
 .gallery-canvas {
-  width: 100%;
+  width: 90%;
   height: 210px;
   border-radius: 16px;
   margin-top: 18px;
@@ -774,7 +772,7 @@ main {
   
   /* FIX: Previene layout shift riservando lo spazio */
   min-height: 210px;
-  min-width: 270px; /* for fallback layout */
+  min-width: 270px; /* 90% di 300px */
   background: linear-gradient(135deg, #142031, #142031); /* Skeleton background */
   position: relative;
   overflow: hidden;
@@ -2791,6 +2789,9 @@ main{margin-top:0 !important;}
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: clamp(12px, 2vh, 28px);
+  padding: 0 clamp(20px, 5vw, 48px) clamp(76px, 11vh, 108px);
+  box-sizing: border-box;
   transition: transform 0.3s cubic-bezier(.4,0,.2,1);
 }
 .modern-modal-media img,
@@ -2810,17 +2811,20 @@ main{margin-top:0 !important;}
   gap: 12px;
 }
 .modern-modal-description {
-  margin-top: 18px;
-  padding: 0 24px 24px;
-  color: rgba(226, 239, 255, 0.88);
+  margin-top: clamp(16px, 3vh, 32px);
+  padding: 0;
+  color: rgba(226, 239, 255, 0.9);
   font-size: 1.05rem;
   line-height: 1.6;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: clamp(10px, 2vh, 22px);
   opacity: 0.95;
+  max-width: min(560px, 92vw);
+  width: 100%;
+  box-sizing: border-box;
 }
 .modern-modal-arrow {
   background: #232b3a;
@@ -3030,6 +3034,7 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
   word-wrap: break-word;
   overflow-wrap: break-word;
   hyphens: auto;
+  padding: 0 clamp(20px, 5vw, 32px);
 }
 
 .description-text--placeholder {
@@ -3236,6 +3241,10 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   outline: none;
+  max-width: calc(100% - 40px);
+  box-sizing: border-box;
+  white-space: normal;
+  text-align: center;
 }
 
 .description-expand-btn:hover {
@@ -3267,6 +3276,11 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
 
 /* Responsive styles for mobile */
 @media (max-width: 899px) {
+  .modern-modal-slide {
+    padding: 0 clamp(16px, 6vw, 32px) clamp(70px, 12vh, 92px);
+    gap: clamp(10px, 2vh, 22px);
+  }
+
   .modern-modal-media img,
   .modern-modal-media video {
     max-height: 45vh !important;
@@ -3275,20 +3289,28 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
   
   .modern-modal-description {
     font-size: 0.98rem;
-    padding: 0 18px 20px;
-    gap: 10px;
+    padding: 0;
+    gap: 12px;
+  }
+  
+  .description-text {
+    padding: 0 clamp(16px, 6vw, 28px);
   }
   
   .description-expand-btn {
     margin-top: 8px;
-    padding: 8px 16px;
+    padding: 9px 18px;
     font-size: 0.72rem;
-    min-height: 34px;
-    min-width: 88px;
+    min-height: 36px;
   }
 }
 
 @media (max-width: 480px) {
+  .modern-modal-slide {
+    padding: 0 clamp(14px, 7vw, 26px) clamp(64px, 13vh, 88px);
+    gap: clamp(10px, 2vh, 20px);
+  }
+
   .modern-modal-media img,
   .modern-modal-media video {
     max-height: 80vh !important;
@@ -3297,13 +3319,16 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
   
   .modern-modal-description {
     font-size: 0.92rem;
-    padding: 0 16px 18px;
-    gap: 8px;
+    gap: 10px;
+  }
+  
+  .description-text {
+    padding: 0 clamp(14px, 7vw, 24px);
   }
   
   .description-expand-btn {
     margin-top: 6px;
-    padding: 9px 16px;
+    padding: 9px 18px;
     font-size: 0.7rem;
     min-height: 36px;
     border-radius: 999px;
