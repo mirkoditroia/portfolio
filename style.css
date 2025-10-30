@@ -750,18 +750,20 @@ main {
 }
 
 .gallery-img {
-  width: 90%;
+  width: 100%;
+  max-width: 100%;
   height: 210px;
   object-fit: cover;
   border-radius: 16px;
-  margin-top: 18px;
+  margin: 18px 0 0 0;
   box-shadow: 0 4px 24px rgba(0,0,0,0.10);
   cursor: pointer;
   transition: transform var(--dur-anim) var(--ease-std), box-shadow var(--dur-anim) var(--ease-std);
+  display: block;
 }
 
 .gallery-canvas {
-  width: 90%;
+  width: 100%;
   height: 210px;
   border-radius: 16px;
   margin-top: 18px;
@@ -772,7 +774,7 @@ main {
   
   /* FIX: Previene layout shift riservando lo spazio */
   min-height: 210px;
-  min-width: 270px; /* 90% di 300px */
+  min-width: 270px; /* for fallback layout */
   background: linear-gradient(135deg, #142031, #142031); /* Skeleton background */
   position: relative;
   overflow: hidden;
