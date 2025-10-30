@@ -340,6 +340,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
           const newDesc = sl.description || '(vuota)';
           diffMsgs.push(`📝 DESCRIZIONE modificata [Gallery: ${gKey} | Slide #${idx+1} "${sl.title||'Senza titolo'}"]\n   • Prima: "${prevDesc.substr(0,80)}${prevDesc.length>80?'...':''}"\n   • Dopo:  "${newDesc.substr(0,80)}${newDesc.length>80?'...':''}"`);
         }
+
+        if((prev.detailDescription||'') !== (sl.detailDescription||'')){
+          const prevDetail = prev.detailDescription || '(vuota)';
+          const newDetail = sl.detailDescription || '(vuota)';
+          diffMsgs.push(`📝 SCHEDA DETTAGLI aggiornata [Gallery: ${gKey} | Slide #${idx+1} "${sl.title||'Senza titolo'}"]\n   • Prima: "${prevDetail.substr(0,80)}${prevDetail.length>80?'...':''}"\n   • Dopo:  "${newDetail.substr(0,80)}${newDetail.length>80?'...':''}"`);
+        }
+
+        const prevSoftwareList = Array.isArray(prev.softwareUsed) ? prev.softwareUsed.join(', ') : (typeof prev.software === 'string' ? prev.software : '');
+        const newSoftwareList = Array.isArray(sl.softwareUsed) ? sl.softwareUsed.join(', ') : (typeof sl.software === 'string' ? sl.software : '');
+        if(prevSoftwareList !== newSoftwareList){
+          diffMsgs.push(`📝 SOFTWARE aggiornati [Gallery: ${gKey} | Slide #${idx+1} "${sl.title||'Senza titolo'}"]\n   • Prima: "${prevSoftwareList || '(nessuno)'}"\n   • Dopo:  "${newSoftwareList || '(nessuno)'}"`);
+        }
         
         // Check for video path changes
         if((prev.video||'') !== (sl.video||'')){
@@ -782,7 +794,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
     video: document.getElementById('se-video'),
     image: document.getElementById('se-image'),
     imageVideo: document.getElementById('se-image-video'),
-    desc: document.getElementById('se-description')
+    desc: document.getElementById('se-description'),
+    detailDesc: document.getElementById('se-detail-description'),
+    software: document.getElementById('se-software')
   };
   const typeFields = {
     video: document.getElementById('field-video'),
@@ -1121,9 +1135,25 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const slideData = {
       title: F.title.value,
       canvas: F.canvas.checked,
-      description: F.desc.value,
+      description: (F.desc.value || '').trim(),
       type: F.type.value // <--- Salva sempre il tipo selezionato
     };
+
+    const detailText = (F.detailDesc.value || '').trim();
+    if (detailText) {
+      slideData.detailDescription = detailText;
+    }
+
+    const softwareInput = (F.software.value || '').trim();
+    if (softwareInput) {
+      const softwareList = softwareInput
+        .split(/[,;\n]/)
+        .map(item => item.trim())
+        .filter(Boolean);
+      if (softwareList.length) {
+        slideData.softwareUsed = softwareList;
+      }
+    }
     
     // Validation for image video
     if(F.type.value==='image'){
@@ -1194,7 +1224,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function openSlideEditor(slide, cb){
     editorCb = cb;
     document.getElementById('se-heading').textContent = slide ? 'Modifica Slide' : 'Nuova Slide';
-    F.title.value='';F.canvas.checked=false;F.type.value='video';F.src.value='';F.video.value='';F.image.value='';F.imageVideo.value='';F.desc.value='';
+    F.title.value='';F.canvas.checked=false;F.type.value='video';F.src.value='';F.video.value='';F.image.value='';F.imageVideo.value='';F.desc.value='';F.detailDesc.value='';F.software.value='';
     
     // Reset arrays
     galleryArr = [];
@@ -1214,6 +1244,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
       F.title.value = slide.title || '';
       F.canvas.checked = !!slide.canvas;
       F.src.value = slide.src || '';
+      F.detailDesc.value = slide.detailDescription || (slide.detail && slide.detail.description) || '';
+      const existingSoftware = Array.isArray(slide.softwareUsed)
+        ? slide.softwareUsed
+        : Array.isArray(slide.software)
+          ? slide.software
+          : (typeof slide.softwareUsed === 'string' && slide.softwareUsed.trim())
+            ? slide.softwareUsed.split(/[,;\n]/)
+            : (typeof slide.software === 'string' && slide.software.trim())
+              ? slide.software.split(/[,;\n]/)
+              : [];
+      F.software.value = existingSoftware
+        .map(item => typeof item === 'string' ? item.trim() : String(item).trim())
+        .filter(Boolean)
+        .join(', ');
 
       // PATCH: Se la slide ha un tipo salvato, rispettalo sempre
       if(slide.type === 'image'){

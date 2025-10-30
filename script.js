@@ -1714,6 +1714,23 @@ document.addEventListener('DOMContentLoaded', function () {
       if (img.description) {
         item.setAttribute('data-description', img.description);
       }
+      if (img.detailDescription || (img.detail && img.detail.description)) {
+        const detailed = img.detailDescription || (img.detail && img.detail.description);
+        if (detailed) {
+          item.setAttribute('data-detail-description', detailed);
+        }
+      }
+      if (img.detailTitle || (img.detail && img.detail.title)) {
+        const detailTitle = img.detailTitle || (img.detail && img.detail.title);
+        if (detailTitle) {
+          item.setAttribute('data-detail-title', detailTitle);
+        }
+      }
+      const rawSoftware = img.softwareUsed ?? img.software ?? (img.detail && (img.detail.software || img.detail.tools));
+      const softwareList = normalizeSoftwareList(rawSoftware);
+      if (softwareList.length) {
+        item.setAttribute('data-software', JSON.stringify(softwareList));
+      }
       if (img.placeholder) {
         item.classList.add('placeholder-slide');
         track.appendChild(item);
@@ -2333,7 +2350,7 @@ document.addEventListener('DOMContentLoaded', function () {
     galleryItems.forEach((item, index) => {
       if (item.classList.contains('placeholder-slide')) return; // skip filler slides
       const videoSrc = item.getAttribute('data-video');
-      const description = item.getAttribute('data-description') || 'Lorem ipsum dolor sit amet.';
+      const description = item.getAttribute('data-description') || '';
 
       // Trova l'immagine corrispondente nell'array
       const titleEl = item.querySelector('.gallery-title');
@@ -2360,6 +2377,13 @@ document.addEventListener('DOMContentLoaded', function () {
           const canvas = item.querySelector('.gallery-canvas');
 
           // Gestione unificata dei canvas - tutti usano showModernModalGallery
+          const detailPayload = createDetailPayload({
+            itemElement: item,
+            data: imgData,
+            fallbackDescription: description,
+            fallbackTitle: title
+          });
+
           if (canvas && imgData) {
             // Controllo se il canvas ha contenuto valido (multimediale o procedurale)
             const hasMediaContent = imgData.modalImage || imgData.modalGallery || imgData.video || videoSrc;
@@ -2374,22 +2398,27 @@ document.addEventListener('DOMContentLoaded', function () {
             if (imgData.modalImage) {
               // Converte immagine singola in gallery per UI unificata
               const singleImageGallery = [imgData.modalImage];
-              showModernModalGallery(singleImageGallery, 0, description);
+              showModernModalGallery(singleImageGallery, 0, detailPayload);
             } else if (imgData.modalGallery) {
               // Mostra carosello immagini (comportamento esistente)
-              showModernModalGallery(imgData.modalGallery, 0, description);
+              showModernModalGallery(imgData.modalGallery, 0, detailPayload);
             }
             else if (imgData.video || videoSrc) {
               // Converte video singolo in gallery per UI unificata
               const src = videoSrc || imgData.video;
               const singleVideoGallery = [src];
-              showModernModalGallery(singleVideoGallery, 0, description);
+              showModernModalGallery(singleVideoGallery, 0, detailPayload);
             }
             else if (hasProceduralContent) {
               // Canvas procedurale - usa il contenuto del canvas stesso
               try {
                 const placeholderGallery = [canvas.toDataURL()];
-                showModernModalGallery(placeholderGallery, 0, description || 'Canvas procedurale');
+                const proceduralDetail = {
+                  ...detailPayload,
+                  description: detailPayload.description || 'Canvas procedurale',
+                  detailDescription: detailPayload.detailDescription || detailPayload.description || 'Canvas procedurale'
+                };
+                showModernModalGallery(placeholderGallery, 0, proceduralDetail);
               } catch (error) {
                 // Errore di sicurezza con canvas "tainted" (contenuto da domini esterni)
                 console.warn('🚫 Canvas contiene contenuto da domini esterni, impossibile esportare:', error.message);
@@ -2403,7 +2432,12 @@ document.addEventListener('DOMContentLoaded', function () {
               // Controlla se il canvas ha contenuto (non è completamente vuoto)
               if (canvasData && canvasData.length > 1000) { // Un canvas vuoto ha circa 100-200 caratteri
                 const placeholderGallery = [canvasData];
-                showModernModalGallery(placeholderGallery, 0, 'Canvas interattivo');
+                const fallbackDetail = {
+                  ...detailPayload,
+                  description: detailPayload.description || 'Canvas interattivo',
+                  detailDescription: detailPayload.detailDescription || detailPayload.description || 'Canvas interattivo'
+                };
+                showModernModalGallery(placeholderGallery, 0, fallbackDetail);
               } else {
                 // Canvas realmente vuoto
                 alert('⚠️ Questo canvas non ha contenuto da visualizzare.\nAggiungi immagini, video o gallerie tramite il pannello admin.');
@@ -2423,7 +2457,7 @@ document.addEventListener('DOMContentLoaded', function () {
           } else if (videoSrc && modalPlayer) {
             // Default: video per immagini normali - usa UI unificata
             const singleVideoGallery = [videoSrc];
-            showModernModalGallery(singleVideoGallery, 0, description);
+            showModernModalGallery(singleVideoGallery, 0, detailPayload);
           }
 
           // Descrizione gestita ora direttamente da showModernModalGallery
@@ -3201,16 +3235,139 @@ const init = async () => {
 // Start initialization
 init();
 
+function normalizeSoftwareList(input) {
+  if (input === undefined || input === null || input === '') {
+    return [];
+  }
+
+  let raw = [];
+
+  if (Array.isArray(input)) {
+    raw = input;
+  } else if (typeof input === 'string') {
+    raw = input.split(/[\n,;|]/g);
+  } else if (typeof input === 'number') {
+    raw = [String(input)];
+  } else if (typeof input === 'object') {
+    if (Array.isArray(input.items)) {
+      raw = input.items;
+    } else if (Array.isArray(input.values)) {
+      raw = input.values;
+    } else if (Array.isArray(input.list)) {
+      raw = input.list;
+    } else {
+      raw = Object.values(input);
+    }
+  }
+
+  return raw
+    .map(value => {
+      if (value === undefined || value === null) return '';
+      return String(value).trim();
+    })
+    .filter(Boolean)
+    .filter((value, index, self) => self.indexOf(value) === index);
+}
+
+function createDetailPayload({ itemElement, data, fallbackDescription = '', fallbackTitle = '' } = {}) {
+  const element = itemElement || null;
+  const descriptionFromElement = element?.getAttribute?.('data-description') || '';
+  const detailDescriptionFromElement = element?.getAttribute?.('data-detail-description') || '';
+  const titleFromElement = element?.getAttribute?.('data-detail-title') || '';
+  const softwareAttr = element?.getAttribute?.('data-software');
+
+  const descriptionCandidates = [fallbackDescription, data?.description, descriptionFromElement].filter(value => typeof value === 'string' && value.trim().length);
+  const baseDescription = descriptionCandidates.length ? descriptionCandidates[0].trim() : '';
+
+  const detailDescriptionCandidates = [
+    data?.detailDescription,
+    data?.detail?.description,
+    detailDescriptionFromElement
+  ].filter(value => typeof value === 'string' && value.trim().length);
+  const detailedText = detailDescriptionCandidates.length ? detailDescriptionCandidates[0].trim() : '';
+
+  const softwareCandidates = [
+    data?.softwareUsed ?? data?.software ?? data?.tools,
+    data?.detail?.software ?? data?.detail?.tools,
+    (() => {
+      if (!softwareAttr) return undefined;
+      try {
+        return JSON.parse(softwareAttr);
+      } catch (err) {
+        return softwareAttr;
+      }
+    })()
+  ];
+
+  let softwareList = [];
+  for (const candidate of softwareCandidates) {
+    if (candidate === undefined) continue;
+    const normalized = normalizeSoftwareList(candidate);
+    if (normalized.length) {
+      softwareList = normalized;
+      break;
+    }
+  }
+
+  const titleCandidates = [data?.detailTitle, data?.title, titleFromElement, fallbackTitle].filter(value => typeof value === 'string' && value.trim().length);
+  const title = titleCandidates.length ? titleCandidates[0].trim() : '';
+
+  const descriptionForPreview = (baseDescription || detailedText || '').trim();
+  const detailText = (detailedText || descriptionForPreview).trim();
+
+  const payload = {
+    title,
+    description: descriptionForPreview
+  };
+
+  if (detailText) {
+    payload.detailDescription = detailText;
+  }
+
+  payload.softwareUsed = softwareList;
+
+  return payload;
+}
+
 // --- MODERN MOBILE MODAL GALLERY LOGIC ---
-function showModernModalGallery(slides, startIndex = 0, description = '') {
+function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
+  const removeAllDetailOverlays = () => {
+    document.querySelectorAll('.description-overlay').forEach(el => {
+      if (el._escHandler) {
+        document.removeEventListener('keydown', el._escHandler);
+      }
+      el.remove();
+    });
+  };
+
   // Remove any existing modal
   document.querySelectorAll('.modern-modal-gallery').forEach(el => el.remove());
+  // Remove lingering description overlays from previous openings
+  removeAllDetailOverlays();
 
   const modal = document.createElement('div');
   modal.className = 'modern-modal-gallery';
 
   // Lock scroll when modal opens
   lockScroll();
+
+  const baseDetail = typeof detailInput === 'string' ? { description: detailInput } : (detailInput || {});
+  const normalizedDetail = {
+    title: (baseDetail.title || '').trim(),
+    description: (baseDetail.description || '').trim(),
+    detailDescription: (baseDetail.detailDescription || baseDetail.fullDescription || baseDetail.description || '').trim(),
+    softwareUsed: Array.isArray(baseDetail.softwareUsed)
+      ? normalizeSoftwareList(baseDetail.softwareUsed)
+      : normalizeSoftwareList(baseDetail.softwareUsed || baseDetail.software || baseDetail.tools)
+  };
+
+  if (!normalizedDetail.description && normalizedDetail.detailDescription) {
+    normalizedDetail.description = normalizedDetail.detailDescription;
+  }
+
+  if (!normalizedDetail.detailDescription && normalizedDetail.description) {
+    normalizedDetail.detailDescription = normalizedDetail.description;
+  }
 
   // Header (solo per il pulsante di chiusura)
   const header = document.createElement('div');
@@ -3220,6 +3377,7 @@ function showModernModalGallery(slides, startIndex = 0, description = '') {
   closeBtn.innerHTML = '&times;';
   closeBtn.onclick = () => {
     unlockScroll();
+    removeAllDetailOverlays();
     modal.remove();
   };
   header.appendChild(closeBtn);
@@ -3439,109 +3597,168 @@ function showModernModalGallery(slides, startIndex = 0, description = '') {
     mediaContainer.appendChild(el);
     slide.appendChild(mediaContainer);
     
-    // Description (se presente)
-    if (description && description.trim()) {
+    const previewSourceText = normalizedDetail.description || '';
+    const fullDetailText = normalizedDetail.detailDescription || '';
+    const hasSoftware = Array.isArray(normalizedDetail.softwareUsed) && normalizedDetail.softwareUsed.length > 0;
+    const combinedPreviewText = (previewSourceText || fullDetailText || '').trim();
+    const hasPanelContent = Boolean(fullDetailText) || hasSoftware;
+    const maxPreviewLength = 120;
+    const isLongPreview = combinedPreviewText.length > maxPreviewLength;
+    const previewText = combinedPreviewText
+      ? (isLongPreview ? `${combinedPreviewText.substring(0, maxPreviewLength).trimEnd()}…` : combinedPreviewText)
+      : '';
+
+    const showPreviewSection = Boolean(previewText) || hasPanelContent;
+
+    const openDetailPanel = () => {
+      if (!hasPanelContent && !combinedPreviewText) return;
+
+      removeAllDetailOverlays();
+
+      const overlay = document.createElement('div');
+      overlay.className = 'description-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+
+      const panel = document.createElement('div');
+      panel.className = 'description-panel';
+      panel.setAttribute('role', 'document');
+      panel.setAttribute('tabindex', '-1');
+
+      const panelHeader = document.createElement('div');
+      panelHeader.className = 'description-panel-header';
+
+      const panelTitle = document.createElement('h3');
+      panelTitle.className = 'description-panel-title';
+      panelTitle.textContent = normalizedDetail.title || 'Scheda progetto';
+
+      const closePanelBtn = document.createElement('button');
+      closePanelBtn.className = 'description-panel-close';
+      closePanelBtn.innerHTML = '&times;';
+      closePanelBtn.setAttribute('aria-label', 'Chiudi scheda di dettaglio');
+
+      panelHeader.appendChild(panelTitle);
+      panelHeader.appendChild(closePanelBtn);
+      panel.appendChild(panelHeader);
+
+      const panelContent = document.createElement('div');
+      panelContent.className = 'description-panel-content';
+
+      if (fullDetailText && fullDetailText.trim().length) {
+        const textBlock = document.createElement('div');
+        textBlock.className = 'description-panel-text';
+
+        const paragraphs = fullDetailText.split(/\n{2,}/g).map(p => p.trim()).filter(Boolean);
+        const lines = paragraphs.length ? paragraphs : [fullDetailText.trim()];
+
+        lines.forEach(paragraphText => {
+          const paragraph = document.createElement('p');
+          paragraph.textContent = paragraphText;
+          textBlock.appendChild(paragraph);
+        });
+
+        panelContent.appendChild(textBlock);
+      }
+
+      if (hasSoftware) {
+        const softwareSection = document.createElement('div');
+        softwareSection.className = 'description-panel-software';
+
+        const softwareTitle = document.createElement('h4');
+        softwareTitle.className = 'description-panel-subtitle';
+        softwareTitle.textContent = 'Software utilizzati';
+
+        const softwareListEl = document.createElement('ul');
+        softwareListEl.className = 'software-chip-list';
+
+        normalizedDetail.softwareUsed.forEach(tool => {
+          const chip = document.createElement('li');
+          chip.className = 'software-chip';
+          chip.textContent = tool;
+          softwareListEl.appendChild(chip);
+        });
+
+        softwareSection.appendChild(softwareTitle);
+        softwareSection.appendChild(softwareListEl);
+        panelContent.appendChild(softwareSection);
+      }
+
+      if (!panelContent.childElementCount && combinedPreviewText) {
+        const fallbackText = document.createElement('p');
+        fallbackText.className = 'description-panel-text';
+        fallbackText.textContent = combinedPreviewText;
+        panelContent.appendChild(fallbackText);
+      }
+
+      panel.appendChild(panelContent);
+      overlay.appendChild(panel);
+
+      const previouslyFocused = document.activeElement;
+
+      const closePanel = () => {
+        overlay.classList.add('closing');
+        document.removeEventListener('keydown', handleEsc);
+        overlay._escHandler = null;
+        setTimeout(() => {
+          overlay.remove();
+          if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
+            previouslyFocused.focus();
+          }
+        }, 220);
+      };
+
+      const handleEsc = (event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closePanel();
+        }
+      };
+
+      closePanelBtn.addEventListener('click', closePanel);
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+          closePanel();
+        }
+      });
+
+      document.addEventListener('keydown', handleEsc);
+      overlay._escHandler = handleEsc;
+      document.body.appendChild(overlay);
+
+      requestAnimationFrame(() => {
+        overlay.classList.add('active');
+        panel.focus({ preventScroll: true });
+      });
+    };
+
+    if (showPreviewSection) {
       const descriptionElement = document.createElement('div');
       descriptionElement.className = 'modern-modal-description';
-      
-      // Gestione descrizioni lunghe
-      const maxLength = 120; // Caratteri massimi per l'anteprima
-      const isLongDescription = description.length > maxLength;
-      
-      if (isLongDescription) {
-        // Anteprima troncata
-        const preview = description.substring(0, maxLength) + '...';
-        const fullText = description;
-        
-        const textElement = document.createElement('span');
-        textElement.className = 'description-text';
-        textElement.textContent = preview;
-        
-        const expandButton = document.createElement('button');
-        expandButton.className = 'description-expand-btn';
-        expandButton.textContent = 'Leggi tutto';
-        expandButton.setAttribute('aria-expanded', 'false');
-        
-        expandButton.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          
-          // Crea overlay tendina che sale dal basso
-          const overlay = document.createElement('div');
-          overlay.className = 'description-overlay';
-          
-          const panel = document.createElement('div');
-          panel.className = 'description-panel';
-          
-          // Header del panel con titolo e pulsante chiudi
-          const header = document.createElement('div');
-          header.className = 'description-panel-header';
-          
-          const title = document.createElement('h3');
-          title.textContent = 'Descrizione';
-          title.className = 'description-panel-title';
-          
-          const closeBtn = document.createElement('button');
-          closeBtn.className = 'description-panel-close';
-          closeBtn.innerHTML = '&times;';
-          closeBtn.setAttribute('aria-label', 'Chiudi descrizione');
-          
-          header.appendChild(title);
-          header.appendChild(closeBtn);
-          
-          // Contenuto del panel
-          const content = document.createElement('div');
-          content.className = 'description-panel-content';
-          content.textContent = fullText;
-          
-          panel.appendChild(header);
-          panel.appendChild(content);
-          overlay.appendChild(panel);
-          
-          // Funzione per chiudere il panel
-          const closePanel = () => {
-            overlay.classList.add('closing');
-            setTimeout(() => {
-              if (overlay.parentNode) {
-                overlay.remove();
-              }
-            }, 300);
-          };
-          
-          // Event listeners per chiudere
-          closeBtn.addEventListener('click', closePanel);
-          overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-              closePanel();
-            }
-          });
-          
-          // ESC key per chiudere
-          const handleEsc = (e) => {
-            if (e.key === 'Escape') {
-              closePanel();
-              document.removeEventListener('keydown', handleEsc);
-            }
-          };
-          document.addEventListener('keydown', handleEsc);
-          
-          // Aggiungi al modal
-          modal.appendChild(overlay);
-          
-          // Trigger animazione
-          requestAnimationFrame(() => {
-            overlay.classList.add('active');
-          });
-        });
-        
-        descriptionElement.appendChild(textElement);
-        descriptionElement.appendChild(expandButton);
-        
+
+      const textElement = document.createElement('span');
+      textElement.className = 'description-text';
+      if (previewText) {
+        textElement.textContent = previewText;
       } else {
-        // Descrizione corta - mostra direttamente
-        descriptionElement.textContent = description;
+        textElement.textContent = 'Scopri i dettagli del progetto';
+        textElement.classList.add('description-text--placeholder');
       }
-      
+      descriptionElement.appendChild(textElement);
+
+      if (hasPanelContent) {
+        const expandButton = document.createElement('button');
+        expandButton.type = 'button';
+        expandButton.className = 'description-expand-btn';
+        expandButton.textContent = 'Leggi di più';
+        expandButton.setAttribute('aria-label', 'Apri scheda dettagli progetto');
+        expandButton.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          openDetailPanel();
+        });
+        descriptionElement.appendChild(expandButton);
+      }
+
       slide.appendChild(descriptionElement);
     }
     
@@ -3590,6 +3807,7 @@ function showModernModalGallery(slides, startIndex = 0, description = '') {
     if (!isSingleItem && e.key === 'ArrowLeft') goTo(current - 1);
     if (!isSingleItem && e.key === 'ArrowRight') goTo(current + 1);
     if (e.key === 'Escape') {
+      removeAllDetailOverlays();
       unlockScroll();
       modal.remove();
     }
@@ -3611,8 +3829,14 @@ function enableModernMobileCanvasGallery() {
       e.preventDefault();
       e.stopImmediatePropagation(); // BLOCCA TUTTI GLI ALTRI HANDLER
       const slides = JSON.parse(item.getAttribute('data-modal-gallery'));
-      const description = item.getAttribute('data-description') || '';
-      showModernModalGallery(slides, 0, description);
+      const fallbackTitle = item.getAttribute('data-detail-title') || item.querySelector('.gallery-title')?.textContent || '';
+      const detail = createDetailPayload({
+        itemElement: item,
+        data: null,
+        fallbackDescription: item.getAttribute('data-description') || '',
+        fallbackTitle
+      });
+      showModernModalGallery(slides, 0, detail);
     }, true); // true = capture mode
   });
 }

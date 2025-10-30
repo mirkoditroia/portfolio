@@ -334,8 +334,16 @@
 
 
 
-      <label class="block-label">Descrizione
-        <input id="se-description" type="text" style="width:100%" />
+      <label class="block-label">Descrizione breve (preview)
+        <textarea id="se-description" rows="3" style="width:100%"></textarea>
+        <small style="color:#666;font-size:0.75rem;display:block;margin-top:4px;">Comparirà sotto il canvas e verrà troncata automaticamente se troppo lunga.</small>
+      </label>
+      <label class="block-label">Descrizione dettagli (scheda)
+        <textarea id="se-detail-description" rows="5" style="width:100%"></textarea>
+      </label>
+      <label class="block-label">Software utilizzati
+        <input id="se-software" type="text" style="width:100%" placeholder="Cinema 4D, Houdini, After Effects" />
+        <small style="color:#666;font-size:0.75rem;display:block;margin-top:4px;">Separa con virgole: verranno mostrati come tag dedicati.</small>
       </label>
 
       <div class="editor-actions" style="margin-top:1rem">

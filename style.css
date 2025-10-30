@@ -802,15 +802,6 @@ main {
   display: none;
 }
 
-/* Canvas video special styling - removed blue border */
-.gallery-canvas[id*="canvas"] {
-  /* Blue border and pulse animation removed */
-}
-
-.gallery-canvas[id*="canvas"]:hover {
-  /* Blue border hover effect removed */
-}
-
 .gallery-title {
   margin-top: 18px;
   font-weight: 700;
@@ -1177,6 +1168,7 @@ main {
     min-width: 44px;
     touch-action: pan-x pan-y;
     -webkit-touch-callout: none;
+    user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
@@ -2816,10 +2808,17 @@ main{margin-top:0 !important;}
   gap: 12px;
 }
 .modern-modal-description {
-  color: #fff;
-  font-size: 1.1em;
-  flex: 1;
-  opacity: 0.85;
+  margin-top: 18px;
+  padding: 0 24px 24px;
+  color: rgba(226, 239, 255, 0.88);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  opacity: 0.95;
 }
 .modern-modal-arrow {
   background: #232b3a;
@@ -3023,19 +3022,6 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
 
 /* Blocca lo scroll sul body */
 
-.modern-modal-description {
-  color: #ffffff;
-  font-size: 1.1rem;
-  font-weight: 300;
-  line-height: 1.5;
-  text-align: center;
-  padding: 20px 24px;
-  background: rgba(35, 43, 58, 0);
-  border-top: 1px solid rgba(64, 224, 208, 0.3);
-  margin-top: 0;
-  transition: padding 0.3s ease;
-}
-
 /* Description text */
 .description-text {
   display: block;
@@ -3044,19 +3030,27 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
   hyphens: auto;
 }
 
+.description-text--placeholder {
+  color: rgba(255, 255, 255, 0.62);
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
 /* Description overlay - tendina che sale dal basso */
 .description-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
-  z-index: 10000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(24px, 4vw, 48px);
+  background: rgba(10, 16, 26, 0.72);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  z-index: 10100;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.28s ease, visibility 0.28s ease;
 }
 
 .description-overlay.active {
@@ -3069,93 +3063,85 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
   visibility: hidden;
 }
 
-/* Panel che slide up */
 .description-panel {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  max-height: 70vh;
-  background: linear-gradient(135deg, rgba(35, 43, 58, 0.95), rgba(25, 33, 48, 0.98));
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-  border-top: 2px solid rgba(64, 224, 208, 0.4);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
-  transform: translateY(100%);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: min(640px, 92vw);
+  max-height: min(80vh, 720px);
+  background: linear-gradient(135deg, rgba(22, 30, 46, 0.92), rgba(14, 20, 32, 0.88));
+  border-radius: 28px;
+  border: 1px solid rgba(64, 224, 208, 0.18);
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(18px);
+  opacity: 0;
+  transition: transform 0.28s ease, opacity 0.28s ease;
 }
 
 .description-overlay.active .description-panel {
   transform: translateY(0);
+  opacity: 1;
 }
 
 .description-overlay.closing .description-panel {
-  transform: translateY(100%);
+  transform: translateY(24px);
+  opacity: 0;
 }
 
-/* Header del panel */
 .description-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid rgba(64, 224, 208, 0.2);
+  padding: clamp(20px, 3vw, 28px);
+  border-bottom: 1px solid rgba(64, 224, 208, 0.18);
 }
 
 .description-panel-title {
-  color: #40e0d0;
-  font-size: 1.2rem;
-  font-weight: 500;
   margin: 0;
-  letter-spacing: 0.5px;
+  color: rgba(223, 245, 255, 0.92);
+  font-size: clamp(1.05rem, 1.2vw, 1.25rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .description-panel-close {
-  background: none;
-  border: none;
-  color: #40e0d0;
-  font-size: 1.8rem;
-  cursor: pointer;
-  padding: 4px 8px;
+  background: rgba(64, 224, 208, 0.12);
+  border: 1px solid rgba(64, 224, 208, 0.25);
+  color: #6ff7ff;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  transition: all 0.3s ease;
-  line-height: 1;
-  width: 36px;
-  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 1.4rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .description-panel-close:hover {
-  background: rgba(64, 224, 208, 0.1);
-  transform: scale(1.1);
+  background: rgba(64, 224, 208, 0.2);
+  color: #e6fdff;
+  transform: scale(1.04);
 }
 
-/* Contenuto scrollabile */
 .description-panel-content {
-  padding: 0 24px 32px;
-  color: #ffffff;
-  font-size: 1.1rem;
-  font-weight: 300;
-  line-height: 1.7;
-  text-align: left;
-  max-height: calc(70vh - 80px);
+  padding: clamp(22px, 4vw, 36px);
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 3vw, 24px);
   scrollbar-width: thin;
-  scrollbar-color: rgba(64, 224, 208, 0.3) transparent;
-  /* Proprietà per far andare a capo il testo automaticamente */
+  scrollbar-color: rgba(64, 224, 208, 0.35) transparent;
   word-wrap: break-word;
   overflow-wrap: break-word;
   word-break: normal;
-  white-space: pre-wrap;
-  /* Sillabazione automatica per italiano e inglese */
   hyphens: auto;
   -webkit-hyphens: auto;
   -moz-hyphens: auto;
   -ms-hyphens: auto;
-  hyphenate-character: "-";
 }
 
 .description-panel-content::-webkit-scrollbar {
@@ -3167,47 +3153,105 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
 }
 
 .description-panel-content::-webkit-scrollbar-thumb {
-  background: rgba(64, 224, 208, 0.3);
-  border-radius: 3px;
+  background: rgba(64, 224, 208, 0.35);
+  border-radius: 4px;
 }
 
 .description-panel-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(64, 224, 208, 0.5);
+  background: rgba(64, 224, 208, 0.55);
+}
+
+.description-panel-text p {
+  margin: 0 0 12px 0;
+  color: rgba(226, 239, 255, 0.92);
+  font-size: clamp(0.95rem, 1.05vw, 1.05rem);
+  line-height: 1.7;
+}
+
+.description-panel-text p:last-child {
+  margin-bottom: 0;
+}
+
+.description-panel-software {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.description-panel-subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(159, 244, 255, 0.85);
+}
+
+.software-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.software-chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(64, 224, 208, 0.14);
+  border: 1px solid rgba(64, 224, 208, 0.4);
+  color: rgba(226, 249, 255, 0.95);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.software-chip:hover {
+  transform: translateY(-1px);
+  background: rgba(64, 224, 208, 0.2);
 }
 
 /* Expand/collapse button */
 .description-expand-btn {
-  display: inline-block;
-  margin-top: 12px;
-  margin-left: 8px;
-  padding: 6px 12px;
-  background: linear-gradient(135deg, rgba(64, 224, 208, 0.1), rgba(64, 224, 208, 0.2));
-  border: 1px solid rgba(64, 224, 208, 0.4);
-  border-radius: 20px;
-  color: #40e0d0;
-  font-size: 0.85rem;
-  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+  margin-left: 0;
+  padding: 8px 18px;
+  background: linear-gradient(135deg, rgba(64, 224, 208, 0.18), rgba(64, 224, 208, 0.32));
+  border: 1px solid rgba(64, 224, 208, 0.45);
+  border-radius: 999px;
+  color: #b0fdff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   outline: none;
 }
 
 .description-expand-btn:hover {
-  background: linear-gradient(135deg, rgba(64, 224, 208, 0.2), rgba(64, 224, 208, 0.3));
-  border-color: rgba(64, 224, 208, 0.6);
+  background: linear-gradient(135deg, rgba(64, 224, 208, 0.28), rgba(64, 224, 208, 0.45));
+  border-color: rgba(64, 224, 208, 0.65);
+  color: #eaffff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(64, 224, 208, 0.2);
+  box-shadow: 0 6px 18px rgba(64, 224, 208, 0.25);
 }
 
 .description-expand-btn:active {
-  transform: translateY(0);
+  transform: translateY(1px);
   box-shadow: 0 2px 6px rgba(64, 224, 208, 0.3);
 }
 
 .description-expand-btn:focus {
-  border-color: rgba(64, 224, 208, 0.8);
-  box-shadow: 0 0 0 2px rgba(64, 224, 208, 0.2);
+  border-color: rgba(64, 224, 208, 0.85);
+  box-shadow: 0 0 0 3px rgba(64, 224, 208, 0.2);
 }
 
 /* Media container styles */
@@ -3228,16 +3272,17 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
   }
   
   .modern-modal-description {
-    font-size: 1rem;
-    padding: 16px 20px;
+    font-size: 0.98rem;
+    padding: 0 18px 20px;
+    gap: 10px;
   }
   
   .description-expand-btn {
-    margin-top: 10px;
+    margin-top: 8px;
     padding: 8px 16px;
-    font-size: 0.9rem;
-    min-height: 36px;
-    min-width: 80px;
+    font-size: 0.72rem;
+    min-height: 34px;
+    min-width: 88px;
   }
 }
 
@@ -3249,64 +3294,53 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
   }
   
   .modern-modal-description {
-    font-size: 0.95rem;
-    padding: 14px 18px;
+    font-size: 0.92rem;
+    padding: 0 16px 18px;
+    gap: 8px;
   }
   
   .description-expand-btn {
-    margin-top: 8px;
-    padding: 10px 18px;
-    font-size: 0.9rem;
-    min-height: 40px;
-    border-radius: 25px;
+    margin-top: 6px;
+    padding: 9px 16px;
+    font-size: 0.7rem;
+    min-height: 36px;
+    border-radius: 999px;
   }
 }
 
 /* Responsive styles per la tendina */
 @media (max-width: 899px) {
   .description-panel {
-    max-height: 80vh;
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
+    width: 94vw;
+    max-height: 85vh;
+    border-radius: 24px;
   }
   
   .description-panel-header {
-    padding: 18px 20px 14px;
+    padding: 18px 22px 14px;
   }
   
   .description-panel-title {
-    font-size: 1.1rem;
+    font-size: 1rem;
   }
   
   .description-panel-close {
-    width: 32px;
-    height: 32px;
-    font-size: 1.6rem;
+    width: 34px;
+    height: 34px;
+    font-size: 1.45rem;
   }
   
   .description-panel-content {
-    padding: 0 20px 28px;
-    font-size: 1rem;
-    max-height: calc(80vh - 70px);
-    /* Proprietà per far andare a capo il testo automaticamente */
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    word-break: normal;
-    white-space: pre-wrap;
-    /* Sillabazione automatica per italiano e inglese */
-    hyphens: auto;
-    -webkit-hyphens: auto;
-    -moz-hyphens: auto;
-    -ms-hyphens: auto;
-    hyphenate-character: "-";
+    padding: 18px 22px 26px;
+    max-height: calc(85vh - 68px);
   }
 }
 
 @media (max-width: 480px) {
   .description-panel {
-    max-height: 85vh;
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
+    width: 96vw;
+    max-height: 88vh;
+    border-radius: 20px;
   }
   
   .description-panel-header {
@@ -3314,31 +3348,27 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
   }
   
   .description-panel-title {
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
   
   .description-panel-close {
     width: 30px;
     height: 30px;
-    font-size: 1.4rem;
+    font-size: 1.35rem;
   }
   
   .description-panel-content {
-    padding: 0 18px 24px;
-    font-size: 0.95rem;
-    line-height: 1.6;
-    max-height: calc(85vh - 65px);
-    /* Proprietà per far andare a capo il testo automaticamente */
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    word-break: normal;
-    white-space: pre-wrap;
-    /* Sillabazione automatica per italiano e inglese */
-    hyphens: auto;
-    -webkit-hyphens: auto;
-    -moz-hyphens: auto;
-    -ms-hyphens: auto;
-    hyphenate-character: "-";
+    padding: 16px 18px 22px;
+    max-height: calc(88vh - 60px);
+  }
+  
+  .description-panel-text p {
+    font-size: 0.9rem;
+  }
+  
+  .software-chip {
+    font-size: 0.8rem;
+    padding: 6px 12px;
   }
   
   .description-panel-content::-webkit-scrollbar {

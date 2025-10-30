@@ -4,6 +4,8 @@
       "title": "GARRARD - Christmas ADV",
       "canvas": true,
       "description": "vfx per GARRARD - descrivere dettagli progetto",
+      "detailDescription": "Direzione creativa, simulazioni particellari e compositing finale per la campagna natalizia Garrard. Ho curato la resa dei materiali preziosi e l'integrazione con le riprese live-action per esaltare la brillantezza della collezione.",
+      "softwareUsed": ["Houdini", "Cinema 4D", "Octane", "After Effects"],
       "src": "video/garrard-1752499911634.mp4",
       "modalGallery": [
         "images/Screenshot2024-11-05151448-1752499995945.png",
@@ -17,6 +19,8 @@
       "title": "Motion Graphics",
       "canvas": true,
       "description": "Grafica animata e motion design.",
+      "detailDescription": "Selezione di loop motion design generati in tempo reale. Mix di elementi tipografici, glitch e composizioni 3D pensate per social e installazioni LED.",
+      "softwareUsed": ["After Effects", "Cinema 4D", "Redshift"],
       "modalGallery": [
         "images/frame_1040.jpg",
         "images/art_2k_end.png",
@@ -50,6 +54,8 @@
       "title": "Canvas Video Demo",
       "canvas": true,
       "description": "Flora è la più \"amata\" del gruppo e non ha praticamente nessuno che le stia davvero antipatico. Anche quando c'è tensione, cerca sempre di risolvere con gentilezza e comprensione.  Se vuoi, posso anche spiegarti le dinamiche interne tra le Winx e i loro caratteri (chi va più d'accordo con chi)! Vuoi? 🌸💖",
+      "detailDescription": "Studio di motion grafico procedurale pensato per maxi schermo. Ho costruito un flusso che permette di mappare video sorgente su geometrie in tempo reale, con controlli audio-reactive e varianti cromatiche pronte per eventi live.",
+      "softwareUsed": ["TouchDesigner", "Blender", "Ableton Live"],
       "type": "video",
       "src": "images/peroni1-1752571977516.jpg",
       "video": "https://firebasestorage.googleapis.com/v0/b/portfolio-eb526/o/videos%2F1752528887826_1i8ncfyb3.mp4?alt=media&token=046200f7-3bcd-4968-8f37-7d9fc046926c"
@@ -58,6 +64,7 @@
       "title": "GRASS BALL",
       "canvas": true,
       "description": "software utilizzati e piccola descrizoine",
+      "softwareUsed": ["Cinema 4D", "Octane", "Photoshop"],
       "type": "video",
       "src": "",
       "video": "https://firebasestorage.googleapis.com/v0/b/portfolio-eb526/o/videos%2F1752531021737_ln6t4hrii.mp4?alt=media&token=05eb693a-65d6-4798-9bb0-9b8f49bd5557"
@@ -165,6 +172,8 @@
       "canvas": true,
       "title": "Creative Coding",
       "description": "Programmazione creativa e arte digitale.",
+      "detailDescription": "Serie di esperimenti generativi basati su shader GLSL e noise multilineare. Ogni iterazione reagisce a dati in ingresso (tempo, audio, input midi) per creare scenari organici in continua evoluzione.",
+      "softwareUsed": ["GLSL", "Three.js", "TouchDesigner"],
       "modalImage": "images/Screenshot2025-07-11003656-1752237831755.png"
     },
     {
