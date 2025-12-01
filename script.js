@@ -591,13 +591,7 @@ function drawImageToCanvas(ctx, img, canvasW, canvasH) {
   const imgW = img.width;
   const imgH = img.height;
   
-  let scale;
-  if (imgH > imgW) {
-    scale = Math.min((canvasW * 0.6) / imgW, canvasH / imgH);
-  } else {
-    scale = Math.min(canvasW / imgW, canvasH / imgH);
-  }
-  
+  const scale = Math.max(canvasW / imgW, canvasH / imgH);
   const drawW = imgW * scale;
   const drawH = imgH * scale;
   const offsetX = (canvasW - drawW) / 2;
@@ -3348,14 +3342,6 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
   const modal = document.createElement('div');
   modal.className = 'modern-modal-gallery';
 
-  const updateModalOrientation = (isPortrait) => {
-    if (isPortrait) {
-      modal.classList.add('portrait-media');
-    } else {
-      modal.classList.remove('portrait-media');
-    }
-  };
-
   // Lock scroll when modal opens
   lockScroll();
 
@@ -3407,26 +3393,72 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
   const prevBtn = document.createElement('button');
   prevBtn.className = 'modern-modal-arrow prev';
   prevBtn.innerHTML = '&#8592;';
+  const footerCenter = document.createElement('div');
+  footerCenter.className = 'modern-modal-footer-center';
   const nextBtn = document.createElement('button');
   nextBtn.className = 'modern-modal-arrow next';
   nextBtn.innerHTML = '&#8594;';
   footer.appendChild(prevBtn);
+  footer.appendChild(footerCenter);
   footer.appendChild(nextBtn);
   modal.appendChild(footer);
 
   // Se c'è solo un elemento, nascondi i controlli di navigazione
   const isSingleItem = slides.length === 1;
-  if (isSingleItem) {
-    footer.style.display = 'none';
-  }
+  const showFooterForLayout = window.innerWidth <= 900 || !isSingleItem;
+  footer.style.display = showFooterForLayout ? 'flex' : 'none';
+  prevBtn.style.display = isSingleItem ? 'none' : '';
+  nextBtn.style.display = isSingleItem ? 'none' : '';
 
   document.body.appendChild(modal);
 
   // Slides
   let current = startIndex;
+
+  const applyMediaOrientationClass = (element, orientationCallback) => {
+    if (!element) return;
+
+    const setOrientationClass = (width, height) => {
+      if (!width || !height) return;
+      element.classList.remove('is-portrait', 'is-landscape');
+      const orientation = height > width ? 'portrait' : 'landscape';
+      if (orientation === 'portrait') {
+        element.classList.add('is-portrait');
+      } else {
+        element.classList.add('is-landscape');
+      }
+      if (typeof orientationCallback === 'function') {
+        orientationCallback(orientation);
+      }
+    };
+
+    if (element.tagName === 'VIDEO') {
+      const handleMetadata = () => {
+        setOrientationClass(element.videoWidth, element.videoHeight);
+      };
+
+      if (element.readyState >= 1 && element.videoWidth && element.videoHeight) {
+        handleMetadata();
+      } else {
+        element.addEventListener('loadedmetadata', handleMetadata, { once: true });
+      }
+    } else if (element.tagName === 'IMG') {
+      const handleLoad = () => {
+        setOrientationClass(element.naturalWidth, element.naturalHeight);
+      };
+
+      if (element.complete && element.naturalWidth && element.naturalHeight) {
+        handleLoad();
+      } else {
+        element.addEventListener('load', handleLoad, { once: true });
+      }
+    }
+  };
+
   function renderSlides() {
     carousel.innerHTML = '';
-    updateModalOrientation(false);
+    footerCenter.innerHTML = '';
+    footerCenter.style.display = 'none';
     const slide = document.createElement('div');
     slide.className = 'modern-modal-slide';
     
@@ -3436,6 +3468,28 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
     
     let el;
     const src = slides[current];
+    let currentOrientation = 'landscape';
+    let descriptionElement = null;
+    const isMobileViewport = window.innerWidth <= 900;
+
+    const updateLayoutForOrientation = (orientation) => {
+      if (orientation) currentOrientation = orientation;
+      const usePortraitLayout = isMobileViewport && currentOrientation === 'portrait';
+      const shouldShowFooterCenter = usePortraitLayout && Boolean(descriptionElement);
+
+      footerCenter.style.display = shouldShowFooterCenter ? 'flex' : 'none';
+      slide.classList.toggle('portrait-layout', usePortraitLayout);
+      carousel.classList.toggle('portrait-layout', usePortraitLayout);
+      footer.classList.toggle('portrait-layout', usePortraitLayout);
+
+      if (descriptionElement) {
+        if (shouldShowFooterCenter) {
+          footerCenter.appendChild(descriptionElement);
+        } else {
+          slide.appendChild(descriptionElement);
+        }
+      }
+    };
     
     // Preload del contenuto attuale e di quello successivo
     const currentAndNext = [src];
@@ -3466,11 +3520,6 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
         el.src = src;
         console.log('🎬 Caricamento video:', src);
       }
-      
-      const applyVideoOrientation = () => {
-        if (!el.videoWidth || !el.videoHeight) return;
-        updateModalOrientation(el.videoHeight >= el.videoWidth);
-      };
       
       // Configurazione video ottimizzata
       el.controls = true;
@@ -3531,7 +3580,6 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
       
       // Tentativo di play automatico con gestione errori
       el.addEventListener('loadedmetadata', () => {
-        applyVideoOrientation();
         el.play().catch(err => {
           console.warn('⚠️ Autoplay fallito (normale su alcuni browser):', err);
           // Aggiungi un pulsante play se l'autoplay fallisce
@@ -3541,10 +3589,6 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
           }
         });
       });
-      
-      if (el.readyState >= 1) {
-        applyVideoOrientation();
-      }
       
     } else {
       // Gestione immagini con lazy loading
@@ -3566,16 +3610,6 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
       el.style.maxWidth = '100%';
       el.style.maxHeight = '100%';
       el.style.objectFit = 'contain';
-      
-      const applyImageOrientation = () => {
-        if (!el.naturalWidth || !el.naturalHeight) return;
-        updateModalOrientation(el.naturalHeight >= el.naturalWidth);
-      };
-      if (el.complete && el.naturalWidth) {
-        applyImageOrientation();
-      } else {
-        el.addEventListener('load', applyImageOrientation, { once: true });
-      }
       
       // Gestione errori immagine con retry semplificato
       let imageRetryAttempt = 0;
@@ -3623,8 +3657,59 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
       
       el.addEventListener('error', handleImageError);
     }
+
+    applyMediaOrientationClass(el, updateLayoutForOrientation);
     mediaContainer.appendChild(el);
-    slide.appendChild(mediaContainer);
+    
+    const isDesktop = window.innerWidth >= 900;
+    
+    if (isDesktop && slides.length > 1) {
+      // Desktop layout: Arrows next to media
+      const desktopWrapper = document.createElement('div');
+      desktopWrapper.style.display = 'flex';
+      desktopWrapper.style.alignItems = 'center';
+      desktopWrapper.style.justifyContent = 'center';
+      desktopWrapper.style.gap = '24px';
+      desktopWrapper.style.position = 'relative';
+      
+      // Style buttons for inline
+      prevBtn.style.position = 'static';
+      prevBtn.style.transform = 'none';
+      prevBtn.style.margin = '0';
+      
+      nextBtn.style.position = 'static';
+      nextBtn.style.transform = 'none';
+      nextBtn.style.margin = '0';
+
+      // Move buttons to wrapper
+      desktopWrapper.appendChild(prevBtn);
+      desktopWrapper.appendChild(mediaContainer);
+      desktopWrapper.appendChild(nextBtn);
+      
+      slide.appendChild(desktopWrapper);
+      
+      // Hide footer on desktop as it's now empty
+      footer.style.display = 'none';
+    } else {
+      // Mobile/Standard layout
+      slide.appendChild(mediaContainer);
+      
+      // Restore buttons to footer if needed
+      if (slides.length > 1) {
+        prevBtn.style.position = '';
+        prevBtn.style.transform = '';
+        prevBtn.style.margin = '';
+        
+        nextBtn.style.position = '';
+        nextBtn.style.transform = '';
+        nextBtn.style.margin = '';
+        
+        if (prevBtn.parentNode !== footer) footer.insertBefore(prevBtn, footer.firstChild);
+        if (nextBtn.parentNode !== footer) footer.appendChild(nextBtn);
+        
+        footer.style.display = 'flex';
+      }
+    }
     
     const previewSourceText = normalizedDetail.description || '';
     const fullDetailText = normalizedDetail.detailDescription || '';
@@ -3761,7 +3846,7 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
     };
 
     if (showPreviewSection) {
-      const descriptionElement = document.createElement('div');
+      descriptionElement = document.createElement('div');
       descriptionElement.className = 'modern-modal-description';
 
       const textElement = document.createElement('span');
@@ -3787,10 +3872,10 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
         });
         descriptionElement.appendChild(expandButton);
       }
-
-      slide.appendChild(descriptionElement);
     }
-    
+
+    updateLayoutForOrientation();
+
     carousel.appendChild(slide);
     // Update indicators (solo se più di un elemento)
     indicators.innerHTML = '';

@@ -689,7 +689,6 @@ main {
   flex: 0 0 333px;
   width: 333px !important;
   max-width: 333px;
-  height: 350px;
   text-align: center;
   background: var(--color-panel);
   border-radius: var(--radius-lg);
@@ -700,6 +699,7 @@ main {
   justify-content: flex-start;
   transition: transform var(--dur-anim) var(--ease-std), box-shadow var(--dur-anim) var(--ease-std);
   overflow: hidden;
+  padding-bottom: 24px;
   cursor: pointer;
   touch-action: manipulation; /* Allow both vertical and horizontal gestures */
   /* Smooth scrolling optimization */
@@ -810,6 +810,25 @@ main {
   letter-spacing: 1px;
   padding: 0 14px;
   word-wrap: break-word;
+}
+
+@media (min-width: 1024px) {
+  .gallery-item {
+    flex: 0 0 372px;
+    width: 372px !important;
+    max-width: 372px;
+    padding-bottom: 28px;
+  }
+
+  .gallery-img,
+  .gallery-canvas {
+    height: 232px;
+  }
+
+  .gallery-canvas {
+    min-height: 232px;
+    min-width: 335px;
+  }
 }
 
 /* Gestione thumbnail 16:9 nelle card */
@@ -2560,7 +2579,7 @@ main{margin-top:0 !important;}
   .section { padding: 30px 0; }
   .section h2 { font-size: 1.5rem; }
   .gallery { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
-  .gallery-item { height: 200px; }
+  .gallery-item { padding-bottom: 18px; }
   .contact-item { flex-direction: column; align-items: flex-start; }
   .contact-item strong { margin-bottom: 5px; }
   
@@ -2706,6 +2725,7 @@ main{margin-top:0 !important;}
   display: flex;
   flex-direction: column;
   justify-content: center;
+  animation: fadeIn 0.25s;
 }
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -2713,7 +2733,7 @@ main{margin-top:0 !important;}
 }
 .modern-modal-header {
   /* Variabili per controllo posizione mobile */
-  --mobile-close-top: max(20px, env(safe-area-inset-top, 0px) + 8px);
+  --mobile-close-top: max(12px, env(safe-area-inset-top, 0px) + 4px);
   --mobile-close-right: 16px;
   --mobile-close-left: auto;
   
@@ -2778,9 +2798,11 @@ main{margin-top:0 !important;}
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   position: relative;
-  padding: clamp(48px, 10vh, 84px) clamp(18px, 6vw, 46px) clamp(84px, 12vh, 120px);
+  padding: clamp(36px, 8vh, 64px) clamp(18px, 6vw, 40px) clamp(76px, 12vh, 112px);
   box-sizing: border-box;
+  max-height: calc(100vh - clamp(140px, 22vh, 200px));
 }
 .modern-modal-slide {
   width: min(88vw, 960px);
@@ -2788,7 +2810,7 @@ main{margin-top:0 !important;}
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: clamp(16px, 3vh, 36px);
+  gap: clamp(14px, 2.5vh, 32px);
   box-sizing: border-box;
   transition: transform 0.3s cubic-bezier(.4,0,.2,1);
 }
@@ -2801,7 +2823,7 @@ main{margin-top:0 !important;}
 .modern-modal-media img,
 .modern-modal-media video {
   width: 100%;
-  max-height: clamp(340px, 60vh, 620px);
+  max-height: clamp(360px, 58vh, 680px);
   border-radius: 18px;
   box-shadow: 0 4px 32px #0008;
   background: #111;
@@ -2810,23 +2832,26 @@ main{margin-top:0 !important;}
 .modern-modal-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 12px 16px 18px 16px;
   gap: 12px;
 }
+.modern-modal-footer-center {
+  display: none;
+}
 .modern-modal-description {
-  margin-top: clamp(12px, 2vh, 24px);
-  padding: 0;
+  margin-top: clamp(14px, 3vh, 28px);
+  padding: 0 clamp(12px, 2vw, 24px);
   color: rgba(226, 239, 255, 0.9);
-  font-size: 1.02rem;
+  font-size: 1.04rem;
   line-height: 1.55;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(10px, 2vh, 20px);
+  gap: clamp(10px, 2vh, 22px);
   opacity: 0.95;
-  max-width: min(520px, 86vw);
+  max-width: min(540px, 88vw);
   width: 100%;
   box-sizing: border-box;
 }
@@ -2835,89 +2860,104 @@ main{margin-top:0 !important;}
   color: #40e0d0;
   border: none;
   border-radius: 50%;
-  width: 40px; height: 40px;
-  font-size: 1.5rem;
+  width: 48px; height: 48px;
+  font-size: 1.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-left: 8px;
   margin-right: 8px;
   opacity: 0.85;
-  transition: background 0.2s, color 0.2s;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
 }
+
+.modern-modal-arrow:hover {
+  background: #40e0d0;
+  color: #232b3a;
+  transform: scale(1.1);
+  box-shadow: 0 8px 24px rgba(64, 224, 208, 0.4);
+}
+
 .modern-modal-arrow:active,
-.modern-modal-arrow:focus { background: #40e0d0; color: #232b3a; }
+.modern-modal-arrow:focus { 
+  background: #40e0d0; 
+  color: #232b3a; 
+  transform: scale(0.95);
+  box-shadow: 0 2px 8px rgba(64, 224, 208, 0.3);
+}
 
 @media screen and (min-width: 900px) {
-  /* Container principale: full‑screen e flex centratore */
-  /* FULLSCREEN FLEX CENTERED */
-.modern-modal-gallery {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;       /* orizzontalmente centrato */
-  justify-content: center;   /* verticalmente centrato */
-  background: rgba(18,22,34,0.98);
-  overflow: hidden;
-  z-index: 9999;
-  padding: 0;
-}
+  /* Container principale desktop: centrato con scroll interno */
+  .modern-modal-gallery {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: clamp(18px, 4vh, 48px);
+    background: rgba(18,22,34,0.98);
+    z-index: 9999;
+    padding: clamp(32px, 6vh, 68px) clamp(48px, 10vw, 120px) clamp(40px, 8vh, 72px);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
 
-/* HEADER (X) - Solo pulsante chiusura DESKTOP */
-.modern-modal-header {
-  /* Variabili per controllo posizione desktop */
-  --desktop-close-top: 16px;
-  --desktop-close-left: 16px;
-  --desktop-close-right: auto;
-  
-  position: absolute;
-  top: var(--desktop-close-top);
-  left: var(--desktop-close-left);
-  right: var(--desktop-close-right);
-  z-index: 1000;
-}
-/* Solo la X (chiudi) */
+  /* Pulsante chiusura desktop */
+  .modern-modal-header {
+    --desktop-close-top: 16px;
+    --desktop-close-left: 26px;
+    --desktop-close-right: auto;
+    position: absolute;
+    top: var(--desktop-close-top);
+    left: var(--desktop-close-left);
+    right: var(--desktop-close-right);
+    z-index: 1000;
+  }
 
-
-
-
-  /* Wrapper della slide: auto‑sizing, nessun min‑width */
-  .modern-modal-carousel,
-  .modern-modal-slide {
+  /* Area carousel: niente crop e padding contenuto */
+  .modern-modal-carousel {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: auto !important;
-    min-width: auto !important;
-    height: auto !important;
+    width: 100%;
+    max-width: min(1040px, 82vw);
+    padding: clamp(18px, 4vh, 36px) 0 clamp(28px, 6vh, 52px);
+    max-height: none;
+    height: auto;
+    overflow: visible;
   }
 
-  /* L'immagine/video: max constraints senza overflow e centrata */
+  .modern-modal-slide {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: min(960px, 78vw);
+    gap: clamp(20px, 3vh, 36px);
+  }
+
+  /* Media: proporzioni naturali senza crop */
   .modern-modal-media img,
   .modern-modal-media video {
     width: auto !important;
     height: auto !important;
-    max-width: 80vw !important;
-    max-height: 80vh !important;
+    max-width: min(960px, 78vw) !important;
+    max-height: min(74vh, 820px) !important;
     object-fit: contain !important;
     margin: 0 auto !important;
   }
 
-  /* Frecce ai lati */
-  .modern-modal-arrow.prev {
-    position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
+  /* Testo descrizione più largo su desktop */
+  .modern-modal-description {
+    max-width: min(640px, 60vw);
+    padding: 0;
   }
-  .modern-modal-arrow.next {
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-  }
+
 }
 
 
@@ -2941,7 +2981,7 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
 @media (max-width: 899px) {
   .modern-modal-header {
     /* Cambia questi valori per spostare la X su mobile */
-    --mobile-close-top: max(20px, env(safe-area-inset-top, 0px) + 8px);
+    --mobile-close-top: max(12px, env(safe-area-inset-top, 0px) + 4px);
     --mobile-close-right: 16px;    /* Distanza da destra */
     --mobile-close-left: auto;     /* auto = non usare sinistra */
     
@@ -3038,7 +3078,7 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
   word-wrap: break-word;
   overflow-wrap: break-word;
   hyphens: auto;
-  padding: 0 clamp(18px, 5vw, 30px);
+  padding: 0 clamp(20px, 5vw, 32px);
 }
 
 .description-text--placeholder {
@@ -3271,24 +3311,86 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
 
 /* Media container styles */
 .modern-modal-media {
-  flex: 1;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #00000000;
+  background: transparent;
+  flex: none;
 }
 
 /* Responsive styles for mobile */
 @media (max-width: 899px) {
+  .modern-modal-carousel {
+    padding: clamp(34px, 10vh, 68px) clamp(14px, 7vw, 32px) clamp(90px, 16vh, 130px);
+    max-height: calc(100vh - clamp(120px, 26vh, 180px));
+  }
+
   .modern-modal-slide {
-    padding: 0 clamp(16px, 6vw, 32px) clamp(70px, 12vh, 92px);
-    gap: clamp(10px, 2vh, 22px);
+    width: 100%;
+    max-width: 100%;
+    padding: 0 clamp(16px, 6vw, 32px) clamp(8px, 3vh, 24px);
+    gap: clamp(12px, 3vh, 22px);
   }
 
   .modern-modal-media img,
   .modern-modal-media video {
-    max-height: 45vh !important;
-    max-width: 90vw !important;
+    width: 100%;
+    max-width: 92vw !important;
+    max-height: 50vh !important;
+  }
+
+  .modern-modal-media img.is-portrait,
+  .modern-modal-media video.is-portrait {
+    width: auto !important;
+    max-width: min(78vw, 420px) !important;
+    max-height: min(72vh, 640px) !important;
+    margin: 0 auto;
+  }
+  
+  .modern-modal-footer {
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .modern-modal-footer-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+    gap: 10px;
+  }
+  
+  .modern-modal-footer-center .modern-modal-description {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    gap: 10px;
+  }
+
+  .modern-modal-carousel.portrait-layout {
+    padding-top: clamp(54px, 16vh, 120px);
+    padding-bottom: clamp(36px, 12vh, 120px);
+    max-height: none;
+  }
+
+  .modern-modal-slide.portrait-layout {
+    padding-bottom: clamp(24px, 10vh, 140px);
+  }
+
+  .modern-modal-slide.portrait-layout .modern-modal-media {
+    margin-top: clamp(32px, 10vh, 80px);
+  }
+
+  .modern-modal-slide.portrait-layout .modern-modal-media img.is-portrait,
+  .modern-modal-slide.portrait-layout .modern-modal-media video.is-portrait {
+    max-height: min(65vh, 560px) !important;
+  }
+
+  .modern-modal-footer.portrait-layout {
+    padding-top: 0;
   }
   
   .modern-modal-description {
@@ -3310,15 +3412,45 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
 }
 
 @media (max-width: 480px) {
+  .modern-modal-carousel {
+    padding: clamp(30px, 12vh, 64px) clamp(12px, 8vw, 26px) clamp(86px, 20vh, 120px);
+  }
+
   .modern-modal-slide {
-    padding: 0 clamp(14px, 7vw, 26px) clamp(64px, 13vh, 88px);
-    gap: clamp(10px, 2vh, 20px);
+    padding: 0 clamp(14px, 8vw, 24px) clamp(10px, 4vh, 28px);
+    gap: clamp(12px, 3vh, 20px);
   }
 
   .modern-modal-media img,
   .modern-modal-media video {
-    max-height: 80vh !important;
+    max-height: 75vh !important;
     max-width: 95vw !important;
+  }
+
+  .modern-modal-media img.is-portrait,
+  .modern-modal-media video.is-portrait {
+    width: auto !important;
+    max-width: min(86vw, 420px) !important;
+    max-height: min(78vh, 640px) !important;
+  }
+  
+  .modern-modal-footer {
+    padding: 10px 14px 16px 14px;
+    gap: 10px;
+  }
+  
+  .modern-modal-footer-center {
+    gap: 8px;
+  }
+
+  .modern-modal-carousel.portrait-layout {
+    padding-top: clamp(58px, 20vh, 140px);
+    padding-bottom: clamp(36px, 14vh, 140px);
+  }
+
+  .modern-modal-slide.portrait-layout .modern-modal-media img.is-portrait,
+  .modern-modal-slide.portrait-layout .modern-modal-media video.is-portrait {
+    max-height: min(70vh, 560px) !important;
   }
   
   .modern-modal-description {
