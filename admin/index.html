@@ -91,10 +91,26 @@
             <input id="show-logo-input" type="checkbox"> 
             <small style="color:#666;margin-left:8px;">Attiva per mostrare logo.png nel header e hero</small>
           </label>
-          <label class="block-label">Bio
-            <textarea id="bio-input" rows="4" style="width:100%"></textarea>
+          <label class="block-label">Bio (About Me)
+            <textarea id="bio-input" rows="4" style="width:100%" placeholder="Scrivi una breve descrizione di te..."></textarea>
           </label>
-          <button id="save-hero-bio-btn" class="add-slide-btn">Salva Impostazioni</button>
+          
+          <!-- Artist Image Upload -->
+          <div style="margin-top:16px;padding:16px;background:#f8f9fa;border-radius:8px;border:1px solid #e9ecef;">
+            <label class="block-label" style="margin-bottom:8px;">
+              <strong>🖼️ Immagine Artista</strong>
+              <small style="display:block;color:#666;margin-top:4px;">Questa immagine apparirà nella sezione About Me</small>
+            </label>
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+              <input id="artist-image-input" type="text" style="flex:1;min-width:200px;" placeholder="URL immagine artista">
+              <button class="upload-btn secondary" data-target="artist-image-input" style="white-space:nowrap;">📤 Upload</button>
+            </div>
+            <div id="artist-image-preview" style="margin-top:12px;display:none;">
+              <img src="" alt="Preview" style="max-width:150px;max-height:150px;border-radius:12px;border:2px solid #40e0d0;">
+            </div>
+          </div>
+          
+          <button id="save-hero-bio-btn" class="add-slide-btn" style="margin-top:16px;">Salva Impostazioni</button>
         </div>
 
         <!-- Version Form -->

@@ -15,12 +15,12 @@ function fetchJson(primaryUrl, fallbackUrl) {
 const mediaCache = new Map();
 const preloadQueue = new Set();
 
-// Configurazione performance
+// Configurazione performance - AGGRESSIVE OPTIMIZATION
 const PERFORMANCE_CONFIG = {
   // Lazy loading threshold (quando iniziare a caricare)
   lazyThreshold: 0.1,
-  // FPS limit per canvas video
-  maxFPS: 5,
+  // FPS limit per canvas video thumbnails - STATIC (no animation)
+  maxFPS: 0, // 0 = static image only, no video animation
   // Batch size per preloading
   batchSize: 2,
   // Timeout per caricamento media
@@ -28,7 +28,11 @@ const PERFORMANCE_CONFIG = {
   // Cache TTL (5 minuti)
   cacheTTL: 5 * 60 * 1000,
   // Debounce delay per scroll events
-  scrollDebounce: 100
+  scrollDebounce: 100,
+  // Shader FPS limit
+  shaderFPS: 24, // Reduced from 60
+  // Shader auto-freeze threshold (ms per frame - if > this, freeze)
+  shaderLagThreshold: 100 // If a frame takes > 100ms, freeze shader
 };
 
 // Preload intelligente con priorità e throttling ottimizzato
@@ -332,16 +336,33 @@ function initCanvasObserver() {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         const canvas = entry.target;
-        loadCanvasContent(canvas);
-        canvasObserver.unobserve(canvas); // Carica una sola volta
+        
+        // Evita di caricare più volte lo stesso canvas
+        if (canvas.dataset.loading === 'true' || canvas.dataset.contentLoaded === 'true') {
+          return;
+        }
+        
+        canvas.dataset.loading = 'true';
+        
+        // Su dispositivi poco performanti, ritarda leggermente il caricamento
+        // per non bloccare lo scroll (usa requestIdleCallback se disponibile)
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(() => loadCanvasContent(canvas), { timeout: 500 });
+        } else {
+          // Fallback: usa un piccolo delay per non bloccare il thread principale
+          setTimeout(() => loadCanvasContent(canvas), 50);
+        }
+        
+        // Unobserve solo dopo che il contenuto è stato caricato
+        // La funzione loadCanvasContent chiamerà unobserveCanvas() quando pronto
       }
     });
   }, { 
     threshold: PERFORMANCE_CONFIG.lazyThreshold,
-    rootMargin: '50px' // Inizia a caricare 50px prima che sia visibile
+    rootMargin: '100px' // Aumentato a 100px per precaricamento anticipato
   });
   
-  console.log('👁️ Canvas observer inizializzato');
+  console.log('👁️ Canvas observer inizializzato con ottimizzazioni per dispositivi poco performanti');
 }
 
 // Funzione per reinizializzare gli observer dopo cambio scheda
@@ -444,6 +465,15 @@ window.debugCanvasStates = debugCanvasStates;
 window.forceReloadVisibleCanvas = forceReloadVisibleCanvas;
 window.reinitializeCanvasObserver = reinitializeCanvasObserver;
 
+// Helper per smettere di osservare un canvas quando è completamente caricato
+function unobserveCanvas(canvas) {
+  if (canvasObserver && canvas) {
+    canvasObserver.unobserve(canvas);
+    canvas.dataset.loading = 'false';
+    console.log('👁️ Canvas unobserved:', canvas.id);
+  }
+}
+
 // Funzione per caricare il contenuto del canvas quando diventa visibile
 function loadCanvasContent(canvas) {
   const canvasId = canvas.id;
@@ -451,12 +481,16 @@ function loadCanvasContent(canvas) {
   
   if (!ctx) {
     console.warn('❌ Context 2D non disponibile per canvas:', canvasId);
+    canvas.dataset.loading = 'false';
+    unobserveCanvas(canvas);
     return;
   }
   
   // Controlla se è già stato caricato completamente
   if (canvas.dataset.loaded === 'true' && canvas.dataset.contentLoaded === 'true') {
     console.log('✅ Canvas già caricato completamente:', canvasId);
+    canvas.dataset.loading = 'false';
+    unobserveCanvas(canvas);
     return;
   }
   
@@ -467,76 +501,18 @@ function loadCanvasContent(canvas) {
     canvas.dataset.contentLoaded = 'false';
   }
   
-  // Indicatore di caricamento cyberpunk
-  const drawCyberpunkLoader = (ctx, canvasW, canvasH) => {
-    const centerX = canvasW / 2;
-    const centerY = canvasH / 2;
-    
-    // Background scuro con gradiente
-    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, Math.max(canvasW, canvasH) * 0.8);
-    gradient.addColorStop(0, 'rgba(26, 26, 46, 0.9)');
-    gradient.addColorStop(1, 'rgba(20, 30, 48, 0.95)');
-    ctx.fillStyle = gradient;
+  // Placeholder statico elegante (nessuna animazione)
+  const drawStaticPlaceholder = (ctx, canvasW, canvasH) => {
+    // Background scuro uniforme
+    ctx.fillStyle = '#0d1117';
     ctx.fillRect(0, 0, canvasW, canvasH);
-    
-    // Punti pulsanti cyberpunk
-    const time = Date.now() * 0.003;
-    const dotCount = 3;
-    const radius = Math.min(canvasW, canvasH) * 0.08;
-    const spacing = radius * 3;
-    
-    for (let i = 0; i < dotCount; i++) {
-      const x = centerX + (i - 1) * spacing;
-      const y = centerY;
-      
-      // Effetto pulsante con timing sfalsato
-      const pulse = Math.sin(time + i * 0.8) * 0.5 + 0.5;
-      const size = radius * (0.6 + pulse * 0.4);
-      const alpha = 0.3 + pulse * 0.7;
-      
-      // Glow effect
-      ctx.shadowColor = '#40e0d0';
-      ctx.shadowBlur = 15 * pulse;
-      
-      // Punto principale
-      ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(64, 224, 208, ${alpha})`;
-      ctx.fill();
-      
-      // Bordo luminoso
-      ctx.strokeStyle = `rgba(64, 224, 208, ${alpha * 0.8})`;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-    
-    // Reset shadow
-    ctx.shadowBlur = 0;
-    
-    // Testo "LOADING" con effetto flicker
-    const flicker = Math.sin(time * 2) * 0.3 + 0.7;
-    ctx.fillStyle = `rgba(64, 224, 208, ${flicker * 0.6})`;
-    ctx.font = 'bold 12px Montserrat, Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('LOADING', centerX, centerY + radius * 2.5);
   };
   
   // Flag per tracciare se il contenuto è stato caricato
   if (!canvas.dataset.contentLoaded) {
     canvas.dataset.contentLoaded = 'false';
-  }
-  
-  // Mostra loader cyberpunk e anima finché il contenuto non è caricato
-  const animateCyberpunkLoader = () => {
-    if (canvas.dataset.contentLoaded === 'true') return; // Stop se caricato
-    drawCyberpunkLoader(ctx, canvas.width, canvas.height);
-    requestAnimationFrame(animateCyberpunkLoader);
-  };
-  
-  // Avvia l'animazione se il contenuto non è caricato
-  if (canvas.dataset.contentLoaded === 'false') {
-    animateCyberpunkLoader();
+    // Mostra placeholder statico (no animazione)
+    drawStaticPlaceholder(ctx, canvas.width, canvas.height);
   }
   
   // Marca come caricato
@@ -553,12 +529,28 @@ function loadCanvasContent(canvas) {
       console.log('✅ Immagine caricata con successo:', canvasId);
       drawImageToCanvas(ctx, img, canvas.width, canvas.height);
       canvas.dataset.contentLoaded = 'true'; // Marca contenuto come caricato
+      canvas.dataset.loading = 'false';
+      unobserveCanvas(canvas); // Smetti di osservare solo DOPO il caricamento
     };
     
     img.onerror = function(e) {
       console.error('❌ Errore caricamento immagine:', canvasId, e);
       createCanvasContent(ctx, 'Canvas', canvas.width, canvas.height);
+      canvas.dataset.contentLoaded = 'true'; // Marca come caricato anche in caso di errore
+      canvas.dataset.loading = 'false';
+      unobserveCanvas(canvas); // Smetti di osservare anche in caso di errore
     };
+    
+    // Timeout di sicurezza: se l'immagine non carica entro 10 secondi
+    setTimeout(() => {
+      if (canvas.dataset.contentLoaded !== 'true') {
+        console.warn('⏰ Timeout caricamento immagine canvas:', canvasId);
+        createCanvasContent(ctx, 'Canvas', canvas.width, canvas.height);
+        canvas.dataset.contentLoaded = 'true';
+        canvas.dataset.loading = 'false';
+        unobserveCanvas(canvas);
+      }
+    }, 10000);
     
     img.src = canvas.dataset.imageSrc;
     return;
@@ -572,8 +564,13 @@ function loadCanvasContent(canvas) {
       // Marca come caricato dopo un breve delay per permettere al video di caricarsi
       setTimeout(() => {
         canvas.dataset.contentLoaded = 'true';
+        canvas.dataset.loading = 'false';
+        unobserveCanvas(canvas);
       }, 500);
       console.log(`🎬 Canvas video lazy loaded: ${canvasId}`);
+    } else {
+      canvas.dataset.loading = 'false';
+      unobserveCanvas(canvas);
     }
     return;
   }
@@ -581,6 +578,8 @@ function loadCanvasContent(canvas) {
   // Canvas procedurale - crea contenuto immediatamente
   createCanvasContent(ctx, 'Canvas', canvas.width, canvas.height);
   canvas.dataset.contentLoaded = 'true'; // Marca contenuto come caricato
+  canvas.dataset.loading = 'false';
+  unobserveCanvas(canvas);
   console.log(`🎨 Procedural canvas lazy loaded: ${canvasId}`);
 }
 
@@ -611,41 +610,9 @@ function drawImageToCanvas(ctx, img, canvasW, canvasH) {
 // ========= SISTEMA DI FEEDBACK UTENTE OTTIMIZZATO =========
 let loadingIndicatorTimeout;
 
-// Mostra indicatore di caricamento per operazioni lunghe
-function showLoadingFeedback(message = 'Caricamento...') {
-  clearTimeout(loadingIndicatorTimeout);
-  
-  // Mostra indicatore solo se il caricamento richiede più di 1.5 secondi (ridotto da 2s)
-  loadingIndicatorTimeout = setTimeout(() => {
-    const existing = document.getElementById('media-loading-indicator');
-    if (existing) return;
-    
-    const indicator = document.createElement('div');
-    indicator.id = 'media-loading-indicator';
-    indicator.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-family: 'Montserrat', Arial, sans-serif;
-      font-size: 0.9rem;
-      z-index: 10000;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(64, 224, 208, 0.3);
-    `;
-    indicator.textContent = message;
-    document.body.appendChild(indicator);
-    
-    // Rimuovi automaticamente dopo 8 secondi (ridotto da 10s)
-    setTimeout(() => {
-      if (indicator.parentNode) {
-        indicator.parentNode.removeChild(indicator);
-      }
-    }, 8000);
-  }, 1500);
+// Loading feedback DISABLED - for cleaner UX
+function showLoadingFeedback(message = '') {
+  // Do nothing - loading indicators disabled for cleaner UX
 }
 
 // Nascondi indicatore di caricamento
@@ -1013,19 +980,40 @@ document.addEventListener('DOMContentLoaded', function () {
 
       function updateActiveSection() {
         let currentSection = '';
-
-        sections.forEach(section => {
-          const sectionTop = section.offsetTop;
-          const sectionHeight = section.clientHeight;
-
-          if (window.scrollY >= sectionTop - 150) {
-            currentSection = section.getAttribute('id');
+        const scrollPos = window.scrollY + window.innerHeight / 3; // Punto di riferimento a 1/3 dello schermo
+        
+        // Se siamo in fondo alla pagina, attiva l'ultima sezione visibile
+        const isAtBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100;
+        
+        if (isAtBottom) {
+          // Trova l'ultima sezione visibile
+          const visibleSections = Array.from(sections).filter(s => 
+            s.style.display !== 'none' && getComputedStyle(s).display !== 'none'
+          );
+          if (visibleSections.length > 0) {
+            currentSection = visibleSections[visibleSections.length - 1].getAttribute('id');
           }
-        });
+        } else {
+          // Logica normale: trova la sezione in cui ci troviamo
+          sections.forEach(section => {
+            // Salta sezioni nascoste
+            if (section.style.display === 'none' || getComputedStyle(section).display === 'none') {
+              return;
+            }
+            
+            const sectionTop = section.offsetTop;
+            const sectionBottom = sectionTop + section.clientHeight;
+
+            if (scrollPos >= sectionTop && scrollPos < sectionBottom) {
+              currentSection = section.getAttribute('id');
+            }
+          });
+        }
 
         navLinks.forEach(link => {
           link.classList.remove('active');
-          if (link.getAttribute('href') === `#${currentSection}`) {
+          const href = link.getAttribute('href');
+          if (href === `#${currentSection}`) {
             link.classList.add('active');
           }
         });
@@ -1390,251 +1378,152 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // 🎬 CANVAS VIDEO SYSTEM - Lightweight video textures (OTTIMIZZATO)
+  // 🎬 CANVAS THUMBNAIL SYSTEM - STATIC IMAGES ONLY (no video animation for performance)
   class CanvasVideoRenderer {
     constructor(canvas, videoSrc, fallbackImageSrc, immediateInit = false) {
       this.canvas = canvas;
       this.ctx = canvas.getContext('2d');
       this.videoSrc = videoSrc;
       this.fallbackImageSrc = fallbackImageSrc;
-      this.video = null;
-      this.isPlaying = false;
-      this.isVisible = false;
-      this.animationId = null;
-      this.observer = null;
-      this.lastFrameTime = 0;
-      this.targetFPS = PERFORMANCE_CONFIG.maxFPS; // FPS ridotto per performance
-      this.frameInterval = 1000 / this.targetFPS;
-      this.isLoaded = false; // Flag per evitare caricamenti multipli
-
-      if (immediateInit) {
-        this.initImmediate();
-      } else {
+      this.isLoaded = false;
+      
+      // Draw placeholder immediately
+      this.drawPlaceholder();
+      
+      // Then try to load actual content
         this.init();
-      }
     }
 
     init() {
-      // Setup intersection observer for lazy loading and auto-pause
-      this.observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            this.onVisible();
-          } else {
-            this.onHidden();
-          }
-        });
-      }, { threshold: PERFORMANCE_CONFIG.lazyThreshold });
-
-      this.observer.observe(this.canvas);
-
-      // Load fallback image first (sempre caricato per placeholder)
+      // Priority: 1) Fallback image, 2) Video thumbnail extraction
       if (this.fallbackImageSrc) {
-        this.loadFallbackImage();
-      }
-
-      // Video caricato solo quando diventa visibile (lazy loading)
-      // Non caricare immediatamente per migliorare le performance
-    }
-
-    // Funzione per inizializzazione immediata (senza lazy loading)
-    initImmediate() {
-      // Setup intersection observer solo per auto-pause
-      this.observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            this.onVisible();
-          } else {
-            this.onHidden();
-          }
-        });
-      }, { threshold: 0.1 });
-
-      this.observer.observe(this.canvas);
-
-      // Load fallback image first
-      if (this.fallbackImageSrc) {
-        this.loadFallbackImage();
-      }
-
-      // Start loading video immediately
-      if (this.videoSrc) {
-        this.loadVideo();
-        // Inizializza immediatamente come visibile
-        this.isVisible = true;
-        setTimeout(() => {
-          if (this.video && this.video.readyState >= 2) {
-            this.startVideo();
-          }
-        }, 100);
+        this.loadStaticImage(this.fallbackImageSrc);
+      } else if (this.videoSrc) {
+        this.extractVideoThumbnail();
       }
     }
 
-    loadFallbackImage() {
+    loadStaticImage(src) {
+      if (this.isLoaded) return;
+      
       const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
       img.onload = () => {
         this.drawImageToCanvas(img);
+        this.isLoaded = true;
+        this.canvas.dataset.contentLoaded = 'true';
+        console.log('✅ Thumbnail loaded:', src.substring(0, 50));
       };
+      
       img.onerror = () => {
-        // If fallback image fails, create procedural content
-        // createCanvasContent(this.ctx, 'Canvas', this.canvas.width, this.canvas.height);
+        console.warn('⚠️ Fallback image failed, trying video:', src.substring(0, 50));
+        // If fallback fails, try video thumbnail
+        if (this.videoSrc && !this.isLoaded) {
+          this.extractVideoThumbnail();
+        }
       };
-      img.src = this.fallbackImageSrc;
+      
+      img.src = src;
     }
+
+    extractVideoThumbnail() {
+      if (this.isLoaded) return;
+      
+      console.log('🎬 Extracting video thumbnail:', this.videoSrc?.substring(0, 50));
+      
+      const video = document.createElement('video');
+      video.crossOrigin = 'anonymous';
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = 'auto'; // Changed from metadata to auto
+      
+      // Timeout for video loading
+      const timeout = setTimeout(() => {
+        console.warn('⚠️ Video thumbnail timeout');
+        video.src = '';
+      }, 10000);
+      
+      video.addEventListener('loadeddata', () => {
+        // Seek to 0.5 second for better thumbnail
+        video.currentTime = 0.5;
+      });
+
+      video.addEventListener('seeked', () => {
+        clearTimeout(timeout);
+        try {
+          this.drawVideoFrame(video);
+          this.isLoaded = true;
+          this.canvas.dataset.contentLoaded = 'true';
+          console.log('✅ Video thumbnail extracted');
+        } catch (e) {
+          console.warn('⚠️ Failed to draw video frame:', e);
+        }
+        // Cleanup
+        video.src = '';
+        video.load();
+      });
+      
+      video.addEventListener('error', (e) => {
+        clearTimeout(timeout);
+        console.warn('⚠️ Video thumbnail failed:', e);
+      });
+      
+      video.src = this.videoSrc;
+      }
 
     drawImageToCanvas(img) {
       const canvasW = this.canvas.width;
       const canvasH = this.canvas.height;
-      const imgW = img.width;
-      const imgH = img.height;
+      const imgW = img.width || canvasW;
+      const imgH = img.height || canvasH;
 
-      // Calculate scale to FILL canvas while maintaining aspect ratio (like object-fit: cover)
+      if (imgW === 0 || imgH === 0) return;
+
       const scale = Math.max(canvasW / imgW, canvasH / imgH);
       const drawW = imgW * scale;
       const drawH = imgH * scale;
       const offsetX = (canvasW - drawW) / 2;
       const offsetY = (canvasH - drawH) / 2;
 
-      this.ctx.clearRect(0, 0, canvasW, canvasH);
-
-      // Add subtle background
-      this.ctx.fillStyle = '#1a1a2e';
+      this.ctx.fillStyle = '#0d1117';
       this.ctx.fillRect(0, 0, canvasW, canvasH);
-
-      // Draw image
       this.ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
-
-      // Add subtle overlay effect
-      this.ctx.fillStyle = 'rgba(64, 224, 208, 0.1)';
-      this.ctx.fillRect(0, 0, canvasW, canvasH);
     }
 
-    onVisible() {
-      this.isVisible = true;
-      
-      // Carica il video solo se non è già stato caricato
-      if (!this.isLoaded && this.videoSrc) {
-        this.loadVideo();
-        this.isLoaded = true;
-      } else if (this.video && !this.isPlaying) {
-        // Resume video if it was paused
-        this.startVideo();
-      }
-    }
-
-    onHidden() {
-      this.isVisible = false;
-      // Pause video to save resources when not visible
-      this.pauseVideo();
-    }
-
-    loadVideo() {
-      if (!this.videoSrc) return;
-
-      this.video = document.createElement('video');
-      this.video.src = this.videoSrc;
-      this.video.loop = true;
-      this.video.muted = true;
-      this.video.playsInline = true;
-      this.video.preload = 'metadata';
-
-      // Use very low resolution for performance
-      this.video.style.width = '240px';
-      this.video.style.height = '135px';
-
-      this.video.addEventListener('loadeddata', () => {
-        // Start video immediately when loaded, regardless of visibility
-        this.startVideo();
-      });
-
-      this.video.addEventListener('error', () => {
-        console.warn('⚠️ Canvas video failed to load:', this.videoSrc);
-        // Fallback to static image
-        if (this.fallbackImageSrc) {
-          this.loadFallbackImage();
-        }
-      });
-    }
-
-    startVideo() {
-      if (!this.video || this.isPlaying) return;
-
-      this.video.play().then(() => {
-        this.isPlaying = true;
-        this.render();
-      }).catch(err => {
-        console.warn('⚠️ Canvas video play failed:', err);
-        // Keep fallback image
-      });
-    }
-
-    pauseVideo() {
-      if (this.video && this.isPlaying) {
-        this.video.pause();
-        this.isPlaying = false;
-      }
-
-      if (this.animationId) {
-        cancelAnimationFrame(this.animationId);
-        this.animationId = null;
-      }
-    }
-
-    render(currentTime = 0) {
-      if (!this.isPlaying) return;
-
-      // Throttle FPS for performance
-      if (currentTime - this.lastFrameTime >= this.frameInterval) {
-        this.drawVideoFrame();
-        this.lastFrameTime = currentTime;
-      }
-
-      this.animationId = requestAnimationFrame((time) => this.render(time));
-    }
-
-    drawVideoFrame() {
-      if (!this.video || this.video.readyState < 2) return;
-
+    drawVideoFrame(video) {
       const canvasW = this.canvas.width;
       const canvasH = this.canvas.height;
-      const videoW = this.video.videoWidth;
-      const videoH = this.video.videoHeight;
+      const videoW = video.videoWidth || canvasW;
+      const videoH = video.videoHeight || canvasH;
 
       if (videoW === 0 || videoH === 0) return;
 
-      // Calculate scale to FILL canvas (like object-fit: cover)
       const scale = Math.max(canvasW / videoW, canvasH / videoH);
       const drawW = videoW * scale;
       const drawH = videoH * scale;
       const offsetX = (canvasW - drawW) / 2;
       const offsetY = (canvasH - drawH) / 2;
 
-      this.ctx.clearRect(0, 0, canvasW, canvasH);
-
-      // Add background
-      this.ctx.fillStyle = '#0a0a0a';
+      this.ctx.fillStyle = '#0d1117';
       this.ctx.fillRect(0, 0, canvasW, canvasH);
-
-      // Draw video frame
-      this.ctx.drawImage(this.video, offsetX, offsetY, drawW, drawH);
-
-      // Add subtle video overlay effect
-      this.ctx.fillStyle = 'rgba(64, 224, 208, 0.05)';
-      this.ctx.fillRect(0, 0, canvasW, canvasH);
+      this.ctx.drawImage(video, offsetX, offsetY, drawW, drawH);
     }
 
-    destroy() {
-      if (this.observer) {
-        this.observer.disconnect();
-      }
+    drawPlaceholder() {
+      this.ctx.fillStyle = '#0d1117';
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
 
-      this.pauseVideo();
-
-      if (this.video) {
-        this.video.src = '';
-        this.video.load();
+    // Compatibility methods
+    onVisible() {
+      // Try loading again if not loaded
+      if (!this.isLoaded) {
+        this.init();
       }
     }
+    onHidden() {}
+    destroy() {}
   }
 
   // Funzione per inizializzare una gallery
@@ -1737,13 +1626,15 @@ document.addEventListener('DOMContentLoaded', function () {
       if (img.canvas) {
         mediaEl = document.createElement('canvas');
         mediaEl.className = 'gallery-canvas';
-        // Dimensioni canvas responsive
-        mediaEl.width = 300;
-        mediaEl.height = 210;
-        if (window.innerWidth <= 600) {
-          // Mobile: canvas verticale 3:4 per un design moderno e coerente
-          mediaEl.width = 270;
-          mediaEl.height = 360;
+        // Dimensioni canvas responsive - match card aspect ratio
+        // Desktop: 16:9, Mobile: 4:3
+        const isMobile = window.innerWidth <= 900;
+        if (isMobile) {
+          mediaEl.width = 400;  // 4:3 aspect ratio
+          mediaEl.height = 300;
+        } else {
+          mediaEl.width = 480;  // 16:9 aspect ratio  
+          mediaEl.height = 270;
         }
 
         const ctx = mediaEl.getContext('2d');
@@ -1754,10 +1645,12 @@ document.addEventListener('DOMContentLoaded', function () {
           const canvasId = `${sectionId}-canvas-${index}`;
           mediaEl.id = canvasId;
 
-          const renderer = new CanvasVideoRenderer(mediaEl, img.video, img.src, false); // false = lazy loading
+          // Use src, modalImage, or first gallery image as fallback
+          const fallbackSrc = img.src || img.modalImage || (img.modalGallery && img.modalGallery[0]) || null;
+          const renderer = new CanvasVideoRenderer(mediaEl, img.video, fallbackSrc, false);
           canvasVideoRenderers.set(canvasId, renderer);
 
-          console.log(`🎬 Canvas video created with lazy loading: ${canvasId} (${img.video})`);
+          console.log(`🎬 Canvas video created: ${canvasId} (video: ${img.video?.substring(0,30)}, fallback: ${fallbackSrc?.substring(0,30)})`);
         } else if (img.src || img.modalImage) {
           // Canvas statico con immagine - lazy loading
           const canvasId = `${sectionId}-static-canvas-${index}`;
@@ -1899,9 +1792,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const isRealMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && 
                         ('ontouchstart' in window || navigator.maxTouchPoints > 0);
     
-    console.log(`📱 [${sectionId}] Dispositivo mobile fisico: ${isRealMobile}`);
+    // Su desktop (> 900px), disabilita Swiper per usare la griglia
+    const isDesktop = window.innerWidth > 900;
+    
+    console.log(`📱 [${sectionId}] Dispositivo mobile fisico: ${isRealMobile}, Desktop: ${isDesktop}`);
 
+    // Disabilita Swiper su mobile E desktop - usiamo CSS scroll su mobile
+    const isMobileView = window.innerWidth <= 900;
     const swiper = new Swiper(swiperContainer, {
+      enabled: !isDesktop && !isMobileView, // Swiper solo per tablet (901-1200px)
       slidesPerView: 3,
       spaceBetween: 40,
       grabCursor: true,
@@ -1923,10 +1822,11 @@ document.addEventListener('DOMContentLoaded', function () {
       touchMoveStopPropagation: false,
       iOSEdgeSwipeDetection: true,
       iOSEdgeSwipeThreshold: 20,
+      centeredSlides: true, // Centra sempre la slide attiva
       breakpoints: {
         320: {
           slidesPerView: 1,
-          spaceBetween: 16,
+          spaceBetween: 24,
           resistanceRatio: isRealMobile ? 0 : 0.7,
           touchRatio: isRealMobile ? 1 : 0.8,
           touchAngle: 30,
@@ -1935,7 +1835,7 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         480: {
           slidesPerView: 1,
-          spaceBetween: 16,
+          spaceBetween: 24,
           resistanceRatio: isRealMobile ? 0 : 0.9,
           touchRatio: isRealMobile ? 1 : 0.9,
           touchAngle: 30,
@@ -1945,6 +1845,7 @@ document.addEventListener('DOMContentLoaded', function () {
         600: {
           slidesPerView: 2,
           spaceBetween: 20,
+          centeredSlides: false,
           resistanceRatio: isRealMobile ? 0 : 0.9,
           touchRatio: isRealMobile ? 1 : 0.95,
           touchAngle: 35,
@@ -2065,6 +1966,51 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
 
+    // --- DESKTOP GRID EXPAND SYSTEM ---
+    // Calculate visible items based on screen width
+    // >1600px: 4 columns × 2 rows = 8 visible
+    // >900px: 3 columns × 2 rows = 6 visible
+    const getVisibleCount = () => window.innerWidth >= 1600 ? 8 : 6;
+    
+    if (window.innerWidth > 900) {
+      const visibleCount = getVisibleCount();
+      const hiddenCount = totalSlides - visibleCount;
+      
+      if (hiddenCount > 0) {
+        const carousel = section.querySelector('.gallery-carousel');
+        
+        // Crea il pulsante expand
+        const expandBtn = document.createElement('button');
+        expandBtn.className = 'gallery-expand-btn';
+        expandBtn.innerHTML = `<span>Show more</span><span class="icon">▼</span>`;
+        expandBtn.setAttribute('aria-expanded', 'false');
+        
+        // Inserisci dopo il carousel
+        carousel.parentNode.insertBefore(expandBtn, carousel.nextSibling);
+        
+        // Handler click
+        expandBtn.addEventListener('click', () => {
+          const isExpanded = track.classList.toggle('expanded');
+          expandBtn.classList.toggle('expanded', isExpanded);
+          expandBtn.setAttribute('aria-expanded', isExpanded);
+          
+          if (isExpanded) {
+            expandBtn.innerHTML = `<span>Show less</span><span class="icon">▲</span>`;
+          } else {
+            expandBtn.innerHTML = `<span>Show more</span><span class="icon">▼</span>`;
+            // Scroll to section top when collapsing
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+        
+        console.log(`📐 [${sectionId}] Desktop grid mode - ${totalSlides} items (${visibleCount} visible, ${hiddenCount} hidden)`);
+      } else {
+        // Tutti visibili, nessun pulsante necessario
+        track.classList.add('expanded');
+        console.log(`📐 [${sectionId}] Desktop grid mode - ${totalSlides} items, all visible`);
+      }
+    }
+
     return swiper;
   }
 
@@ -2148,13 +2094,14 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Rimuovi focus dai canvas quando si fa swipe o scroll
+    // IMPORTANTE: passive: true per non bloccare lo scroll su dispositivi poco performanti
     document.addEventListener('touchstart', function (e) {
       const focusedElement = document.activeElement;
       if (focusedElement && focusedElement.closest('.gallery-item') &&
         !e.target.closest('.gallery-item')) {
         focusedElement.blur();
       }
-    });
+    }, { passive: true });
 
     // Gestione Escape per rimuovere focus
     document.addEventListener('keydown', function (e) {
@@ -2169,6 +2116,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Gestione click semplificata per mobile
     function addClickHandler(element, handler) {
+      // Rileva se siamo su dispositivo mobile fisico
+      const isRealMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) &&
+                          ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+      
       let touchStartTime = 0;
       let touchMoved = false;
       let touchStartX = 0;
@@ -2184,6 +2135,9 @@ document.addEventListener('DOMContentLoaded', function () {
       }, { passive: true });
 
       element.addEventListener('touchmove', function (e) {
+        // Ottimizzazione: se già rilevato movimento, non fare ulteriori calcoli
+        if (touchMoved) return;
+        
         if (e.touches.length > 0) {
           const touchX = e.touches[0].clientX;
           const touchY = e.touches[0].clientY;
@@ -2207,7 +2161,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Solo se è un tap veloce e non c'è stato movimento significativo
         if (!touchMoved && touchDuration < timeThreshold) {
-          e.preventDefault();
+          // NON chiamare preventDefault() per permettere lo scroll dei caroselli
+          // su dispositivi poco performanti
+          // e.preventDefault(); // RIMOSSO per migliorare performance
           e.stopPropagation();
           // Rimuovi focus prima di eseguire il handler
           if (document.activeElement && document.activeElement !== element) {
@@ -2215,7 +2171,7 @@ document.addEventListener('DOMContentLoaded', function () {
           }
           setTimeout(() => handler(e), isRealMobile ? 100 : 50); // Delay maggiore per mobile fisico
         }
-      }, { passive: false });
+      }, { passive: true }); // CAMBIATO a passive: true per performance
 
       // Fallback per desktop
       element.addEventListener('click', function (e) {
@@ -2321,8 +2277,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   };
 
-  // Avvia il caricamento ottimizzato
-  loadGalleriesOptimized();
+  // Avvia il caricamento ottimizzato e salva la Promise
+  window.galleriesLoadPromise = loadGalleriesOptimized();
 
   function afterGalleryInit() {
     // Lazy-loading: inizializza ImageOptimizer una sola volta
@@ -2462,6 +2418,20 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   console.log('🎉 Portfolio: Inizializzazione completata con successo!');
+  
+  // Wait for galleries to load before hiding loader
+  if (window.galleriesLoadPromise) {
+    window.galleriesLoadPromise.then(() => {
+      console.log('✅ Galleries loaded, hiding loader');
+      hideAppLoader();
+    }).catch(() => {
+      console.warn('⚠️ Gallery load failed, hiding loader anyway');
+      hideAppLoader();
+    });
+  } else {
+    // Fallback se galleriesLoadPromise non esiste
+    hideAppLoader();
+  }
 });
 
 
@@ -2512,6 +2482,37 @@ let currentSiteConfig = null;
 
 
 
+// Function to hide the loading overlay
+function hideAppLoader() {
+  const loader = document.getElementById('app-loader');
+  if (!loader) return;
+  
+  console.log('✅ Nascondo loader...');
+  
+  // Add loaded class to trigger CSS transition
+  requestAnimationFrame(() => {
+    loader.classList.add('loaded');
+    loader.setAttribute('aria-busy', 'false');
+  });
+  
+  // Remove from DOM after transition completes
+  setTimeout(() => {
+    if (loader.parentNode) {
+      loader.remove();
+      console.log('✅ Loader rimosso dal DOM');
+    }
+  }, 600); // Match CSS transition duration
+}
+
+// Safety timeout: hide loader after max 5 seconds even if something fails
+setTimeout(() => {
+  const loader = document.getElementById('app-loader');
+  if (loader && !loader.classList.contains('loaded')) {
+    console.warn('⚠️ Loader timeout raggiunto, nascondo forzatamente');
+    hideAppLoader();
+  }
+}, 5000);
+
 // Initial load - use direct Firestore in production
 const initialLoad = async () => {
   try {
@@ -2560,14 +2561,6 @@ const initialLoad = async () => {
 initialLoad();
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Apply pulse animation to gallery cards until first interaction
-  const galleryItems = document.querySelectorAll('.gallery-item');
-  galleryItems.forEach(item => {
-    item.classList.add('pulse');
-    const clearPulse = () => { item.classList.remove('pulse'); item.removeEventListener('pointerdown', clearPulse); };
-    item.addEventListener('pointerdown', clearPulse, { once: true });
-  });
-
   // Inizializza l'observer per i canvas già presenti nel DOM
   setTimeout(() => {
     if (canvasObserver) {
@@ -2595,26 +2588,6 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log(`👁️ Observer attivo per ${existingCanvas.length} canvas esistenti`);
     }
   }, 500);
-
-  // Arrow scroll hint for horizontal carousels
-  const carousels = document.querySelectorAll('.gallery-carousel');
-  carousels.forEach(carousel => {
-    if (carousel.scrollWidth <= carousel.clientWidth) return; // no overflow
-    const hint = document.createElement('div');
-    hint.className = 'scroll-hint';
-    hint.textContent = '›';
-    carousel.style.position = 'relative';
-    carousel.appendChild(hint);
-    let removed = false;
-    function removeHint() {
-      if (removed) return; removed = true; hint.remove();
-      carousel.removeEventListener('scroll', onScroll);
-    }
-    function onScroll() { if (Math.abs(carousel.scrollLeft) > 8) { removeHint(); } }
-    carousel.addEventListener('scroll', onScroll);
-    // Fallback: rimuovi comunque dopo 4s
-    setTimeout(removeHint, 4000);
-  });
 
   // Fade-in shader iframe after load
   const shader = document.getElementById('shader-iframe');
@@ -2657,9 +2630,10 @@ document.addEventListener('DOMContentLoaded', () => {
     hideShaderLoader();
   }, 5000);
 
-  /* Desktop GLSL shader */
+  /* Desktop GLSL shader - OPTIMIZED with FPS limit and auto-freeze */
   (async function () {
     if (window.innerWidth <= 900) return; // only desktop
+    
     const canvas = document.getElementById('desktop-shader');
     if (!canvas) { console.warn('[DesktopShader] canvas not found'); return; }
     const hasGL = typeof GlslCanvas !== 'undefined';
@@ -2715,15 +2689,65 @@ document.addEventListener('DOMContentLoaded', () => {
       const sandbox = new GlslCanvas(canvas);
       sandbox.load(shaderText);
       console.log('[DesktopShader] GLSL initialized');
+      
+      // FPS LIMITER: Reduce shader update rate
+      let lastUpdate = 0;
+      const targetFPS = PERFORMANCE_CONFIG.shaderFPS;
+      const frameInterval = 1000 / targetFPS;
+      let frozen = false;
+      let lagCount = 0;
+      
+      // FPS limiter using pause/resume
+      const fpsLimiter = () => {
+        if (frozen) return;
+        const now = performance.now();
+        const delta = now - lastUpdate;
+        
+        // Check for lag - if frame took too long, freeze shader
+        if (delta > PERFORMANCE_CONFIG.shaderLagThreshold) {
+          lagCount++;
+          if (lagCount > 5) {
+            console.log('[DesktopShader] Auto-frozen due to lag');
+            frozen = true;
+            sandbox.paused = true;
+            return;
+          }
+        } else {
+          lagCount = Math.max(0, lagCount - 1);
+        }
+        
+        lastUpdate = now;
+        requestAnimationFrame(fpsLimiter);
+      };
+      requestAnimationFrame(fpsLimiter);
+      
+      // Optimization: Pause shader when not visible
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && !frozen) {
+              sandbox.paused = false;
+            } else {
+              sandbox.paused = true;
+            }
+        });
+      });
+      observer.observe(canvas);
+
       desktopShaderLoaded = true;
       checkAllShadersLoaded();
+      
+      // OPTIMIZED: Use 0.5x resolution for better performance
       const resize = () => { 
-        const ratio = window.devicePixelRatio || 1; 
-        canvas.width = canvas.clientWidth * ratio; 
-        canvas.height = canvas.clientHeight * ratio; 
+        const scale = 0.5; // Half resolution
+        canvas.width = canvas.clientWidth * scale; 
+        canvas.height = canvas.clientHeight * scale; 
       };
       resize(); 
-      window.addEventListener('resize', resize);
+      let resizeTimeout;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(resize, 200);
+      });
     } else {
       console.warn('[DesktopShader] GlslCanvas undefined – trying dynamic import');
       import('https://cdn.skypack.dev/glslCanvas').then(mod => {
@@ -2733,134 +2757,153 @@ document.addEventListener('DOMContentLoaded', () => {
           const sandbox = new Glsl(canvas);
           sandbox.load(text);
           console.log('[DesktopShader] GLSL initialized (dynamic)');
+
+          // Auto-freeze on lag
+          let frozen = false;
+          let lagCount = 0;
+          let lastUpdate = performance.now();
+          
+          const lagMonitor = () => {
+            if (frozen) return;
+            const now = performance.now();
+            if (now - lastUpdate > PERFORMANCE_CONFIG.shaderLagThreshold) {
+              lagCount++;
+              if (lagCount > 5) {
+                console.log('[DesktopShader] Auto-frozen');
+                frozen = true;
+                sandbox.paused = true;
+                return;
+              }
+            } else {
+              lagCount = Math.max(0, lagCount - 1);
+            }
+            lastUpdate = now;
+            requestAnimationFrame(lagMonitor);
+          };
+          requestAnimationFrame(lagMonitor);
+
+          // Optimization: Pause shader when not visible
+          const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !frozen) {
+                  sandbox.paused = false;
+                } else {
+                  sandbox.paused = true;
+                }
+            });
+          });
+          observer.observe(canvas);
+
           desktopShaderLoaded = true;
           checkAllShadersLoaded();
+          
+          // OPTIMIZED: Use 0.5x resolution
           const resize = () => { 
-            const ratio = window.devicePixelRatio || 1; 
-            canvas.width = canvas.clientWidth * ratio; 
-            canvas.height = canvas.clientHeight * ratio; 
+            const scale = 0.5;
+            canvas.width = canvas.clientWidth * scale; 
+            canvas.height = canvas.clientHeight * scale; 
           };
           resize(); 
-          window.addEventListener('resize', resize);
+          let resizeTimeout;
+          window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(resize, 200);
+          });
         });
       }).catch(err => {
         console.error('glslCanvas dynamic import failed', err);
-        // Fallback 2D gradient
+        // Fallback: Static gradient (no animation for performance)
         const ctx = canvas.getContext('2d');
-        function resize2d() { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; }
-        resize2d(); window.addEventListener('resize', resize2d);
-        function draw(t) { 
-          requestAnimationFrame(draw); 
+        canvas.width = canvas.clientWidth; 
+        canvas.height = canvas.clientHeight;
           const w = canvas.width, h = canvas.height; 
-          const time = t * 0.0004; 
-          const grd = ctx.createRadialGradient(w * 0.5 + Math.sin(time) * w * 0.2, h * 0.4 + Math.cos(time * 1.3) * h * 0.2, 0, w / 2, h / 2, Math.max(w, h) * 0.7); 
-          const hue = (time * 40) % 360; 
-          grd.addColorStop(0, `hsl(${hue},70%,55%)`); 
-          grd.addColorStop(1, '#001820'); 
+        const grd = ctx.createRadialGradient(w * 0.5, h * 0.4, 0, w / 2, h / 2, Math.max(w, h) * 0.7); 
+        grd.addColorStop(0, '#1a3a4a'); 
+        grd.addColorStop(1, '#0a1520');
           ctx.fillStyle = grd; 
           ctx.fillRect(0, 0, w, h); 
-        } 
-        draw();
         desktopShaderLoaded = true;
         checkAllShadersLoaded();
       });
     }
   })();
 
-  /* Mobile GLSL shader fetched from API */
+  /* Mobile GLSL shader - same logic as desktop */
   (async function () {
-    if (window.innerWidth > 900) return; // only mobile
+    if (window.innerWidth > 900) {
+      mobileShaderLoaded = true;
+      checkAllShadersLoaded();
+      return;
+    }
+
     const canvas = document.getElementById('mobile-shader');
-    if (!canvas) { console.warn('[MobileShader] canvas not found'); return; }
+    if (!canvas) { 
+      mobileShaderLoaded = true;
+      checkAllShadersLoaded();
+      return; 
+    }
+    
     const hasGL = typeof GlslCanvas !== 'undefined';
+    
     const loadShaderText = async () => {
-      // In production, try Firestore first
-      if (window.APP_ENV === 'prod' && window.getSiteProd) {
-        try {
-          const site = await window.getSiteProd();
-          if (site.mobileShader) {
-            return site.mobileShader;
-          }
-        } catch (e) {
-          // On mobile, if Firestore fails, try local file immediately
-          const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-          if (isMobile) {
+      // Try to load from local file first
             try {
               const res = await fetch('data/mobile_shader.glsl');
               if (res.ok) {
                 return await res.text();
               }
-            } catch (localError) {
-              // Continue to next fallback
-            }
-          }
-        }
-      }
+      } catch (e) {}
 
-      // Try to load from local file (for development or fallback)
-      try {
-        const res = await fetch('data/mobile_shader.glsl');
-        if (res.ok) {
-          return await res.text();
-        }
-      } catch (e) {
-        // Continue to next fallback
-      }
-
-      // Fallback to API endpoint
-      try {
-        const res = await fetch('/api/mobileShader');
-        if (res.ok) {
-          return await res.text();
-        }
-      } catch (e) { 
-        // Continue to next fallback
-      }
-
-      // Final fallback to inline shader
+      // Fallback to inline shader
       const fragEl = document.getElementById('mobile-shader-code');
-      if (fragEl && fragEl.textContent && fragEl.textContent.trim()) {
+      if (fragEl && fragEl.textContent) {
         return fragEl.textContent;
       }
-
       return null;
     };
 
-    if (hasGL) {
-      const shaderText = await loadShaderText();
-      if (!shaderText) { console.error('No shader text available'); return; }
-      const sandbox = new GlslCanvas(canvas);
-      sandbox.load(shaderText);
+    const initShader = (GlslCanvasClass) => {
+      const shaderText = loadShaderText();
+      if (!shaderText) return;
+      
+      // Low resolution for mobile
+      canvas.width = window.innerWidth * 0.3;
+      canvas.height = window.innerHeight * 0.6 * 0.3;
+      
+      shaderText.then(text => {
+        if (!text) return;
+        const sandbox = new GlslCanvasClass(canvas);
+        sandbox.load(text);
       console.log('[MobileShader] GLSL initialized');
-      mobileShaderLoaded = true;
-      checkAllShadersLoaded();
-      const resize = () => { const ratio = window.devicePixelRatio || 1; const scale = 0.5; canvas.width = canvas.clientWidth * scale * ratio; canvas.height = canvas.clientHeight * scale * ratio; };
-      resize(); window.addEventListener('resize', resize);
+        
+        // Pause when not visible
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            sandbox.paused = !entry.isIntersecting;
+          });
+        });
+        observer.observe(canvas);
+      });
+    };
+
+    if (hasGL) {
+      initShader(GlslCanvas);
     } else {
-      console.warn('[MobileShader] GlslCanvas undefined – trying dynamic import');
+      console.log('[MobileShader] GlslCanvas undefined – trying dynamic import');
       import('https://cdn.skypack.dev/glslCanvas').then(mod => {
         const Glsl = mod.default || mod.GlslCanvas || window.GlslCanvas;
-        if (!Glsl) { throw new Error('glslCanvas not resolved'); }
-        return loadShaderText().then(text => {
-          const sandbox = new Glsl(canvas);
-          sandbox.load(text);
-          console.log('[MobileShader] GLSL initialized (dynamic)');
-          mobileShaderLoaded = true;
-          checkAllShadersLoaded();
-          const resize = () => { const ratio = window.devicePixelRatio || 1; const scale = 0.5; canvas.width = canvas.clientWidth * scale * ratio; canvas.height = canvas.clientHeight * scale * ratio; };
-          resize(); window.addEventListener('resize', resize);
-        });
-      }).catch(err => {
-        console.error('glslCanvas dynamic import failed', err);
-        // Fallback 2D gradient
-        const ctx = canvas.getContext('2d');
-        function resize2d() { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; }
-        resize2d(); window.addEventListener('resize', resize2d);
-        function draw(t) { requestAnimationFrame(draw); const w = canvas.width, h = canvas.height; const time = t * 0.0004; const grd = ctx.createRadialGradient(w * 0.5 + Math.sin(time) * w * 0.2, h * 0.4 + Math.cos(time * 1.3) * h * 0.2, 0, w / 2, h / 2, Math.max(w, h) * 0.7); const hue = (time * 40) % 360; grd.addColorStop(0, `hsl(${hue},70%,55%)`); grd.addColorStop(1, '#001820'); ctx.fillStyle = grd; ctx.fillRect(0, 0, w, h); } draw();
-        mobileShaderLoaded = true;
-        checkAllShadersLoaded();
+        if (!Glsl) { 
+          console.warn('[MobileShader] Dynamic import failed');
+          return; 
+        }
+        initShader(Glsl);
+      }).catch(e => {
+        console.warn('[MobileShader] Dynamic import error:', e);
       });
     }
+    
+        mobileShaderLoaded = true;
+        checkAllShadersLoaded();
   })();
 
   /* Mobile 3D model removed: fallback to lightweight CSS aura */
@@ -3026,33 +3069,78 @@ const applySiteData = (site) => {
       }
     }
 
-    // Contacts
-    const contactSection = document.getElementById('contact');
-    if (contactSection && Array.isArray(site.contacts)) {
-      const contactsContainer = document.createElement('div');
-      contactsContainer.className = 'contacts-container';
+    // About Bio
+    const aboutBio = document.getElementById('about-bio');
+    if (aboutBio && site.bio) {
+      aboutBio.textContent = site.bio;
+    }
+    
+    // Artist Image
+    const artistImageContainer = document.getElementById('artist-image');
+    if (artistImageContainer) {
+      const img = artistImageContainer.querySelector('img');
+      if (img && site.artistImage) {
+        // Mostra fallback inizialmente
+        artistImageContainer.classList.add('no-image');
+        
+        // Carica l'immagine
+        img.onload = function() {
+          img.style.display = 'block';
+          artistImageContainer.classList.remove('no-image');
+        };
+        img.onerror = function() {
+          img.style.display = 'none';
+          artistImageContainer.classList.add('no-image');
+        };
+        img.src = site.artistImage;
+        img.alt = site.siteName || 'Artist';
+      } else {
+        // Nessuna immagine configurata, mostra fallback
+        artistImageContainer.classList.add('no-image');
+      }
+    }
+    
+    // Contact Links - New Modern Style (no emojis)
+    const contactLinks = document.getElementById('contact-links');
+    if (contactLinks && Array.isArray(site.contacts)) {
+      contactLinks.innerHTML = '';
+      
       site.contacts.forEach(c => {
         if (c.visible === false) return;
-        const contactItem = document.createElement('div');
-        contactItem.className = 'contact-item';
-        let valueElement;
-        if (c.value.includes('@')) {
-          valueElement = `<a href="mailto:${c.value}" class="contact-link">${c.value}</a>`;
-        } else if (c.value.includes('http')) {
-          valueElement = `<a href="${c.value}" target="_blank" rel="noopener noreferrer" class="contact-link">${c.value}</a>`;
-        } else {
-          valueElement = `<span class="contact-text">${c.value}</span>`;
+        
+        const linkItem = document.createElement('a');
+        linkItem.className = 'contact-link-item';
+        
+        let href = c.value;
+        
+        // Set href based on type
+        if (c.value.includes('@') && !c.value.includes('http')) {
+          href = `mailto:${c.value}`;
+        } else if (!c.value.includes('http') && !c.value.includes('@')) {
+          href = `https://${c.value}`;
         }
-        contactItem.innerHTML = `
-          <div class="contact-info">
-            <div class="contact-label">${c.label}</div>
-            <div class="contact-value">${valueElement}</div>
+        
+        linkItem.href = href;
+        if (href.startsWith('http')) {
+          linkItem.target = '_blank';
+          linkItem.rel = 'noopener noreferrer';
+        }
+        
+        // Display value - clean up for display
+        let displayValue = c.value;
+        if (displayValue.includes('http')) {
+          displayValue = displayValue.replace(/^https?:\/\/(www\.)?/, '');
+        }
+        
+        linkItem.innerHTML = `
+          <div class="contact-details">
+            <span class="contact-type">${c.label}</span>
+            <span class="contact-value">${displayValue}</span>
           </div>
         `;
-        contactsContainer.appendChild(contactItem);
+        
+        contactLinks.appendChild(linkItem);
       });
-      contactSection.innerHTML = '<h2 id="contact-heading">CONTACT</h2>';
-      contactSection.appendChild(contactsContainer);
     }
 
     // --- Hide/show sections based on status ---
@@ -3089,6 +3177,19 @@ const applySiteData = (site) => {
           if (sectionEl && s.status === 'hide') {
             sectionEl.style.display = 'none';
             console.log(`[FORCE HIDE] Section #${s.key} forcibly hidden (status: ${s.status})`);
+          }
+        });
+        
+        // Applica sfondi alternati solo alle sezioni visibili
+        const visibleSections = Array.from(document.querySelectorAll('main > .section'))
+          .filter(s => s.style.display !== 'none' && getComputedStyle(s).display !== 'none');
+        
+        visibleSections.forEach((section, index) => {
+          section.classList.remove('section-odd', 'section-even');
+          if (index % 2 === 0) {
+            section.classList.add('section-odd');
+          } else {
+            section.classList.add('section-even');
           }
         });
       }, 500);
@@ -3325,6 +3426,21 @@ function createDetailPayload({ itemElement, data, fallbackDescription = '', fall
 
 // --- MODERN MOBILE MODAL GALLERY LOGIC ---
 function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
+  // Helper to create URL-friendly slug
+  const slugify = (text) => {
+    if (!text) return 'content';
+    return text
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  };
+  
   const removeAllDetailOverlays = () => {
     document.querySelectorAll('.description-overlay').forEach(el => {
       if (el._escHandler) {
@@ -3370,9 +3486,13 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
   closeBtn.className = 'modern-modal-close';
   closeBtn.innerHTML = '&times;';
   closeBtn.onclick = () => {
-    unlockScroll();
+    unlockScroll(); // This already restores scroll position
     removeAllDetailOverlays();
     modal.remove();
+    // Restore URL using replaceState (no need to scroll, unlockScroll does it)
+    if (window.location.pathname !== '/') {
+      history.replaceState(null, '', '/');
+    }
   };
   header.appendChild(closeBtn);
   modal.appendChild(header);
@@ -3902,16 +4022,30 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
   // Swipe support (solo se più di un elemento)
   if (!isSingleItem) {
     let touchStartX = null;
+    let touchStartY = null;
     carousel.addEventListener('touchstart', e => {
-      if (e.touches.length === 1) touchStartX = e.touches[0].clientX;
-    });
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true }); // AGGIUNTO passive per performance
+    
     carousel.addEventListener('touchend', e => {
       if (touchStartX === null) return;
-      const dx = e.changedTouches[0].clientX - touchStartX;
-      if (dx > 40) goTo(current - 1);
-      else if (dx < -40) goTo(current + 1);
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const dx = touchEndX - touchStartX;
+      const dy = touchEndY - touchStartY;
+      
+      // Solo se lo swipe è principalmente orizzontale (evita conflitti con scroll verticale)
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+        if (dx > 40) goTo(current - 1);
+        else if (dx < -40) goTo(current + 1);
+      }
+      
       touchStartX = null;
-    });
+      touchStartY = null;
+    }, { passive: true }); // AGGIUNTO passive per performance
   }
 
   // Keyboard navigation
@@ -3922,12 +4056,40 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
     if (!isSingleItem && e.key === 'ArrowRight') goTo(current + 1);
     if (e.key === 'Escape') {
       removeAllDetailOverlays();
-      unlockScroll();
+      unlockScroll(); // This already restores scroll position
       modal.remove();
+      // Clean URL (no need to scroll, unlockScroll does it)
+      if (window.location.pathname !== '/') {
+        history.replaceState(null, '', '/');
+      }
     }
   });
 
   renderSlides();
+  
+  // Update URL for sharing
+  const currentSlide = slides[startIndex];
+  
+  // Try to get title from multiple sources
+  let slideTitle = null;
+  if (currentSlide?.title) {
+    slideTitle = currentSlide.title;
+  } else if (currentSlide?.description) {
+    slideTitle = currentSlide.description;
+  } else if (typeof detailInput === 'object' && detailInput?.title) {
+    slideTitle = detailInput.title;
+  } else if (normalizedDetail?.title) {
+    slideTitle = normalizedDetail.title;
+  }
+  
+  if (slideTitle) {
+    const slug = slugify(slideTitle);
+    const newUrl = `/${slug}`;
+    if (window.location.pathname !== newUrl) {
+      history.pushState({ modalOpen: true, slug: slug }, '', newUrl);
+      console.log('[Modal] ✅ URL updated to:', newUrl);
+    }
+  }
 }
 
 // --- Collega la moderna modal gallery ai canvas con galleria su mobile ---
@@ -4042,3 +4204,16 @@ window.showPerformanceStatus = function() {
     console.log('📊 Stato Performance:', window.performanceMonitor.getStatus());
   }
 };
+
+// Handle browser back/forward button to close modal
+window.addEventListener('popstate', (event) => {
+  // If we're going back to the homepage, close any open modal
+  if (window.location.pathname === '/' || window.location.pathname === '') {
+    const openModal = document.querySelector('.modern-modal-gallery');
+    if (openModal) {
+      console.log('[History] Closing modal due to back navigation');
+      unlockScroll(); // This already restores scroll position
+      openModal.remove();
+    }
+  }
+});

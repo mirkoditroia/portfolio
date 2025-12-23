@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MÊIRKS | Creative Coder 3D, VFX & Interactive Art</title>
+  <meta name="description" content="Portfolio di arte digitale, VFX, 3D e programmazione creativa. Esplora opere interattive e innovazioni tecnologiche.">
+  <meta name="theme-color" content="#0a0e14">
+  <meta name="color-scheme" content="dark">
+  
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="MÊIRKS · Creative Tech Portfolio">
+  <meta property="og:description" content="Arte digitale, VFX, 3D e interattività. Portfolio aggiornato.">
+  <meta property="og:image" content="images/og-cover.jpg">
+  
+  <!-- Preload critical resources -->
+  <link rel="preload" href="/data/site.json" as="fetch" crossorigin>
+  <link rel="preload" href="/data/galleries.json" as="fetch" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Swiper CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+  
+  <!-- App CSS (modular) -->
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="banner" role="banner">
+    <div class="logo">
+      <span id="site-name">MÊIRKS</span>
+    </div>
+    <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu" aria-expanded="false">&#9776;</button>
+    <nav class="menu" id="primary-menu" role="navigation" aria-label="Main navigation">
+      <a href="#vfx" data-section-key="vfx">VFX</a>
+      <a href="#art3d" data-section-key="art3d">3D Art</a>
+      <a href="#interactive" data-section-key="interactive">Interactive</a>
+      <a href="#creativecoding" data-section-key="creativecoding">Creative Coding</a>
+      <a href="#ai" data-section-key="ai">AI</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <main role="main">
+    <!-- Hero Section -->
+    <section class="hero" role="banner">
+      <div class="shader-banner">
+        <div id="shaderLoader" class="shader-loader">
+          <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
+        </div>
+        <canvas id="desktop-shader" class="desktop-shader"></canvas>
+      </div>
+      <div class="shader-vignette"></div>
+      <canvas id="mobile-shader" class="mobile-shader"></canvas>
+      
+      <div class="center-logo">
+        <div class="fa3io-text" id="hero-title">MÊIRKS</div>
+      </div>
+    </section>
+
+    <!-- VFX Section -->
+    <section id="vfx" class="section" role="region" aria-labelledby="vfx-heading">
+      <h2 id="vfx-heading" data-section-key="vfx">VFX</h2>
+      <div class="gallery-carousel swiper">
+        <div class="gallery-track swiper-wrapper" id="vfx-track" role="list"></div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
+      </div>
+    </section>
+    
+    <!-- 3D Art Section -->
+    <section id="art3d" class="section" role="region" aria-labelledby="art3d-heading">
+      <h2 id="art3d-heading" data-section-key="art3d">3D Artworks & FX</h2>
+      <div class="gallery-carousel swiper">
+        <div class="gallery-track swiper-wrapper" id="art3d-track" role="list"></div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
+      </div>
+    </section>
+    
+    <!-- Interactive Section -->
+    <section id="interactive" class="section" role="region" aria-labelledby="interactive-heading">
+      <h2 id="interactive-heading" data-section-key="interactive">Interactive Art</h2>
+      <div class="gallery-carousel swiper">
+        <div class="gallery-track swiper-wrapper" id="interactive-track" role="list"></div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
+      </div>
+    </section>
+    
+    <!-- Creative Coding Section -->
+    <section id="creativecoding" class="section" role="region" aria-labelledby="creativecoding-heading">
+      <h2 id="creativecoding-heading" data-section-key="creativecoding">Creative Coding</h2>
+      <div class="gallery-carousel swiper">
+        <div class="gallery-track swiper-wrapper" id="creativecoding-track" role="list"></div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
+      </div>
+    </section>
+    
+    <!-- AI Section -->
+    <section id="ai" class="section" role="region" aria-labelledby="ai-heading">
+      <h2 id="ai-heading" data-section-key="ai">AI</h2>
+      <div class="gallery-carousel swiper">
+        <div class="gallery-track swiper-wrapper" id="ai-track" role="list"></div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
+      </div>
+    </section>
+    
+    <!-- About Section -->
+    <section id="about" class="section" role="region" aria-labelledby="about-heading">
+      <h2 id="about-heading">About Me</h2>
+      <p class="about-text">
+        Passionate about music, art and technology, I explore the intersection of creativity and innovation — 
+        blending visual design, sound, and narrative across both physical and digital spaces. 
+        With 50+ exhibitions across Europe, Asia, and Latin America, and deep experience in video production 
+        for Web3 communities and events, I bring a multidisciplinary mindset to every project — 
+        always aiming to craft meaningful visual experiences that inspire connection and curiosity.
+      </p>
+      <div class="about-img">
+        <img src="about.jpg" alt="MÊIRKS" loading="lazy" onerror="this.style.display='none'">
+      </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="section" role="region" aria-labelledby="contact-heading">
+      <h2 id="contact-heading">Contact</h2>
+      <div class="contacts-container"></div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer id="site-footer">
+    <span id="environment">BETA</span> • 
+    <span id="version">v2.0.0-beta</span> • 
+    Realizzato al 100% da <strong>mêirks</strong>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/glslCanvas@0.12.3/dist/glslCanvas.min.js"></script>
+  
+  <!-- Environment Config -->
+  <script>
+    (function(){
+      const h = location.hostname;
+      let env = 'prod';
+      if(h === 'localhost' || h.startsWith('127.') || h.includes('local')) env='local';
+      else if(h.includes('preprod') || h.includes('pre-prod')) env='preprod';
+      window.APP_ENV = env;
+    })();
+  </script>
+  
+  <!-- Firebase -->
+  <script src="js/firebase.js"></script>
+  <script src="js/dataProvider.js"></script>
+  
+  <!-- App (ES Modules) -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

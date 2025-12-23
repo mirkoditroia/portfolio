@@ -495,6 +495,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // bio
     document.getElementById('bio-input').value = site.bio || '';
 
+    // artist image
+    const artistImageInput = document.getElementById('artist-image-input');
+    if (artistImageInput) {
+      artistImageInput.value = site.artistImage || '';
+      // Show preview if image exists
+      const preview = document.getElementById('artist-image-preview');
+      if (preview && site.artistImage) {
+        preview.style.display = 'block';
+        preview.querySelector('img').src = site.artistImage;
+      }
+    }
+
     // contacts
     const contactsDiv = document.getElementById('contacts-list');
     contactsDiv.innerHTML = '';
@@ -752,6 +764,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       { id: 'bio-input', form: 'heroBio' },
       { id: 'hero-text-input', form: 'heroBio' },
       { id: 'show-logo-input', form: 'heroBio' },
+      { id: 'artist-image-input', form: 'heroBio' },
       { id: 'version-input', form: 'version' },
       { id: 'api-base-input', form: 'api' },
       { id: 'shader-url-input', form: 'api' }
@@ -1856,9 +1869,25 @@ function setupIndividualSaveFunctions() {
     const heroVal = document.getElementById('hero-text-input').value;
     const showLogoVal = document.getElementById('show-logo-input').checked;
     const bioVal = document.getElementById('bio-input').value;
-    const payload = { siteName: siteNameVal, heroText: heroVal, showLogo: showLogoVal, bio: bioVal };
+    const artistImageVal = document.getElementById('artist-image-input')?.value || '';
+    const payload = { siteName: siteNameVal, heroText: heroVal, showLogo: showLogoVal, bio: bioVal, artistImage: artistImageVal };
     savePartialSiteConfig('Hero & Bio', payload, 'heroBio');
   });
+  
+  // Artist image preview on input change
+  const artistImageInput = document.getElementById('artist-image-input');
+  if (artistImageInput) {
+    artistImageInput.addEventListener('input', () => {
+      const preview = document.getElementById('artist-image-preview');
+      const url = artistImageInput.value;
+      if (preview && url) {
+        preview.style.display = 'block';
+        preview.querySelector('img').src = url;
+      } else if (preview) {
+        preview.style.display = 'none';
+      }
+    });
+  }
 
   // Version save
   document.getElementById('save-version-btn')?.addEventListener('click', () => {

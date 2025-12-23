@@ -1,0 +1,127 @@
+/* ============================================
+   MAIN CSS - Import all modules
+   ============================================ */
+
+@import url('base.css');
+@import url('layout.css');
+@import url('carousel.css');
+@import url('modal.css');
+
+/* ============================================
+   UTILITIES & OVERRIDES
+   ============================================ */
+
+/* Desktop Shader */
+.desktop-shader {
+  display: none;
+}
+
+.mobile-shader {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@media (min-width: 901px) {
+  .desktop-shader {
+    display: block !important;
+  }
+  
+  .shader-banner iframe {
+    display: none !important;
+  }
+  
+  .mobile-shader {
+    display: none !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .shader-banner {
+    display: none !important;
+  }
+}
+
+/* Performance Modes */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.performance-mode * {
+  animation-duration: 0.1s !important;
+  transition-duration: 0.1s !important;
+}
+
+.critical-performance-mode * {
+  animation: none !important;
+  transition: none !important;
+}
+
+.critical-performance-mode .shader-banner,
+.critical-performance-mode .desktop-shader,
+.critical-performance-mode .mobile-shader {
+  display: none !important;
+}
+
+/* Spinner Animation */
+.lds-ring {
+  display: inline-block;
+  position: relative;
+  width: 64px;
+  height: 64px;
+}
+
+.lds-ring div {
+  box-sizing: border-box;
+  display: block;
+  position: absolute;
+  width: 51px;
+  height: 51px;
+  margin: 6px;
+  border: 6px solid var(--color-accent);
+  border-radius: 50%;
+  animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  border-color: var(--color-accent) transparent transparent transparent;
+}
+
+.lds-ring div:nth-child(1) { animation-delay: -0.45s; }
+.lds-ring div:nth-child(2) { animation-delay: -0.3s; }
+.lds-ring div:nth-child(3) { animation-delay: -0.15s; }
+
+@keyframes lds-ring {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Placeholder Slides */
+.gallery-item.placeholder-slide {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Print Styles */
+@media print {
+  .banner,
+  .shader-banner,
+  .swiper-button-next,
+  .swiper-button-prev,
+  #site-footer {
+    display: none !important;
+  }
+  
+  body {
+    background: white;
+    color: black;
+  }
+  
+  .gallery-item {
+    break-inside: avoid;
+  }
+}

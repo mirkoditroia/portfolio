@@ -4,7 +4,9 @@
       "https://portfolio-eb526.web.app", 
       "https://portfolio-eb526.firebaseapp.com",
       "https://meirks.xyz",
-      "https://www.meirks.xyz"
+      "https://www.meirks.xyz",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000"
     ],
     "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     "responseHeader": [
@@ -14,6 +16,11 @@
       "Accept-Ranges", 
       "X-Goog-Upload-Status", 
       "X-Goog-Upload-Size-Received",
+      "X-Goog-Upload-Command",
+      "X-Goog-Upload-Protocol",
+      "X-Goog-Upload-Header-Content-Length",
+      "X-Goog-Upload-Content-Type",
+      "X-Goog-Resumable",
       "Access-Control-Allow-Origin",
       "Access-Control-Allow-Methods",
       "Access-Control-Allow-Headers"

@@ -28,6 +28,15 @@
 
 </head>
 <body>
+  <!-- Loading Overlay - mostrato durante il caricamento iniziale -->
+  <div id="app-loader" class="app-loader" aria-live="polite" aria-busy="true">
+    <div class="loader-content">
+      <div class="loader-spinner"></div>
+      <div class="loader-text">MÊIRKS</div>
+      <div class="loader-subtext">Loading hallucinations...</div>
+    </div>
+  </div>
+  
   <header class="banner" role="banner" style="position:relative; overflow:hidden;">
     <div class="logo">
       <span id="site-name">MÊIRKS </span>
@@ -39,25 +48,20 @@
       <a href="#interactive"  data-section-key="interactive"  aria-label="Vai alla sezione Arte Interattiva"></a>
       <a href="#creativecoding" data-section-key="creativecoding" aria-label="Vai alla sezione Programmazione Creativa"></a>
       <a href="#ai"           data-section-key="ai"           aria-label="Vai alla sezione AI"></a>
-      <a href="#about"        data-section-key="about"        aria-label="Vai alla sezione Chi Sono">About Me</a>
-      <a href="#contact"      data-section-key="contact"      aria-label="Vai alla sezione Contatti">Contact</a>
+      <a href="#about"        data-section-key="about"        aria-label="Vai alla sezione Chi Sono">About</a>
     </nav>
   </header>
   <main role="main">
     <section class="hero" role="banner" style="position:relative; overflow:hidden;">
       <div class="shader-banner">
-        <!-- Loader overlay -->
-        <div id="shaderLoader" class="shader-loader">
-          <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
-        </div>
-        <iframe id="shader-iframe" src="https://www.shadertoy.com/embed/XstGWn?gui=false&t=10&paused=false&muted=true" frameborder="0" allowfullscreen></iframe>
+        <!-- Canvas shader only - iframe removed for performance -->
         <canvas id="desktop-shader" class="desktop-shader"></canvas>
       </div>
       <div class="shader-vignette"></div>
       <canvas id="mobile-shader" class="mobile-shader"></canvas>
 
       <div class="center-logo">
-        <div class="fa3io-text preload" id="hero-title">MÊIRKS</div>
+        <div class="fa3io-text preload" id="hero-title">Welcome to my controlled hallucinations</div>
       </div>
     </section>
     <section id="vfx" class="section vfx art3d" role="region" aria-labelledby="vfx-heading">
@@ -114,15 +118,27 @@
       </div>
     </section>
     
-    <section id="about" class="section about" role="region" aria-labelledby="about-heading">
-      <h2 id="about-heading">ABOUT ME</h2>
-      <p class="about-text">Passionate about music, art and technology, I explore the intersection of creativity and innovation — blending visual design, sound, and narrative across both physical and digital spaces. With 50+ exhibitions across Europe, Asia, and Latin America, and deep experience in video production for Web3 communities and events, I bring a multidisciplinary mindset to every project — always aiming to craft meaningful visual experiences that inspire connection and curiosity.</p>
-      <div class="about-img">
-        <img src="about.jpg" alt="Foto di MÊIRKS al lavoro nel suo studio" style="max-width:100%;border-radius:16px;box-shadow:0 2px 16px #000;" onerror="this.style.display='none'">
+    <!-- Combined About & Contact Section -->
+    <section id="about" class="section about-contact-section" role="region" aria-labelledby="about-heading">
+      <div class="about-contact-wrapper">
+        <!-- Artist Image -->
+        <div class="artist-image-container">
+          <div class="artist-image" id="artist-image">
+            <img src="" alt="MÊIRKS" style="display:none;">
+          </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="about-contact-content">
+          <h2 id="about-heading" class="about-title">About Me</h2>
+          <p class="about-bio" id="about-bio">Passionate about music, art and technology, I explore the intersection of creativity and innovation — blending visual design, sound, and narrative across both physical and digital spaces.</p>
+          
+          <!-- Contact Links -->
+          <div class="contact-links" id="contact-links">
+            <!-- Populated by JS -->
+          </div>
+        </div>
       </div>
-    </section>
-    <section id="contact" class="section contact" role="region" aria-labelledby="contact-heading">
-      <h2 id="contact-heading">CONTACT</h2>
     </section>
   </main>
 
