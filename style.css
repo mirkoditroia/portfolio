@@ -170,6 +170,12 @@ ESEMPI POSIZIONI:
   width: 100%;
 }
 
+.menu a.nav-download-link {
+  margin-left: 0.5em;
+  padding-left: 1em;
+  border-left: 1px solid rgba(255,255,255,0.15);
+}
+
 /* Spazio invisibile per bilanciare il layout e centrare il menu */
 .banner::after {
   content: '';
@@ -2926,7 +2932,34 @@ main{margin-top:0 !important;}
   right: var(--mobile-close-right);
   left: var(--mobile-close-left);
   z-index: 1000;
+  display: flex;
+  align-items: center;
 }
+.modern-modal-fullscreen {
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  opacity: 0.9;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  margin-right: 12px;
+}
+
+.modern-modal-fullscreen:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+  color: #40e0d0;
+  transform: scale(1.1);
+}
+
 .modern-modal-close {
   background: rgba(0, 0, 0, 0.5);
   border: none;
@@ -3090,7 +3123,7 @@ main{margin-top:0 !important;}
   }
 
   /* Pulsante chiusura desktop */
-  .modern-modal-header {
+.modern-modal-header {
     --desktop-close-top: 16px;
     --desktop-close-left: 26px;
     --desktop-close-right: auto;
@@ -3099,6 +3132,8 @@ main{margin-top:0 !important;}
     left: var(--desktop-close-left);
     right: var(--desktop-close-right);
     z-index: 1000;
+    display: flex;
+    align-items: center;
   }
 
   /* Area carousel: niente crop e padding contenuto */
@@ -4277,5 +4312,69 @@ select:focus {
   
   .loader-subtext {
     font-size: 0.75rem;
+  }
+}
+
+/* ============================================
+   ANTI-DOWNLOAD & WATERMARK
+   ============================================ */
+
+/* Prevent selection and drag on images */
+img, video, canvas {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+  pointer-events: auto; /* Allow clicks for modal/lightbox */
+}
+
+/* Prevent text selection globally (optional, but requested "ogni contenuto") */
+body {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Allow selection on inputs and textareas */
+input, textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Watermark Style - REMOVED per user request */
+/* .site-watermark { ... } */
+
+/* Modal Watermark */
+.modal-watermark {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 900;
+  font-size: 1.4rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  z-index: 10000;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+  .modal-watermark {
+    font-size: 1rem;
+    bottom: 15px;
+    right: 15px;
   }
 }

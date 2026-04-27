@@ -49,6 +49,7 @@
       <a href="#creativecoding" data-section-key="creativecoding" aria-label="Vai alla sezione Programmazione Creativa"></a>
       <a href="#ai"           data-section-key="ai"           aria-label="Vai alla sezione AI"></a>
       <a href="#about"        data-section-key="about"        aria-label="Vai alla sezione Chi Sono">About</a>
+      <a href="/download" class="nav-download-link" aria-label="Download free assets">Downloads</a>
     </nav>
   </header>
   <main role="main">
@@ -83,7 +84,7 @@
       <div class="modal-video" id="modalVideo" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-video-content">
           <button class="modal-close" id="closeModal" aria-label="Chiudi modal">&times;</button>
-          <video id="modalVideoPlayer" controls style="width:100%;max-width:800px;" aria-label="Video player"></video>
+          <video id="modalVideoPlayer" controls controlsList="nodownload" oncontextmenu="return false;" style="width:100%;max-width:800px;" aria-label="Video player"></video>
           <img id="modalImage" style="display:none;max-width:100%;margin:0 auto;" alt="Immagine ingrandita" />
           <div id="modalGallery" class="modal-gallery" style="display:none;text-align:center;" role="region" aria-label="Gallery modal"></div>
           <div id="modalDescription" style="color:#fff; margin-top:18px; font-size:1.1em; text-align:center;" role="text"></div>
@@ -186,6 +187,7 @@
   <!-- Firebase + Data provider (must load before main script) -->
   <script src="js/firebase.js"></script>
   <script src="js/dataProvider.js"></script>
+  <script src="js/analytics.js"></script>
   <!-- Image optimization and lazy loading -->
   <script type="module" src="js/imageOptimizer-wrapper.js"></script>
   <!-- Performance Monitor -->
@@ -235,5 +237,41 @@ void main() {
     window.APP_SITE_NAME = "NOME CYBERPUNK";
   </script>
   <script src="js/mobileSplash.js"></script>
+  <script>
+    // Prevent right-click context menu globally
+    document.addEventListener('contextmenu', event => event.preventDefault());
+
+    // Prevent drag and drop on images
+    document.addEventListener('dragstart', event => {
+      if (event.target.tagName === 'IMG' || event.target.tagName === 'VIDEO') {
+        event.preventDefault();
+      }
+    });
+
+    // Force disable download on all videos (even dynamically created ones)
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.tagName === 'VIDEO') {
+            node.setAttribute('controlsList', 'nodownload');
+            node.oncontextmenu = (e) => e.preventDefault();
+          } else if (node.querySelectorAll) {
+            node.querySelectorAll('video').forEach(video => {
+              video.setAttribute('controlsList', 'nodownload');
+              video.oncontextmenu = (e) => e.preventDefault();
+            });
+          }
+        });
+      });
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    // Apply to existing videos
+    document.querySelectorAll('video').forEach(video => {
+      video.setAttribute('controlsList', 'nodownload');
+      video.oncontextmenu = (e) => e.preventDefault();
+    });
+  </script>
 </body>
 </html> 

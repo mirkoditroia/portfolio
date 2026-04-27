@@ -26,6 +26,8 @@
       <h2 class="sidebar-title">Dashboard</h2>
       <nav class="sidebar-nav">
         <button class="nav-link active" data-target="galleries">Gallerie</button>
+        <button class="nav-link" data-target="downloads-section">Downloads</button>
+        <button class="nav-link" data-target="analytics-section">Analytics</button>
         <button class="nav-link" data-target="site-config">Configurazione Sito</button>
         <button class="nav-link" data-target="logs-section">Log</button>
       </nav>
@@ -77,6 +79,177 @@
       
       <!-- Lista dinamica delle gallery. Verrà popolata via JS in admin-logic -->
       <section id="galleries"></section>
+
+      <!-- Downloads Management -->
+      <section id="downloads-section" class="hidden-section">
+        <h2>Downloads Management</h2>
+        <p style="color:#666;margin-bottom:1rem;">Gestisci gli asset scaricabili (TOX, HDA, ecc.)</p>
+        <table class="slides-table" id="downloads-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>#</th>
+              <th>Titolo</th>
+              <th>Categoria</th>
+              <th>File</th>
+              <th>Azioni</th>
+            </tr>
+          </thead>
+          <tbody id="downloads-tbody"></tbody>
+        </table>
+        <div style="display:flex;gap:8px;margin-top:1rem;">
+          <button id="add-download-btn" class="add-slide-btn">+ Aggiungi Asset</button>
+          <button id="save-downloads-btn" class="secondary">Salva Downloads</button>
+        </div>
+      </section>
+
+      <!-- Analytics Dashboard -->
+      <section id="analytics-section" class="hidden-section">
+        <h2>Analytics</h2>
+        <p style="color:#666;margin-bottom:1.5rem;">Statistiche di accesso, interazioni e download del sito.</p>
+
+        <!-- Period selector -->
+        <div class="analytics-period">
+          <button class="analytics-period-btn active" data-days="7">7 giorni</button>
+          <button class="analytics-period-btn" data-days="14">14 giorni</button>
+          <button class="analytics-period-btn" data-days="30">30 giorni</button>
+          <button id="analytics-refresh-btn" class="secondary" style="margin-left:auto;">Aggiorna</button>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="analytics-kpi-grid">
+          <div class="analytics-kpi-card">
+            <div class="kpi-icon kpi-views">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpi-total-views">—</div>
+              <div class="kpi-label">Visite Totali</div>
+            </div>
+          </div>
+          <div class="analytics-kpi-card">
+            <div class="kpi-icon kpi-interactions">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg>
+            </div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpi-total-interactions">—</div>
+              <div class="kpi-label">Interazioni</div>
+            </div>
+          </div>
+          <div class="analytics-kpi-card">
+            <div class="kpi-icon kpi-downloads">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpi-total-downloads">—</div>
+              <div class="kpi-label">Downloads</div>
+            </div>
+          </div>
+          <div class="analytics-kpi-card">
+            <div class="kpi-icon kpi-period">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpi-period-views">—</div>
+              <div class="kpi-label">Visite nel periodo</div>
+            </div>
+          </div>
+          <div class="analytics-kpi-card">
+            <div class="kpi-icon kpi-time">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpi-avg-time">—</div>
+              <div class="kpi-label">Tempo medio per contenuto</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily chart (bar chart via CSS) -->
+        <div class="analytics-card">
+          <h3>Visite giornaliere</h3>
+          <div class="analytics-chart" id="analytics-daily-chart">
+            <div class="analytics-loading">Caricamento dati...</div>
+          </div>
+        </div>
+
+        <!-- Two-column layout for tables -->
+        <div class="analytics-tables-grid">
+          <!-- Top content -->
+          <div class="analytics-card">
+            <h3>Contenuti piu visti</h3>
+            <table class="analytics-table" id="analytics-top-content">
+              <thead><tr><th>Contenuto</th><th>Sezione</th><th>Visite</th></tr></thead>
+              <tbody>
+                <tr><td colspan="3" class="analytics-loading">Caricamento...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Recent events -->
+          <div class="analytics-card">
+            <h3>Attivita recente</h3>
+            <table class="analytics-table" id="analytics-recent-events">
+              <thead><tr><th>Tipo</th><th>Dettaglio</th><th>Data</th></tr></thead>
+              <tbody>
+                <tr><td colspan="3" class="analytics-loading">Caricamento...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Content time tracking -->
+        <div class="analytics-card">
+          <h3>Tempo sui contenuti</h3>
+          <p style="color:#999;font-size:0.8rem;margin:-8px 0 12px 0;">Quanto tempo gli utenti passano su ogni contenuto</p>
+          <table class="analytics-table" id="analytics-content-time">
+            <thead><tr><th>Contenuto</th><th>Sezione</th><th>Aperture</th><th>Tempo totale</th><th>Media</th></tr></thead>
+            <tbody>
+              <tr><td colspan="5" class="analytics-loading">Caricamento...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Geographic breakdown -->
+        <div class="analytics-tables-grid">
+          <div class="analytics-card">
+            <h3>Visitatori per Paese</h3>
+            <table class="analytics-table" id="analytics-geo-countries">
+              <thead><tr><th>Paese</th><th class="text-right">Eventi</th></tr></thead>
+              <tbody>
+                <tr><td colspan="2" class="analytics-loading">Caricamento...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="analytics-card">
+            <h3>Downloads per Paese</h3>
+            <table class="analytics-table" id="analytics-geo-downloads">
+              <thead><tr><th>Paese</th><th class="text-right">Downloads</th></tr></thead>
+              <tbody>
+                <tr><td colspan="2" class="analytics-loading">Caricamento...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Top cities -->
+        <div class="analytics-card">
+          <h3>Citta piu attive</h3>
+          <div class="analytics-geo-bars" id="analytics-geo-cities">
+            <div class="analytics-loading">Caricamento dati...</div>
+          </div>
+        </div>
+
+        <!-- Section breakdown -->
+        <div class="analytics-card">
+          <h3>Sezioni piu visitate</h3>
+          <div class="analytics-sections-grid" id="analytics-sections-breakdown">
+            <div class="analytics-loading">Caricamento dati...</div>
+          </div>
+        </div>
+      </section>
+
       <section id="site-config" class="site-config hidden-section">
         <!-- Hero & Bio Form -->
         <div class="config-form" id="hero-bio-form">
@@ -365,6 +538,63 @@
       <div class="editor-actions" style="margin-top:1rem">
         <button id="se-save" class="add-slide-btn">Salva</button>
         <button id="se-cancel" class="secondary">Annulla</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Download asset editor overlay -->
+  <div id="download-editor-overlay" class="overlay hidden">
+    <div class="editor">
+      <h2 id="de-heading">Nuovo Asset</h2>
+      <label class="block-label">Titolo
+        <input id="de-title" type="text" style="width:100%" placeholder="Nome dell'asset" />
+      </label>
+      <label class="block-label">Descrizione
+        <textarea id="de-description" rows="4" style="width:100%" placeholder="Descrizione dettagliata dell'asset..."></textarea>
+      </label>
+      <label class="block-label">Categoria
+        <select id="de-category" style="width:100%">
+          <option value="touchdesigner">TouchDesigner</option>
+          <option value="houdini">Houdini</option>
+          <option value="blender">Blender</option>
+          <option value="unity">Unity</option>
+          <option value="unreal">Unreal</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+      <label class="block-label">Tipo file (estensione)
+        <input id="de-filetype" type="text" style="width:100%" placeholder="tox, hda, hip, blend..." />
+      </label>
+      <label class="block-label">Thumbnail (immagine anteprima)
+        <input id="de-thumbnail" type="text" style="width:80%" placeholder="images/thumb.jpg" />
+        <button class="upload-btn" data-target="de-thumbnail">Upload</button>
+      </label>
+      <label class="block-label">Video demo
+        <input id="de-video" type="text" style="width:80%" placeholder="video/demo.mp4" />
+        <button class="upload-btn" data-target="de-video" data-accept="video/*">Upload</button>
+      </label>
+      <label class="block-label">File da scaricare (URL)
+        <input id="de-fileurl" type="text" style="width:80%" placeholder="URL del file scaricabile" />
+        <button class="upload-btn" data-target="de-fileurl" data-accept="*/*">Upload</button>
+      </label>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+        <label class="block-label" style="flex:1;min-width:120px;">Dimensione file
+          <input id="de-filesize" type="text" style="width:100%" placeholder="2.5 MB" />
+        </label>
+        <label class="block-label" style="flex:1;min-width:120px;">Versione
+          <input id="de-version" type="text" style="width:100%" placeholder="1.0" />
+        </label>
+      </div>
+      <label class="block-label">Tags (separati da virgola)
+        <input id="de-tags" type="text" style="width:100%" placeholder="particles, GPU, instancing" />
+      </label>
+      <label class="block-label">
+        <input id="de-free" type="checkbox" checked /> Gratuito
+      </label>
+
+      <div class="editor-actions" style="margin-top:1rem">
+        <button id="de-save" class="add-slide-btn">Salva</button>
+        <button id="de-cancel" class="secondary">Annulla</button>
       </div>
     </div>
   </div>

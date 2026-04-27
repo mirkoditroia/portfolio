@@ -1,43 +1,27 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Immagini - lettura pubblica con CORS, scrittura solo autenticati
+    // Immagini - lettura pubblica, scrittura solo autenticati
     match /images/{imageId} {
-      allow read: if true 
-                  || request.headers.origin == "https://meirks.xyz"
-                  || request.headers.origin == "https://www.meirks.xyz"
-                  || request.headers.origin == "https://portfolio-eb526.web.app"
-                  || request.headers.origin == "https://portfolio-eb526.firebaseapp.com";
+      allow read: if true;
       allow write: if request.auth != null;
     }
     
-    // Video - lettura pubblica con CORS, scrittura solo autenticati
+    // Video - lettura pubblica, scrittura solo autenticati
     match /videos/{videoId} {
-      allow read: if true 
-                  || request.headers.origin == "https://meirks.xyz"
-                  || request.headers.origin == "https://www.meirks.xyz"
-                  || request.headers.origin == "https://portfolio-eb526.web.app"
-                  || request.headers.origin == "https://portfolio-eb526.firebaseapp.com";
+      allow read: if true;
       allow write: if request.auth != null;
     }
     
-    // Assets - lettura pubblica con CORS per tutti i file statici
+    // Downloads - lettura pubblica, scrittura solo autenticati
+    match /downloads/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Assets - lettura pubblica, scrittura solo autenticati
     match /assets/{allPaths=**} {
-      allow read: if true 
-                  || request.headers.origin == "https://meirks.xyz"
-                  || request.headers.origin == "https://www.meirks.xyz"
-                  || request.headers.origin == "https://portfolio-eb526.web.app"
-                  || request.headers.origin == "https://portfolio-eb526.firebaseapp.com";
-      allow write: if request.auth != null;
-    }
-    
-    // File con percorsi numerici (es. 1752...mp4)
-    match /{fileId} {
-      allow read: if true 
-                  || request.headers.origin == "https://meirks.xyz"
-                  || request.headers.origin == "https://www.meirks.xyz"
-                  || request.headers.origin == "https://portfolio-eb526.web.app"
-                  || request.headers.origin == "https://portfolio-eb526.firebaseapp.com";
+      allow read: if true;
       allow write: if request.auth != null;
     }
     
@@ -46,14 +30,9 @@ service firebase.storage {
       allow read, write: if request.auth != null;
     }
     
-    // Regola generale per tutti gli altri file - lettura pubblica con CORS
+    // Blocca tutto il resto
     match /{allPaths=**} {
-      allow read: if true 
-                  || request.headers.origin == "https://meirks.xyz"
-                  || request.headers.origin == "https://www.meirks.xyz"
-                  || request.headers.origin == "https://portfolio-eb526.web.app"
-                  || request.headers.origin == "https://portfolio-eb526.firebaseapp.com";
-      allow write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 }

@@ -32,7 +32,19 @@ export function openModal(gallery, startIndex = 0, options = {}) {
   currentGallery = gallery;
   currentIndex = startIndex;
   gallerySection = options.section || null;
-  
+
+  if (window.MeirksAnalytics) {
+    const item = gallery[startIndex];
+    window.MeirksAnalytics.trackInteraction(
+      options.section || 'unknown',
+      item?.title || 'untitled'
+    );
+    window.MeirksAnalytics.startContentView(
+      options.section || 'unknown',
+      item?.title || 'untitled'
+    );
+  }
+
   // Create modal if it doesn't exist
   if (!currentModal) {
     currentModal = createModalElement();
@@ -87,6 +99,10 @@ export function openModal(gallery, startIndex = 0, options = {}) {
  */
 export function closeModal() {
   if (!currentModal) return;
+
+  if (window.MeirksAnalytics) {
+    window.MeirksAnalytics.endContentView();
+  }
   
   currentModal.style.display = 'none';
   document.body.classList.remove('lock-scroll');
@@ -247,6 +263,7 @@ function createModalElement() {
   
   modal.innerHTML = `
     <div class="modern-modal-header">
+      <button class="modern-modal-fullscreen" aria-label="Toggle fullscreen" style="margin-right: 10px;">⛶</button>
       <button class="modern-modal-close" aria-label="Close modal">&times;</button>
     </div>
     
@@ -263,10 +280,26 @@ function createModalElement() {
       <button class="modern-modal-arrow prev" aria-label="Previous">&larr;</button>
       <button class="modern-modal-arrow next" aria-label="Next">&rarr;</button>
     </div>
+    <div class="modal-watermark">MÊIRKS</div>
   `;
   
   // Event listeners
   modal.querySelector('.modern-modal-close').addEventListener('click', closeModal);
+  
+  // Fullscreen toggle
+  const fsBtn = modal.querySelector('.modern-modal-fullscreen');
+  if (fsBtn) {
+    fsBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        modal.requestFullscreen().catch(err => {
+          console.error(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    });
+  }
+
   modal.querySelector('.modern-modal-arrow.prev').addEventListener('click', () => navigateModal(-1));
   modal.querySelector('.modern-modal-arrow.next').addEventListener('click', () => navigateModal(1));
   
@@ -328,6 +361,10 @@ function updateModalContent(item) {
     const video = document.createElement('video');
     video.src = item.video;
     video.controls = true;
+    // Security: disable download and context menu
+    video.setAttribute('controlsList', 'nodownload nofullscreen');
+    video.oncontextmenu = (e) => e.preventDefault();
+    
     video.autoplay = true;
     video.muted = true;
     video.playsInline = true;

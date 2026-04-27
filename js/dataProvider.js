@@ -118,6 +118,37 @@
     await window.db.collection('config').doc('site').set(data,{merge:true});
   }
 
+  async function getDownloadsFirestore(){
+    if(!window.db){
+      await new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 100;
+        const iv = setInterval(() => {
+          attempts++;
+          if(window.db){ clearInterval(iv); resolve(); }
+          else if(attempts >= maxAttempts){ clearInterval(iv); reject(new Error('Firebase initialization timeout')); }
+        }, 50);
+      });
+    }
+    const snap = await window.db.collection('config').doc('downloads').get();
+    return snap.exists ? (snap.data().items || []) : [];
+  }
+
+  async function saveDownloadsFirestore(itemsArray){
+    if(!window.db){
+      await new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 100;
+        const iv = setInterval(() => {
+          attempts++;
+          if(window.db){ clearInterval(iv); resolve(); }
+          else if(attempts >= maxAttempts){ clearInterval(iv); reject(new Error('Firebase initialization timeout')); }
+        }, 50);
+      });
+    }
+    await window.db.collection('config').doc('downloads').set({ items: itemsArray }, { merge: true });
+  }
+
   async function saveGalleriesFirestore(galleriesData){
     // Wait for Firebase init with timeout
     if(!window.db){ 
@@ -162,15 +193,30 @@
       });
     }
     
+    if(window.auth && window.auth.currentUser){
+      await window.auth.currentUser.getIdToken(true);
+    }
+
     const timestamp = Date.now();
-    const extension = file.name.split('.').pop();
-    const fileName = `${timestamp}_${Math.random().toString(36).substr(2, 9)}.${extension}`;
+    const extension = file.name.split('.').pop().toLowerCase();
     const isVideo = file.type.startsWith('video');
+    const isImage = file.type.startsWith('image');
     const folder = isVideo ? 'videos' : 'images';
+
+    let fileName;
+    if (isVideo || isImage) {
+      fileName = `${timestamp}_${Math.random().toString(36).substr(2, 9)}.${extension}`;
+    } else {
+      const baseName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      fileName = `${timestamp}_${baseName}`;
+    }
     const path = `${folder}/${fileName}`;
 
     const storageRef = window.st.ref(path);
-    const snapshot = await storageRef.put(file);
+    const metadata = (!isVideo && !isImage) ? {
+      contentDisposition: `attachment; filename="${file.name}"`
+    } : undefined;
+    const snapshot = await storageRef.put(file, metadata);
     const downloadURL = await snapshot.ref.getDownloadURL();
     return downloadURL;
   }
@@ -192,6 +238,16 @@
           return safeFetchJson('data/galleries.json', fallbackUrl);
         }
       }
+      if(primaryUrl.includes('/api/downloads')){
+        try{
+          const dlData = await getDownloadsFirestore();
+          console.log('📡 Downloads loaded from Firestore:', dlData.length, 'items');
+          return dlData;
+        }catch(err){
+          console.error('Firestore downloads error, falling back to local JSON:', err);
+          return safeFetchJson('data/downloads.json', fallbackUrl);
+        }
+      }
       if(primaryUrl.includes('/api/site')){
         try{ 
           const siteData = await getSiteFirestore(); 
@@ -209,11 +265,166 @@
     return safeFetchJson(primaryUrl, fallbackUrl);
   };
 
+  /* ───── Analytics helpers (admin) ───── */
+  async function getAnalyticsCounters() {
+    if (!window.db) await waitForDb();
+    const snap = await window.db.collection('analytics').doc('counters').get();
+    return snap.exists ? snap.data() : { totalPageViews: 0, totalDownloads: 0, totalInteractions: 0 };
+  }
+
+  async function getAnalyticsDaily(days) {
+    if (!window.db) await waitForDb();
+    const result = [];
+    const today = new Date();
+    for (let i = 0; i < days; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = 'daily_' + d.toISOString().split('T')[0];
+      const snap = await window.db.collection('analytics').doc(key).get();
+      if (snap.exists) result.push(snap.data());
+    }
+    return result;
+  }
+
+  async function getAnalyticsEvents(limitCount, eventType) {
+    if (!window.db) await waitForDb();
+    let query = window.db.collection('analytics_events')
+      .orderBy('timestamp', 'desc')
+      .limit(limitCount || 100);
+    if (eventType) query = query.where('type', '==', eventType);
+    const snap = await query.get();
+    const events = [];
+    snap.forEach(doc => events.push({ id: doc.id, ...doc.data() }));
+    return events;
+  }
+
+  async function getAnalyticsTopContent(days) {
+    if (!window.db) await waitForDb();
+    const since = new Date();
+    since.setDate(since.getDate() - (days || 30));
+    const sinceStr = since.toISOString().split('T')[0];
+
+    const snap = await window.db.collection('analytics_events')
+      .where('type', '==', 'interaction')
+      .where('date', '>=', sinceStr)
+      .orderBy('date', 'desc')
+      .limit(500)
+      .get();
+
+    const counts = {};
+    snap.forEach(doc => {
+      const d = doc.data();
+      if (d.itemTitle === '__section_view__') return;
+      const key = (d.section || '?') + ' / ' + (d.itemTitle || '?');
+      counts[key] = (counts[key] || 0) + 1;
+    });
+
+    return Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  async function waitForDb() {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+      const iv = setInterval(() => {
+        attempts++;
+        if (window.db) { clearInterval(iv); resolve(); }
+        else if (attempts >= 100) { clearInterval(iv); reject(new Error('Firestore timeout')); }
+      }, 50);
+    });
+  }
+
+  async function getAnalyticsGeo(days) {
+    if (!window.db) await waitForDb();
+    const since = new Date();
+    since.setDate(since.getDate() - (days || 30));
+    const sinceStr = since.toISOString().split('T')[0];
+
+    const snap = await window.db.collection('analytics_events')
+      .where('date', '>=', sinceStr)
+      .orderBy('date', 'desc')
+      .limit(1000)
+      .get();
+
+    const countries = {};
+    const cities = {};
+    const downloadGeo = {};
+
+    snap.forEach(doc => {
+      const d = doc.data();
+      if (!d.country) return;
+
+      const cKey = d.country;
+      countries[cKey] = (countries[cKey] || 0) + 1;
+
+      if (d.city) {
+        const cityKey = d.city + ', ' + (d.countryCode || '');
+        cities[cityKey] = (cities[cityKey] || 0) + 1;
+      }
+
+      if (d.type === 'download' && d.country) {
+        downloadGeo[cKey] = (downloadGeo[cKey] || 0) + 1;
+      }
+    });
+
+    const toSorted = obj => Object.entries(obj)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+
+    return {
+      countries: toSorted(countries),
+      cities: toSorted(cities),
+      downloadsByCountry: toSorted(downloadGeo)
+    };
+  }
+
+  async function getAnalyticsContentTime(days) {
+    if (!window.db) await waitForDb();
+    const since = new Date();
+    since.setDate(since.getDate() - (days || 30));
+    const sinceStr = since.toISOString().split('T')[0];
+
+    const snap = await window.db.collection('analytics_events')
+      .where('type', '==', 'content_view')
+      .where('date', '>=', sinceStr)
+      .orderBy('date', 'desc')
+      .limit(500)
+      .get();
+
+    const items = {};
+    snap.forEach(doc => {
+      const d = doc.data();
+      const key = (d.section || '?') + ' / ' + (d.itemTitle || '?');
+      if (!items[key]) items[key] = { totalSec: 0, count: 0 };
+      items[key].totalSec += d.durationSec || 0;
+      items[key].count += 1;
+    });
+
+    return Object.entries(items)
+      .map(([name, data]) => ({
+        name,
+        count: data.count,
+        totalSec: data.totalSec,
+        avgSec: data.count > 0 ? Math.round(data.totalSec / data.count) : 0
+      }))
+      .sort((a, b) => b.totalSec - a.totalSec);
+  }
+
+  window.getAnalyticsCounters    = getAnalyticsCounters;
+  window.getAnalyticsDaily       = getAnalyticsDaily;
+  window.getAnalyticsEvents      = getAnalyticsEvents;
+  window.getAnalyticsTopContent  = getAnalyticsTopContent;
+  window.getAnalyticsGeo         = getAnalyticsGeo;
+  window.getAnalyticsContentTime = getAnalyticsContentTime;
+
   // Expose helpers for admin
   window.listGalleries = async function(){ 
     return ENV==='prod'? listGalleriesFirestore().catch(()=>safeFetchJson('data/galleries.json')) : safeFetchJson('/api/galleries','data/galleries.json'); 
   };
-  window.saveGalleriesProd = saveGalleriesFirestore;
-  window.getSiteProd       = getSiteFirestore;
-  window.saveSiteProd      = saveSiteFirestore;
+  window.saveGalleriesProd   = saveGalleriesFirestore;
+  window.getSiteProd         = getSiteFirestore;
+  window.saveSiteProd        = saveSiteFirestore;
+  window.saveDownloadsProd   = saveDownloadsFirestore;
+  window.getDownloadsProd    = getDownloadsFirestore;
 })(); 

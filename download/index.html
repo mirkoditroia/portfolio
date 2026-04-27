@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Downloads | MÊIRKS – Free Creative Assets</title>
+  <meta name="description" content="Download free creative coding assets: TouchDesigner TOX, Houdini HDA, and more tools for your creative projects.">
+  <meta name="theme-color" content="#0f2027">
+  <meta name="color-scheme" content="dark">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="MÊIRKS · Free Creative Assets">
+  <meta property="og:description" content="Download free creative coding assets: TouchDesigner TOX, Houdini HDA, and more.">
+  <meta property="og:image" content="/images/og-cover.jpg">
+  <meta property="og:url" content="/download">
+  <link rel="preload" href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet"></noscript>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="dl-banner">
+    <a href="/" class="dl-logo">MÊIRKS</a>
+    <nav class="dl-nav">
+      <a href="/" class="dl-nav-link">Portfolio</a>
+      <span class="dl-nav-separator">/</span>
+      <span class="dl-nav-current">Downloads</span>
+    </nav>
+  </header>
+
+  <main class="dl-main">
+    <section class="dl-hero">
+      <h1 class="dl-title">Creative Assets</h1>
+      <p class="dl-subtitle">Free tools and components for your creative coding projects</p>
+    </section>
+
+    <section class="dl-filters" role="toolbar" aria-label="Filter assets">
+      <button class="dl-filter-btn active" data-category="all">All</button>
+    </section>
+
+    <section class="dl-grid" id="downloads-grid" role="list" aria-label="Downloadable assets">
+      <div class="dl-empty" id="dl-empty">
+        <div class="dl-empty-icon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </div>
+        <p>No assets available yet. Check back soon!</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Asset detail modal -->
+  <div class="dl-modal" id="dl-modal" role="dialog" aria-modal="true" aria-labelledby="dl-modal-title" style="display:none;">
+    <div class="dl-modal-backdrop" id="dl-modal-backdrop"></div>
+    <div class="dl-modal-content">
+      <button class="dl-modal-close" id="dl-modal-close" aria-label="Close">&times;</button>
+      
+      <div class="dl-modal-media">
+        <video id="dl-modal-video" controls controlsList="nodownload" oncontextmenu="return false;"></video>
+        <img id="dl-modal-image" alt="" style="display:none;">
+      </div>
+
+      <div class="dl-modal-info">
+        <div class="dl-modal-header">
+          <h2 id="dl-modal-title" class="dl-modal-name"></h2>
+          <span id="dl-modal-badge" class="dl-badge"></span>
+        </div>
+        
+        <p id="dl-modal-description" class="dl-modal-desc"></p>
+        
+        <div class="dl-modal-meta" id="dl-modal-meta">
+          <div class="dl-meta-item">
+            <span class="dl-meta-label">Category</span>
+            <span id="dl-modal-category" class="dl-meta-value"></span>
+          </div>
+          <div class="dl-meta-item">
+            <span class="dl-meta-label">File Type</span>
+            <span id="dl-modal-filetype" class="dl-meta-value"></span>
+          </div>
+          <div class="dl-meta-item">
+            <span class="dl-meta-label">Size</span>
+            <span id="dl-modal-filesize" class="dl-meta-value"></span>
+          </div>
+          <div class="dl-meta-item" id="dl-modal-version-row">
+            <span class="dl-meta-label">Version</span>
+            <span id="dl-modal-version" class="dl-meta-value"></span>
+          </div>
+        </div>
+
+        <div class="dl-modal-tags" id="dl-modal-tags"></div>
+
+        <a id="dl-modal-download-btn" class="dl-download-btn" href="#" download>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>Download Free</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <footer class="dl-footer">
+    <div class="dl-footer-inner">
+      <span>MÊIRKS &copy; <span id="dl-year"></span></span>
+      <a href="/">Back to Portfolio</a>
+    </div>
+  </footer>
+
+  <!-- Environment config loader -->
+  <script>
+    (function(){
+      const h = location.hostname;
+      let env = 'prod';
+      if(h === 'localhost' || h.startsWith('127.') || h.includes('local')) env='local';
+      else if(h.includes('preprod') || h.includes('pre-prod')) env='preprod';
+      window.APP_ENV = env;
+      const s=document.createElement('script');
+      s.src=`/config/env.${env}.js`;
+      document.head.appendChild(s);
+    })();
+  </script>
+  <script src="/js/firebase.js"></script>
+  <script src="/js/dataProvider.js"></script>
+  <script src="/js/analytics.js"></script>
+  <script src="script.js"></script>
+  <script>
+    document.getElementById('dl-year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

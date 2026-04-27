@@ -14,8 +14,8 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-// Ensure upload directories exist (images, video, optimized)
-['images','video','images/optimized'].forEach((d)=>{
+// Ensure upload directories exist (images, video, downloads, optimized)
+['images','video','downloads','images/optimized'].forEach((d)=>{
   try {
     fsSync.mkdirSync(path.join(__dirname, d), { recursive: true });
   } catch {
@@ -42,9 +42,10 @@ const TOKEN= process.env.ADMIN_TOKEN || 'TOKEN';
 // paths
 const PUBLIC_DIR = __dirname; // serve existing project root
 const ADMIN_DIR  = path.join(__dirname,'admin');
-const DATA_FILE  = path.join(__dirname,'data','galleries.json');
-const SITE_FILE  = path.join(__dirname,'data','site.json');
-const SHADER_FILE = path.join(__dirname,'data','mobile_shader.glsl');
+const DATA_FILE      = path.join(__dirname,'data','galleries.json');
+const SITE_FILE      = path.join(__dirname,'data','site.json');
+const DOWNLOADS_FILE = path.join(__dirname,'data','downloads.json');
+const SHADER_FILE    = path.join(__dirname,'data','mobile_shader.glsl');
 
 // middleware
 app.use(cors({
@@ -64,14 +65,16 @@ app.use(express.json({limit:'2mb'}));
 app.use(express.text({type:'text/plain',limit:'200kb'}));
 
 // static
-app.use('/',      express.static(PUBLIC_DIR));
-app.use('/admin', express.static(ADMIN_DIR));
+app.use('/',         express.static(PUBLIC_DIR));
+app.use('/admin',    express.static(ADMIN_DIR));
+app.use('/download', express.static(path.join(__dirname, 'download')));
 
 // upload storage setup
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const isVideo = file.mimetype.startsWith('video');
-    const dir = isVideo ? 'video' : 'images';
+    const isImage = file.mimetype.startsWith('image');
+    const dir = isVideo ? 'video' : isImage ? 'images' : 'downloads';
     cb(null, path.join(__dirname, dir));
   },
   filename: (_req, file, cb) => {
@@ -223,6 +226,53 @@ app.post('/api/site', async (req,res)=>{
   }catch(err){
     console.error('WRITE site',err);
     res.status(500).json({error:'write-site-failed'});
+  }
+});
+
+// -------- Downloads --------
+app.get('/api/downloads', async (_req,res)=>{
+  try{
+    let out = null;
+    if(db){
+      try{
+        const doc = await db.collection('config').doc('downloads').get();
+        out = doc.exists ? (doc.data().items || []) : [];
+      }catch(fsErr){
+        console.warn('Firestore READ downloads failed, falling back to JSON', fsErr);
+      }
+    }
+    if(out === null){
+      const raw = await fs.readFile(DOWNLOADS_FILE,'utf8');
+      out = JSON.parse(raw);
+    }
+    res.json(out);
+  }catch(err){
+    console.error('READ downloads',err);
+    res.status(500).json({error:'read-downloads-failed'});
+  }
+});
+
+app.post('/api/downloads', async (req,res)=>{
+  if(req.query.token !== TOKEN){
+    return res.status(401).json({error:'invalid-token'});
+  }
+  try{
+    let saved = false;
+    if(db){
+      try{
+        await db.collection('config').doc('downloads').set({ items: req.body });
+        saved = true;
+      }catch(fsErr){
+        console.warn('Firestore WRITE downloads failed, falling back to JSON', fsErr);
+      }
+    }
+    if(!saved){
+      await fs.writeFile(DOWNLOADS_FILE, JSON.stringify(req.body,null,2));
+    }
+    res.sendStatus(200);
+  }catch(err){
+    console.error('WRITE downloads',err);
+    res.status(500).json({error:'write-downloads-failed'});
   }
 });
 

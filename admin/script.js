@@ -2028,4 +2028,592 @@ async function saveToFirebase(data){
     localStorage.setItem('site-updated', Date.now().toString());
     return true;
   }catch(e){console.error('[Admin] Firestore save error',e);return false;}
-} 
+}
+
+/* ═══════════════════ DOWNLOADS ADMIN ═══════════════════ */
+(function(){
+  const tbody = document.getElementById('downloads-tbody');
+  const addBtn = document.getElementById('add-download-btn');
+  const saveBtn = document.getElementById('save-downloads-btn');
+  if(!tbody || !addBtn || !saveBtn) return;
+
+  let downloadsArr = [];
+
+  async function loadDownloads(){
+    try {
+      await new Promise(r => setTimeout(r, 150));
+      let data;
+      if(window.fetchJson){
+        data = await window.fetchJson('/api/downloads', '../data/downloads.json');
+      } else {
+        const res = await fetch('../data/downloads.json');
+        data = await res.json();
+      }
+      downloadsArr = Array.isArray(data) ? data : [];
+      renderDownloadsTable();
+      window.adminLog?.('Downloads caricati: ' + downloadsArr.length + ' asset');
+    } catch(err){
+      console.error('Load downloads error:', err);
+      downloadsArr = [];
+      renderDownloadsTable();
+    }
+  }
+
+  function renderDownloadsTable(){
+    tbody.innerHTML = '';
+    downloadsArr.forEach((item, idx) => {
+      const tr = document.createElement('tr');
+      tr.dataset.download = JSON.stringify(item);
+      tr.innerHTML = `
+        <td class="drag-handle">☰</td>
+        <td>${idx + 1}</td>
+        <td>${item.title || '—'}</td>
+        <td>${item.category || '—'}</td>
+        <td>.${item.fileType || '?'}</td>
+        <td>
+          <button class="move-btn up-btn">↑</button>
+          <button class="move-btn down-btn">↓</button>
+          <button class="edit-btn">Modifica</button>
+          <button class="delete-btn delete">Elimina</button>
+        </td>
+      `;
+
+      tr.querySelector('.edit-btn').addEventListener('click', () => {
+        openDownloadEditor(item, updated => {
+          downloadsArr[idx] = updated;
+          renderDownloadsTable();
+        });
+      });
+
+      tr.querySelector('.delete-btn').addEventListener('click', () => {
+        if(confirm('Eliminare questo asset?')){
+          downloadsArr.splice(idx, 1);
+          renderDownloadsTable();
+        }
+      });
+
+      tr.querySelector('.up-btn').addEventListener('click', () => {
+        if(idx > 0){
+          [downloadsArr[idx - 1], downloadsArr[idx]] = [downloadsArr[idx], downloadsArr[idx - 1]];
+          renderDownloadsTable();
+        }
+      });
+
+      tr.querySelector('.down-btn').addEventListener('click', () => {
+        if(idx < downloadsArr.length - 1){
+          [downloadsArr[idx], downloadsArr[idx + 1]] = [downloadsArr[idx + 1], downloadsArr[idx]];
+          renderDownloadsTable();
+        }
+      });
+
+      tbody.appendChild(tr);
+    });
+
+    if(window.Sortable){
+      if(tbody._sortable) tbody._sortable.destroy();
+      tbody._sortable = new Sortable(tbody, {
+        animation: 120,
+        handle: '.drag-handle',
+        onEnd: () => {
+          const newArr = [];
+          tbody.querySelectorAll('tr').forEach(tr => {
+            newArr.push(JSON.parse(tr.dataset.download));
+          });
+          downloadsArr = newArr;
+          renderDownloadsTable();
+        }
+      });
+    }
+  }
+
+  addBtn.addEventListener('click', () => {
+    openDownloadEditor(null, newItem => {
+      downloadsArr.push(newItem);
+      renderDownloadsTable();
+    });
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    try {
+      if(window.APP_ENV === 'prod'){
+        if(!window.isAuthenticated || !window.isAuthenticated()){
+          alert('Please login first');
+          return;
+        }
+        if(window.saveDownloadsProd){
+          await window.saveDownloadsProd(downloadsArr);
+          alert('Downloads salvati su Firestore!');
+          window.adminLog?.('✅ Downloads salvati [Firestore] — ' + downloadsArr.length + ' asset');
+          return;
+        }
+      }
+      const token = prompt('Token amministratore per salvare:');
+      if(!token) return;
+      const res = await fetch(`/api/downloads?token=${encodeURIComponent(token)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(downloadsArr)
+      });
+      if(res.ok){
+        alert('Downloads salvati!');
+        window.adminLog?.('✅ Downloads salvati — ' + downloadsArr.length + ' asset');
+      } else {
+        alert('Errore nel salvataggio');
+      }
+    } catch(err){
+      console.error(err);
+      alert('Errore salvataggio downloads');
+    }
+  });
+
+  /* ─── Download editor overlay ─── */
+  const overlay = document.getElementById('download-editor-overlay');
+  const DF = {
+    title: document.getElementById('de-title'),
+    description: document.getElementById('de-description'),
+    category: document.getElementById('de-category'),
+    fileType: document.getElementById('de-filetype'),
+    thumbnail: document.getElementById('de-thumbnail'),
+    video: document.getElementById('de-video'),
+    fileUrl: document.getElementById('de-fileurl'),
+    fileSize: document.getElementById('de-filesize'),
+    version: document.getElementById('de-version'),
+    tags: document.getElementById('de-tags'),
+    free: document.getElementById('de-free')
+  };
+
+  let downloadEditorCb = null;
+
+  document.getElementById('de-cancel').addEventListener('click', () => overlay.classList.add('hidden'));
+  document.getElementById('de-save').addEventListener('click', () => {
+    const item = {
+      title: DF.title.value.trim(),
+      description: DF.description.value.trim(),
+      category: DF.category.value,
+      fileType: DF.fileType.value.trim().replace(/^\./, ''),
+      thumbnail: DF.thumbnail.value.trim(),
+      video: DF.video.value.trim(),
+      fileUrl: DF.fileUrl.value.trim(),
+      fileSize: DF.fileSize.value.trim(),
+      version: DF.version.value.trim(),
+      free: DF.free.checked,
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    const tagsRaw = DF.tags.value.trim();
+    item.tags = tagsRaw ? tagsRaw.split(/[,;]/).map(t => t.trim()).filter(Boolean) : [];
+
+    if(!item.title){
+      alert('Il titolo è obbligatorio');
+      return;
+    }
+
+    if(downloadEditorCb) downloadEditorCb(item);
+    overlay.classList.add('hidden');
+  });
+
+  function openDownloadEditor(existing, cb){
+    downloadEditorCb = cb;
+    document.getElementById('de-heading').textContent = existing ? 'Modifica Asset' : 'Nuovo Asset';
+
+    DF.title.value = existing?.title || '';
+    DF.description.value = existing?.description || '';
+    DF.category.value = existing?.category || 'touchdesigner';
+    DF.fileType.value = existing?.fileType || '';
+    DF.thumbnail.value = existing?.thumbnail || '';
+    DF.video.value = existing?.video || '';
+    DF.fileUrl.value = existing?.fileUrl || '';
+    DF.fileSize.value = existing?.fileSize || '';
+    DF.version.value = existing?.version || '';
+    DF.tags.value = (existing?.tags || []).join(', ');
+    DF.free.checked = existing?.free !== false;
+
+    overlay.classList.remove('hidden');
+  }
+
+  loadDownloads();
+})();
+
+/* ═══════════════════ ANALYTICS DASHBOARD ═══════════════════ */
+(function () {
+  let analyticsPeriod = 7;
+
+  const periodBtns = document.querySelectorAll('.analytics-period-btn');
+  const refreshBtn = document.getElementById('analytics-refresh-btn');
+
+  periodBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      periodBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      analyticsPeriod = parseInt(btn.dataset.days);
+      loadAnalytics();
+    });
+  });
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', loadAnalytics);
+  }
+
+  const navLinks = document.querySelectorAll('.nav-link');
+  navLinks.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.target === 'analytics-section') {
+        loadAnalytics();
+      }
+    });
+  });
+
+  async function loadAnalytics() {
+    if (window.APP_ENV !== 'prod') {
+      showDevModeMessage();
+      return;
+    }
+
+    try {
+      const [counters, daily, topContent, recentEvents, geoData, contentTime] = await Promise.all([
+        window.getAnalyticsCounters(),
+        window.getAnalyticsDaily(analyticsPeriod),
+        window.getAnalyticsTopContent(analyticsPeriod),
+        window.getAnalyticsEvents(30),
+        window.getAnalyticsGeo(analyticsPeriod),
+        window.getAnalyticsContentTime(analyticsPeriod)
+      ]);
+
+      renderKPIs(counters, daily, contentTime);
+      renderDailyChart(daily);
+      renderTopContent(topContent);
+      renderRecentEvents(recentEvents);
+      renderContentTime(contentTime);
+      renderGeoCountries(geoData.countries);
+      renderGeoDownloads(geoData.downloadsByCountry);
+      renderGeoCities(geoData.cities);
+      renderSectionsBreakdown(daily);
+
+      window.adminLog?.('Analytics caricati');
+    } catch (err) {
+      console.error('[Analytics] Load error:', err);
+      window.adminLog?.('Errore caricamento analytics: ' + err.message);
+    }
+  }
+
+  function showDevModeMessage() {
+    const el = id => document.getElementById(id);
+    ['kpi-total-views', 'kpi-total-interactions', 'kpi-total-downloads', 'kpi-period-views'].forEach(id => {
+      if (el(id)) el(id).textContent = '—';
+    });
+    const chart = document.getElementById('analytics-daily-chart');
+    if (chart) chart.innerHTML = '<div class="analytics-empty">Analytics disponibili solo in produzione (Firestore).</div>';
+
+    const topTbody = document.querySelector('#analytics-top-content tbody');
+    if (topTbody) topTbody.innerHTML = '<tr><td colspan="3" class="analytics-empty">Solo in produzione</td></tr>';
+
+    const recentTbody = document.querySelector('#analytics-recent-events tbody');
+    if (recentTbody) recentTbody.innerHTML = '<tr><td colspan="3" class="analytics-empty">Solo in produzione</td></tr>';
+
+    const sections = document.getElementById('analytics-sections-breakdown');
+    if (sections) sections.innerHTML = '<div class="analytics-empty">Solo in produzione</div>';
+  }
+
+  function renderKPIs(counters, daily, contentTime) {
+    const el = id => document.getElementById(id);
+    el('kpi-total-views').textContent = formatNumber(counters.totalPageViews || 0);
+    el('kpi-total-interactions').textContent = formatNumber(counters.totalInteractions || 0);
+    el('kpi-total-downloads').textContent = formatNumber(counters.totalDownloads || 0);
+
+    const periodViews = daily.reduce((sum, d) => sum + (d.pageViews || 0), 0);
+    el('kpi-period-views').textContent = formatNumber(periodViews);
+
+    const totalViews = (contentTime || []).reduce((s, c) => s + c.count, 0);
+    const totalSec = (contentTime || []).reduce((s, c) => s + c.totalSec, 0);
+    const avgSec = totalViews > 0 ? Math.round(totalSec / totalViews) : 0;
+    const avgTimeEl = el('kpi-avg-time');
+    if (avgTimeEl) avgTimeEl.textContent = formatDuration(avgSec);
+  }
+
+  function renderDailyChart(daily) {
+    const container = document.getElementById('analytics-daily-chart');
+    if (!container) return;
+
+    const today = new Date();
+    const dayMap = {};
+    daily.forEach(d => { if (d.date) dayMap[d.date] = d; });
+
+    const days = [];
+    for (let i = analyticsPeriod - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().split('T')[0];
+      const data = dayMap[key] || {};
+      days.push({
+        date: key,
+        label: d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }),
+        views: data.pageViews || 0,
+        interactions: data.interactions || 0,
+        downloads: data.downloads || 0
+      });
+    }
+
+    const maxVal = Math.max(1, ...days.map(d => d.views + d.interactions));
+
+    container.innerHTML = `
+      <div class="chart-legend">
+        <span class="legend-dot legend-views"></span> Visite
+        <span class="legend-dot legend-interactions"></span> Interazioni
+        <span class="legend-dot legend-downloads"></span> Downloads
+      </div>
+      <div class="chart-bars">
+        ${days.map(day => {
+          const viewsH = Math.max(2, (day.views / maxVal) * 120);
+          const intH = Math.max(0, (day.interactions / maxVal) * 120);
+          return `
+            <div class="chart-bar-group" title="${day.date}\nVisite: ${day.views}\nInterazioni: ${day.interactions}\nDownloads: ${day.downloads}">
+              <div class="chart-bar-stack">
+                <div class="chart-bar bar-interactions" style="height:${intH}px"></div>
+                <div class="chart-bar bar-views" style="height:${viewsH}px"></div>
+              </div>
+              <div class="chart-bar-label">${day.label}</div>
+              <div class="chart-bar-value">${day.views}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  function renderTopContent(topContent) {
+    const tbody = document.querySelector('#analytics-top-content tbody');
+    if (!tbody) return;
+
+    if (!topContent.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="analytics-empty">Nessun dato disponibile</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = topContent.slice(0, 15).map((item, i) => {
+      const parts = item.name.split(' / ');
+      const section = parts[0] || '—';
+      const title = parts[1] || '—';
+      return `<tr>
+        <td><span class="rank-badge">${i + 1}</span> ${escapeHtml(title)}</td>
+        <td><span class="section-chip">${escapeHtml(section)}</span></td>
+        <td class="text-right"><strong>${item.count}</strong></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderRecentEvents(events) {
+    const tbody = document.querySelector('#analytics-recent-events tbody');
+    if (!tbody) return;
+
+    if (!events.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="analytics-empty">Nessun evento</td></tr>';
+      return;
+    }
+
+    const typeIcons = {
+      pageview: '<span class="event-badge badge-pageview">Visita</span>',
+      interaction: '<span class="event-badge badge-interaction">Interazione</span>',
+      download: '<span class="event-badge badge-download">Download</span>'
+    };
+
+    tbody.innerHTML = events.slice(0, 20).map(ev => {
+      let detail = '';
+      if (ev.type === 'pageview') detail = ev.page || 'home';
+      else if (ev.type === 'interaction') detail = (ev.section || '') + (ev.itemTitle && ev.itemTitle !== '__section_view__' ? ' / ' + ev.itemTitle : ' (sezione)');
+      else if (ev.type === 'download') detail = ev.downloadTitle || '—';
+
+      const ts = ev.timestamp?.toDate ? ev.timestamp.toDate() : new Date(ev.date);
+      const timeStr = ts.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' ' + ts.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+      return `<tr>
+        <td>${typeIcons[ev.type] || ev.type}</td>
+        <td>${escapeHtml(detail)}</td>
+        <td class="text-nowrap">${timeStr}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderSectionsBreakdown(daily) {
+    const container = document.getElementById('analytics-sections-breakdown');
+    if (!container) return;
+
+    const sectionKeys = ['vfx', 'art3d', 'interactive', 'creativecoding', 'ai'];
+    const sectionTotals = {};
+
+    sectionKeys.forEach(key => {
+      sectionTotals[key] = daily.reduce((sum, d) => sum + (d['section_' + key] || 0), 0);
+    });
+
+    const maxSection = Math.max(1, ...Object.values(sectionTotals));
+
+    const sectionLabels = {
+      vfx: 'VFX',
+      art3d: 'Arte 3D',
+      interactive: 'Interactive',
+      creativecoding: 'Creative Coding',
+      ai: 'AI'
+    };
+
+    const sectionColors = {
+      vfx: '#ff6b6b',
+      art3d: '#4ecdc4',
+      interactive: '#45b7d1',
+      creativecoding: '#96ceb4',
+      ai: '#feca57'
+    };
+
+    container.innerHTML = sectionKeys.map(key => {
+      const pct = Math.round((sectionTotals[key] / maxSection) * 100);
+      return `
+        <div class="section-breakdown-item">
+          <div class="section-breakdown-header">
+            <span class="section-breakdown-label">${sectionLabels[key] || key}</span>
+            <span class="section-breakdown-count">${sectionTotals[key]}</span>
+          </div>
+          <div class="section-breakdown-bar">
+            <div class="section-breakdown-fill" style="width:${pct}%;background:${sectionColors[key] || '#6c757d'}"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderContentTime(contentTime) {
+    const tbody = document.querySelector('#analytics-content-time tbody');
+    if (!tbody) return;
+
+    if (!contentTime || !contentTime.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="analytics-empty">Nessun dato ancora (gli utenti devono aprire e chiudere contenuti)</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = contentTime.slice(0, 20).map((item, i) => {
+      const parts = item.name.split(' / ');
+      const section = parts[0] || '—';
+      const title = parts[1] || '—';
+      return `<tr>
+        <td><span class="rank-badge">${i + 1}</span> ${escapeHtml(title)}</td>
+        <td><span class="section-chip">${escapeHtml(section)}</span></td>
+        <td class="text-right">${item.count}</td>
+        <td class="text-right">${formatDuration(item.totalSec)}</td>
+        <td class="text-right"><strong>${formatDuration(item.avgSec)}</strong></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function formatDuration(totalSec) {
+    if (!totalSec || totalSec < 1) return '0s';
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    if (m > 0) return m + 'm ' + s + 's';
+    return s + 's';
+  }
+
+  function renderGeoCountries(countries) {
+    const tbody = document.querySelector('#analytics-geo-countries tbody');
+    if (!tbody) return;
+
+    if (!countries.length) {
+      tbody.innerHTML = '<tr><td colspan="2" class="analytics-empty">Nessun dato geografico</td></tr>';
+      return;
+    }
+
+    const FLAG_URL = code => code ? `https://flagcdn.com/20x15/${code.toLowerCase()}.png` : '';
+
+    tbody.innerHTML = countries.slice(0, 15).map((item, i) => {
+      const code = findCountryCode(item.name);
+      const flag = code ? `<img src="${FLAG_URL(code)}" alt="${code}" class="geo-flag">` : '';
+      return `<tr>
+        <td>${flag} ${escapeHtml(item.name)}</td>
+        <td class="text-right"><strong>${item.count}</strong></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderGeoDownloads(downloads) {
+    const tbody = document.querySelector('#analytics-geo-downloads tbody');
+    if (!tbody) return;
+
+    if (!downloads.length) {
+      tbody.innerHTML = '<tr><td colspan="2" class="analytics-empty">Nessun download con dati geo</td></tr>';
+      return;
+    }
+
+    const FLAG_URL = code => code ? `https://flagcdn.com/20x15/${code.toLowerCase()}.png` : '';
+
+    tbody.innerHTML = downloads.slice(0, 15).map(item => {
+      const code = findCountryCode(item.name);
+      const flag = code ? `<img src="${FLAG_URL(code)}" alt="${code}" class="geo-flag">` : '';
+      return `<tr>
+        <td>${flag} ${escapeHtml(item.name)}</td>
+        <td class="text-right"><strong>${item.count}</strong></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderGeoCities(cities) {
+    const container = document.getElementById('analytics-geo-cities');
+    if (!container) return;
+
+    if (!cities.length) {
+      container.innerHTML = '<div class="analytics-empty">Nessun dato sulle citta</div>';
+      return;
+    }
+
+    const maxVal = Math.max(1, cities[0].count);
+    const cityColors = ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#fd7e14', '#ffc107', '#198754', '#20c997', '#0dcaf0', '#6c757d'];
+
+    container.innerHTML = cities.slice(0, 10).map((item, i) => {
+      const pct = Math.round((item.count / maxVal) * 100);
+      const color = cityColors[i % cityColors.length];
+      return `
+        <div class="section-breakdown-item">
+          <div class="section-breakdown-header">
+            <span class="section-breakdown-label">${escapeHtml(item.name)}</span>
+            <span class="section-breakdown-count">${item.count}</span>
+          </div>
+          <div class="section-breakdown-bar">
+            <div class="section-breakdown-fill" style="width:${pct}%;background:${color}"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  const COUNTRY_CODES = {
+    'Italy': 'IT', 'United States': 'US', 'United Kingdom': 'GB', 'Germany': 'DE',
+    'France': 'FR', 'Spain': 'ES', 'Netherlands': 'NL', 'Belgium': 'BE',
+    'Switzerland': 'CH', 'Austria': 'AT', 'Portugal': 'PT', 'Poland': 'PL',
+    'Sweden': 'SE', 'Norway': 'NO', 'Denmark': 'DK', 'Finland': 'FI',
+    'Ireland': 'IE', 'Greece': 'GR', 'Czech Republic': 'CZ', 'Romania': 'RO',
+    'Hungary': 'HU', 'Croatia': 'HR', 'Bulgaria': 'BG', 'Slovakia': 'SK',
+    'Slovenia': 'SI', 'Lithuania': 'LT', 'Latvia': 'LV', 'Estonia': 'EE',
+    'Canada': 'CA', 'Australia': 'AU', 'Japan': 'JP', 'South Korea': 'KR',
+    'China': 'CN', 'India': 'IN', 'Brazil': 'BR', 'Mexico': 'MX',
+    'Argentina': 'AR', 'Russia': 'RU', 'Turkey': 'TR', 'Israel': 'IL',
+    'South Africa': 'ZA', 'New Zealand': 'NZ', 'Singapore': 'SG',
+    'Hong Kong': 'HK', 'Taiwan': 'TW', 'Thailand': 'TH', 'Indonesia': 'ID',
+    'Malaysia': 'MY', 'Philippines': 'PH', 'Vietnam': 'VN', 'Colombia': 'CO',
+    'Chile': 'CL', 'Peru': 'PE', 'Ukraine': 'UA', 'Serbia': 'RS',
+    'Luxembourg': 'LU', 'Malta': 'MT', 'Cyprus': 'CY', 'Iceland': 'IS',
+    'United Arab Emirates': 'AE', 'Saudi Arabia': 'SA', 'Egypt': 'EG',
+    'Nigeria': 'NG', 'Kenya': 'KE', 'Morocco': 'MA', 'Tunisia': 'TN',
+    'Pakistan': 'PK', 'Bangladesh': 'BD', 'Sri Lanka': 'LK'
+  };
+
+  function findCountryCode(name) {
+    return COUNTRY_CODES[name] || null;
+  }
+
+  function formatNumber(n) {
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return n.toString();
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+})();

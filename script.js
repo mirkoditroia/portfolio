@@ -2203,6 +2203,7 @@ document.addEventListener('DOMContentLoaded', function () {
       
       console.log('📁 Galleries loaded:', Object.keys(data));
       galleries = data;
+      window.galleries = galleries; // Expose globally for deep linking
       
       // Inizializza galleries in batch per performance
       const galleryEntries = Object.entries(data);
@@ -2269,6 +2270,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const data = await response.json();
         console.log('📁 Galleries loaded from fallback:', Object.keys(data));
         galleries = data;
+        window.galleries = galleries; // Expose globally for deep linking
         Object.entries(data).forEach(([k, v]) => initGallery(k, v));
         afterGalleryInit();
       } catch (err2) {
@@ -2333,6 +2335,7 @@ document.addEventListener('DOMContentLoaded', function () {
             fallbackDescription: description,
             fallbackTitle: title
           });
+          detailPayload.section = item.closest('section[id]')?.id || 'gallery';
 
           if (canvas && imgData) {
             // Controllo se il canvas ha contenuto valido (multimediale o procedurale)
@@ -2424,6 +2427,9 @@ document.addEventListener('DOMContentLoaded', function () {
     window.galleriesLoadPromise.then(() => {
       console.log('✅ Galleries loaded, hiding loader');
       hideAppLoader();
+      
+      // Check for deep link and open modal if needed
+      checkDeepLink();
     }).catch(() => {
       console.warn('⚠️ Gallery load failed, hiding loader anyway');
       hideAppLoader();
@@ -2433,6 +2439,86 @@ document.addEventListener('DOMContentLoaded', function () {
     hideAppLoader();
   }
 });
+
+// Deep linking: check if URL contains a project slug
+function checkDeepLink() {
+  const pathname = window.location.pathname;
+  
+  console.log('[Deep Link] Starting check, pathname:', pathname);
+  console.log('[Deep Link] window.galleries available?', !!window.galleries);
+  
+  // Skip if homepage or admin
+  if (pathname === '/' || pathname === '' || pathname.startsWith('/admin')) {
+    console.log('[Deep Link] Skipping - homepage or admin');
+    return;
+  }
+  
+  // Extract slug from pathname
+  const slug = pathname.substring(1); // Remove leading /
+  console.log('[Deep Link] Looking for slug:', slug);
+  
+  // Helper function to slugify (same as in showModernModalGallery)
+  const slugify = (text) => {
+    if (!text) return '';
+    return text
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  };
+  
+  // Search in all galleries
+  if (!window.galleries) {
+    console.error('[Deep Link] ❌ window.galleries not found!');
+    console.log('[Deep Link] Available globals:', Object.keys(window).filter(k => k.includes('galler')));
+    return;
+  }
+  
+  console.log('[Deep Link] Galleries sections:', Object.keys(window.galleries));
+  
+  for (const [sectionKey, items] of Object.entries(window.galleries)) {
+    console.log('[Deep Link] Checking section:', sectionKey, 'items:', items?.length);
+    if (!Array.isArray(items)) {
+      console.warn('[Deep Link] Section not array:', sectionKey);
+      continue;
+    }
+    
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const itemSlug = slugify(item.title || item.description || '');
+      console.log('[Deep Link] Comparing:', itemSlug, 'vs', slug);
+      
+      if (itemSlug === slug) {
+        console.log('[Deep Link] ✅ MATCH FOUND!', item.title, 'in section', sectionKey);
+        
+        // Build gallery array for modal
+        const modalGallery = item.modalGallery || [item.modalImage || item.src];
+        const detailPayload = {
+          title: item.title || '',
+          description: item.description || '',
+          detailDescription: item.detailDescription || item.description || '',
+          softwareUsed: item.softwareUsed || item.software || [],
+          section: sectionKey || 'gallery'
+        };
+        
+        setTimeout(() => {
+          showModernModalGallery(modalGallery, 0, detailPayload);
+        }, 100);
+        
+        return;
+      }
+    }
+  }
+  
+  console.warn('[Deep Link] ⚠️ No match found for slug:', slug);
+  // Redirect to homepage if slug not found
+  history.replaceState(null, '', '/');
+}
 
 
 const loadSiteData = async () => {
@@ -3461,6 +3547,14 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
   // Lock scroll when modal opens
   lockScroll();
 
+  // Analytics: track content open and start timer
+  const _analyticsSection = (typeof detailInput === 'object' && detailInput) ? (detailInput.section || '') : '';
+  const _analyticsTitle = (typeof detailInput === 'object' && detailInput) ? (detailInput.title || '') : '';
+  if (window.MeirksAnalytics) {
+    window.MeirksAnalytics.trackInteraction(_analyticsSection || 'gallery', _analyticsTitle || 'untitled');
+    window.MeirksAnalytics.startContentView(_analyticsSection || 'gallery', _analyticsTitle || 'untitled');
+  }
+
   const baseDetail = typeof detailInput === 'string' ? { description: detailInput } : (detailInput || {});
   const normalizedDetail = {
     title: (baseDetail.title || '').trim(),
@@ -3486,10 +3580,10 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
   closeBtn.className = 'modern-modal-close';
   closeBtn.innerHTML = '&times;';
   closeBtn.onclick = () => {
-    unlockScroll(); // This already restores scroll position
+    if (window.MeirksAnalytics) window.MeirksAnalytics.endContentView();
+    unlockScroll();
     removeAllDetailOverlays();
     modal.remove();
-    // Restore URL using replaceState (no need to scroll, unlockScroll does it)
     if (window.location.pathname !== '/') {
       history.replaceState(null, '', '/');
     }
@@ -4055,10 +4149,10 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
     if (!isSingleItem && e.key === 'ArrowLeft') goTo(current - 1);
     if (!isSingleItem && e.key === 'ArrowRight') goTo(current + 1);
     if (e.key === 'Escape') {
+      if (window.MeirksAnalytics) window.MeirksAnalytics.endContentView();
       removeAllDetailOverlays();
-      unlockScroll(); // This already restores scroll position
+      unlockScroll();
       modal.remove();
-      // Clean URL (no need to scroll, unlockScroll does it)
       if (window.location.pathname !== '/') {
         history.replaceState(null, '', '/');
       }
@@ -4112,6 +4206,7 @@ function enableModernMobileCanvasGallery() {
         fallbackDescription: item.getAttribute('data-description') || '',
         fallbackTitle
       });
+      detail.section = item.closest('section[id]')?.id || 'gallery';
       showModernModalGallery(slides, 0, detail);
     }, true); // true = capture mode
   });

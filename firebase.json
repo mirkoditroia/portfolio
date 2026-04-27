@@ -1,4 +1,7 @@
 {
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "storage": {
     "rules": "storage.rules"
   },
@@ -11,9 +14,7 @@
       "**/node_modules/**",
       "functions.js",
       "server.js",
-      "render.yaml",
-      "images/**",
-      "video/**"
+      "render.yaml"
     ],
     "headers": [
       {
@@ -48,6 +49,14 @@
       }
     ],
     "rewrites": [
+      {
+        "source": "/download",
+        "destination": "/download/index.html"
+      },
+      {
+        "source": "/download/**",
+        "destination": "/download/index.html"
+      },
       {
         "source": "**",
         "destination": "/index.html"

@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Site config - public read, admin write
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Galleries - public read, admin write
+    match /galleries/{galleryId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Analytics counters & daily summaries - admin read, anyone can increment
+    match /analytics/{docId} {
+      allow read: if request.auth != null;
+      allow create: if true;
+      allow update: if true;
+    }
+
+    // Analytics events - anyone can write, admin can read
+    match /analytics_events/{eventId} {
+      allow read: if request.auth != null;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
