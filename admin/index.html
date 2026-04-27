@@ -78,7 +78,21 @@
       </div>
       
       <!-- Lista dinamica delle gallery. Verrà popolata via JS in admin-logic -->
-      <section id="galleries"></section>
+      <section id="galleries">
+        <div class="galleries-toolbar">
+          <h2 class="galleries-title">Gallerie</h2>
+          <span class="galleries-pending-pill" id="galleries-pending-pill" hidden>0 modifiche da salvare</span>
+          <button id="add-gallery-btn" class="btn-primary-outline" type="button">+ Nuova galleria</button>
+          <button id="save-all-galleries-btn" class="btn-save-all" type="button">💾 Salva tutto</button>
+        </div>
+        <p class="galleries-help">
+          Trascina <code>⠿</code> per riordinare le gallerie sulla navbar pubblica.
+          Modifica nome, slug e visibilità direttamente nell'intestazione di ogni galleria.
+          Usa il menu <em>Sposta in…</em> di una slide per trasferirla in un'altra galleria.
+          Tutte le modifiche diventano definitive solo dopo <strong>Salva tutto</strong>.
+        </p>
+        <div id="galleries-list"></div>
+      </section>
 
       <!-- Downloads Management -->
       <section id="downloads-section" class="hidden-section">
@@ -369,41 +383,96 @@
   </div> <!-- admin-layout -->
 
   <template id="gallery-template">
-    <details class="gallery-panel">
-      <summary class="gallery-title"></summary>
-      <div class="slides-wrapper">
+    <article class="gallery-panel" data-collapsed="false">
+      <header class="gallery-header">
+        <span class="gallery-drag-handle" title="Trascina per riordinare la galleria">⠿</span>
+        <button type="button" class="gallery-toggle-btn" title="Apri/chiudi" aria-expanded="true" aria-label="Apri o chiudi galleria">
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+        </button>
+        <div class="gallery-header-fields">
+          <input type="text" class="gallery-label-input" placeholder="Etichetta navbar (es. VFX)" aria-label="Etichetta navbar" />
+          <span class="gallery-key-prefix">/</span>
+          <input type="text" class="gallery-key-input" pattern="[a-z0-9_-]+" placeholder="slug" aria-label="Slug (chiave)" />
+        </div>
+        <button type="button" class="gallery-symbol-btn" title="Scegli il simbolo della sezione" aria-label="Scegli simbolo">
+          <span class="gallery-symbol-glyph" aria-hidden="true">✶</span>
+        </button>
+        <select class="gallery-status-select" aria-label="Stato della galleria">
+          <option value="show">● Mostra</option>
+          <option value="soon">◌ Coming Soon</option>
+          <option value="hide">○ Nascondi</option>
+        </select>
+        <span class="gallery-counter" title="Numero di slide">0</span>
+        <button type="button" class="gallery-delete-btn" title="Elimina galleria" aria-label="Elimina galleria">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M9 3v1H4v2h1v13a2 2 0 002 2h10a2 2 0 002-2V6h1V4h-5V3H9zm2 5h2v10h-2V8zm-4 0h2v10H7V8zm8 0h2v10h-2V8z"/></svg>
+        </button>
+      </header>
+      <div class="gallery-body">
         <table class="slides-table">
           <thead>
             <tr>
-              <th></th>
+              <th aria-label="Trascina"></th>
               <th>#</th>
               <th>Titolo</th>
               <th>Tipo</th>
-              <th>Azioni</th>
+              <th>Sposta in&hellip;</th>
+              <th class="actions-col">Azioni</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
-        <button class="add-slide-btn">+ Aggiungi Slide</button>
-        <button class="save-gallery-btn secondary" style="margin-left:0.5rem">Salva gallery</button>
+        <div class="gallery-footer">
+          <button class="add-slide-btn" type="button">+ Aggiungi Slide</button>
+        </div>
       </div>
-    </details>
+    </article>
   </template>
 
   <template id="slide-row-template">
     <tr>
-      <td class="drag-handle">☰</td>
+      <td class="drag-handle" title="Trascina per riordinare">⠿</td>
       <td class="slide-index"></td>
       <td class="slide-title"></td>
       <td class="slide-type"></td>
-      <td>
-        <button class="move-btn up-btn">↑</button>
-        <button class="move-btn down-btn">↓</button>
-        <button class="edit-btn">Modifica</button>
-        <button class="delete-btn delete">Elimina</button>
+      <td class="slide-move-cell">
+        <select class="slide-move-select" title="Sposta in un'altra galleria">
+          <option value="">— sposta in… —</option>
+        </select>
+      </td>
+      <td class="actions-col">
+        <button type="button" class="icon-btn edit-btn" title="Modifica slide" aria-label="Modifica slide">✎</button>
+        <button type="button" class="icon-btn delete-btn" title="Elimina slide" aria-label="Elimina slide">🗑</button>
       </td>
     </tr>
   </template>
+
+  <!-- Symbol picker modal: opened from each gallery panel's symbol button -->
+  <div id="symbol-picker-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="symbol-picker-title">
+    <div class="symbol-picker">
+      <header class="symbol-picker-header">
+        <h3 id="symbol-picker-title">Libreria simboli</h3>
+        <p class="symbol-picker-sub">Scegli un simbolo da mostrare accanto al titolo della sezione</p>
+        <button type="button" class="symbol-picker-close" aria-label="Chiudi">&times;</button>
+      </header>
+      <div class="symbol-picker-current">
+        <span class="symbol-picker-current-label">Attuale:</span>
+        <span class="symbol-picker-current-glyph" id="symbol-picker-current-glyph">—</span>
+        <button type="button" id="symbol-picker-clear" class="symbol-picker-action">Usa default</button>
+        <span class="symbol-picker-custom-wrap">
+          <input type="text" id="symbol-picker-custom" maxlength="4" placeholder="o digita…" aria-label="Inserisci un simbolo personalizzato" />
+          <button type="button" id="symbol-picker-custom-apply" class="symbol-picker-action">Applica</button>
+        </span>
+      </div>
+      <div class="symbol-picker-color-row">
+        <span class="symbol-picker-color-label">Colore:</span>
+        <input type="color" id="symbol-picker-color" aria-label="Colore del simbolo" />
+        <input type="text" id="symbol-picker-color-hex" maxlength="9" placeholder="#rrggbb" aria-label="Codice esadecimale del colore" />
+        <button type="button" id="symbol-picker-color-reset" class="symbol-picker-action" title="Usa il colore della sezione">Usa colore sezione</button>
+        <span class="symbol-picker-color-presets" id="symbol-picker-color-presets" aria-label="Colori suggeriti"></span>
+      </div>
+      <div class="symbol-picker-body" id="symbol-picker-body"></div>
+    </div>
+  </div>
 
   <!-- Environment loader -->
   <script>
@@ -425,6 +494,7 @@
   <script src="/js/firebase.js"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/dataProvider.js"></script>
+  <script src="/js/sectionSymbols.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="script.js" defer></script>
 

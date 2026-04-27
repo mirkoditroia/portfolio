@@ -1,0 +1,13 @@
+# robots.txt for https://meirks.xyz
+# Mirko Ditroia (Meirks) — creative coder portfolio
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /admin
+Disallow: /config/
+Disallow: /server.js
+Disallow: /functions.js
+
+# Sitemap
+Sitemap: https://meirks.xyz/sitemap.xml

@@ -455,7 +455,36 @@ main {
 /* Migliora respiro titolo nelle sezioni galleria */
 .section.art3d > h2 { padding: 0 20px; }
 
-.section h2::before {
+/* Esoteric / spiritual symbol that decorates each section heading.
+   Replaces the legacy cyan vertical bar. The character itself is set
+   from site.sections[i].symbol via JS (admin can pick from a library).
+   Colour: --section-symbol-color (set inline by JS when admin picks a custom
+   one) wins over the section's --accent-color. */
+.section h2 .section-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6em;
+  height: 1.6em;
+  font-size: 1.4em;
+  line-height: 1;
+  color: var(--section-symbol-color, var(--accent-color, #40e0d0));
+  text-shadow: 0 0 10px color-mix(in srgb, var(--section-symbol-color, var(--accent-color, #40e0d0)) 40%, transparent);
+  animation: pulse 2.4s ease-in-out infinite;
+  /* Force text-style presentation so glyphs that have an emoji fallback
+     (zodiac, planets, etc.) render monochrome and respect `color`. */
+  font-family: 'Segoe UI Symbol', 'Cambria Math', 'Apple Symbols',
+               'Noto Sans Symbols', 'Noto Sans Symbols 2',
+               'DejaVu Sans', sans-serif;
+  font-variant-emoji: text;
+  font-feature-settings: "liga" 0;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* Fallback for the (unlikely) case where the symbol is missing:
+   draw the original 4×40 accent bar so the layout never collapses. */
+.section h2:not(:has(.section-symbol))::before {
   content: "";
   width: 4px;
   height: 40px;
@@ -463,6 +492,8 @@ main {
   border-radius: 2px;
   animation: pulse 2s infinite;
 }
+
+.section h2 .section-title-text { display: inline-block; }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }

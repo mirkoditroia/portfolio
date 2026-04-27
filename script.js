@@ -2186,9 +2186,110 @@ document.addEventListener('DOMContentLoaded', function () {
   // Carica dati dinamici e inizializza
   console.log('🌍 Environment:', window.APP_ENV);
 
+  // ─────────────────────────────────────────────────────────────────
+  // Helpers to keep the DOM in sync with arbitrary gallery keys.
+  // The admin panel can rename / add / delete galleries on the fly,
+  // so we make sure each key has a matching <section> + navbar link.
+  // ─────────────────────────────────────────────────────────────────
+  function ensureSectionExists(key, label, symbol, color){
+    if(!key) return null;
+    let section = document.getElementById(key);
+    if(section){
+      // Section already exists (static markup): make sure its h2 has the symbol structure
+      const existingHeading = section.querySelector(`h2[data-section-key="${key}"]`);
+      if(existingHeading && !existingHeading.querySelector('.section-symbol')){
+        if(typeof window._renderSectionHeading === 'function'){
+          window._renderSectionHeading(existingHeading, label || key, symbol, color);
+        }
+      }
+      return section;
+    }
+
+    const main = document.querySelector('main');
+    if(!main) return null;
+
+    const safeLabel = label || key;
+    section = document.createElement('section');
+    section.id = key;
+    section.className = `section ${key} art3d`;
+    section.setAttribute('role', 'region');
+    section.setAttribute('aria-labelledby', `${key}-heading`);
+    section.innerHTML = `
+      <h2 id="${key}-heading" data-section-key="${key}"></h2>
+      <div class="gallery-carousel swiper" role="region" aria-label="Gallery ${safeLabel}">
+        <div class="gallery-track swiper-wrapper" id="${key}-track" role="list"></div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
+      </div>`;
+    if(typeof window._renderSectionHeading === 'function'){
+      window._renderSectionHeading(section.querySelector('h2'), safeLabel, symbol, color);
+    }
+
+    // Insert before the about section if present, otherwise append at the end of <main>
+    const aboutSection = document.getElementById('about');
+    if(aboutSection && aboutSection.parentNode === main){
+      main.insertBefore(section, aboutSection);
+    } else {
+      main.appendChild(section);
+    }
+    return section;
+  }
+
+  function ensureNavLink(key, label){
+    if(!key) return null;
+    const menu = document.getElementById('primary-menu') || document.querySelector('.menu');
+    if(!menu) return null;
+    let link = menu.querySelector(`a[data-section-key="${key}"]`);
+    if(link){
+      if(label) link.textContent = label;
+      return link;
+    }
+    link = document.createElement('a');
+    link.href = `#${key}`;
+    link.dataset.sectionKey = key;
+    link.setAttribute('aria-label', `Vai alla sezione ${label || key}`);
+    link.textContent = label || key;
+    // Insert before the About link to keep that and Downloads at the end
+    const aboutLink = menu.querySelector('a[data-section-key="about"]');
+    if(aboutLink) menu.insertBefore(link, aboutLink); else menu.appendChild(link);
+    return link;
+  }
+
+  // Reorder sections + nav links to match the order coming from site.sections
+  // (or the order of the galleries data when sections are missing).
+  function applySectionOrder(orderedKeys){
+    const main = document.querySelector('main');
+    if(!main) return;
+    const aboutSection = document.getElementById('about');
+    orderedKeys.forEach(key => {
+      const sec = document.getElementById(key);
+      if(!sec) return;
+      if(aboutSection) main.insertBefore(sec, aboutSection); else main.appendChild(sec);
+    });
+    const menu = document.getElementById('primary-menu') || document.querySelector('.menu');
+    if(menu){
+      const aboutLink = menu.querySelector('a[data-section-key="about"]');
+      orderedKeys.forEach(key => {
+        const link = menu.querySelector(`a[data-section-key="${key}"]`);
+        if(!link) return;
+        if(aboutLink) menu.insertBefore(link, aboutLink); else menu.appendChild(link);
+      });
+    }
+  }
+
   // Caricamento ottimizzato delle galleries con timeout ridotto
   const loadGalleriesOptimized = async () => {
     try {
+      // Wait briefly for site data so the order/labels are known when we
+      // build dynamic sections (max 2s to keep first paint snappy).
+      if (window.siteDataLoadPromise && !window._cachedSiteData) {
+        try {
+          await Promise.race([
+            window.siteDataLoadPromise,
+            new Promise(r => setTimeout(r, 2000))
+          ]);
+        } catch(_) { /* fall back to gallery-key order */ }
+      }
       let data;
       if (window.APP_ENV === 'prod' && window.listGalleries) {
         // Produzione: Firestore con timeout di 5 secondi
@@ -2204,7 +2305,51 @@ document.addEventListener('DOMContentLoaded', function () {
       console.log('📁 Galleries loaded:', Object.keys(data));
       galleries = data;
       window.galleries = galleries; // Expose globally for deep linking
-      
+
+      // ── Build/reorder DOM sections so they match the configured order ──
+      try {
+        const siteData = window._cachedSiteData;
+        const sections = (siteData && Array.isArray(siteData.sections)) ? siteData.sections : null;
+        const metaOf = (k) => sections?.find(s => s.key === k);
+        const labelOf = (k) => metaOf(k)?.label || k;
+        const symbolOf = (k) => metaOf(k)?.symbol;
+        const colorOf = (k) => metaOf(k)?.symbolColor;
+        // 1) Make sure every gallery key has its own DOM section + navbar link
+        Object.keys(data).forEach(k => {
+          ensureSectionExists(k, labelOf(k), symbolOf(k), colorOf(k));
+          ensureNavLink(k, labelOf(k));
+        });
+        // 1b) Refresh symbols on existing (static) headings too
+        if(sections){
+          sections.forEach(s => {
+            const h = document.querySelector(`h2[data-section-key="${s.key}"]`);
+            if(h && typeof window._renderSectionHeading === 'function'){
+              window._renderSectionHeading(h, s.label, s.symbol, s.symbolColor);
+            }
+          });
+        }
+        // 2) Apply ordering (sections list takes priority, then any extra keys)
+        const orderedKeys = sections
+          ? [
+              ...sections.filter(s => Object.prototype.hasOwnProperty.call(data, s.key)).map(s => s.key),
+              ...Object.keys(data).filter(k => !sections.some(s => s.key === k))
+            ]
+          : Object.keys(data);
+        applySectionOrder(orderedKeys);
+        // 3) Remove leftover hardcoded sections that no longer have data backing them
+        document.querySelectorAll('main > section.section').forEach(sec => {
+          const id = sec.id;
+          if(!id || id === 'about' || id === 'hero') return;
+          if(!Object.prototype.hasOwnProperty.call(data, id)){
+            sec.remove();
+            const stale = document.querySelector(`.menu a[data-section-key="${id}"]`);
+            if(stale) stale.remove();
+          }
+        });
+      } catch(orderErr){
+        console.warn('⚠️ Failed to apply section order:', orderErr);
+      }
+
       // Inizializza galleries in batch per performance
       const galleryEntries = Object.entries(data);
       const batchSize = 3; // Processa 3 gallery alla volta
@@ -3229,6 +3374,33 @@ const applySiteData = (site) => {
       });
     }
 
+    // --- SEO: refresh JSON-LD Person.sameAs with the configured social links ---
+    try {
+      const ldNode = document.querySelector('script[type="application/ld+json"]');
+      if (ldNode && Array.isArray(site.contacts)) {
+        const sameAs = new Set([
+          'https://meirks.xyz/'
+        ]);
+        site.contacts.forEach(c => {
+          if (!c || c.visible === false) return;
+          const v = (c.value || '').trim();
+          if (!v || v.includes('@')) return;
+          const url = v.startsWith('http') ? v : ('https://' + v);
+          sameAs.add(url);
+        });
+        const ld = JSON.parse(ldNode.textContent);
+        const person = (ld['@graph'] || []).find(n => n['@type'] === 'Person');
+        if (person) {
+          person.sameAs = Array.from(sameAs);
+          if (site.artistImage) person.image = site.artistImage;
+          if (site.bio) person.description = site.bio;
+        }
+        ldNode.textContent = JSON.stringify(ld);
+      }
+    } catch (ldErr) {
+      console.warn('JSON-LD refresh failed:', ldErr);
+    }
+
     // --- Hide/show sections based on status ---
     if (Array.isArray(site.sections)) {
       site.sections.forEach(s => {
@@ -4216,6 +4388,33 @@ document.addEventListener('DOMContentLoaded', enableModernMobileCanvasGallery);
 
 // Carica immediatamente le sezioni navbar per evitare lag
 (function() {
+  // Validate a CSS color: accepts #rgb / #rrggbb / #rrggbbaa
+  function isValidCssColor(c) {
+    if (!c || typeof c !== 'string') return false;
+    return /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(c.trim());
+  }
+
+  // Renders an h2 heading with a leading "esoteric" symbol and the label text.
+  // Kept identical to the dynamic version inside the main IIFE so static and
+  // dynamic sections look the same.
+  function renderSectionHeading(headingEl, label, symbol, color) {
+    if (!headingEl) return;
+    const fallback = (window.SectionSymbols && window.SectionSymbols.DEFAULT_SYMBOL) || '';
+    const sym = (symbol && String(symbol).trim()) || fallback;
+    const safeLabel = label || headingEl.dataset.sectionKey || '';
+    const safeColor = isValidCssColor(color) ? color.trim() : '';
+    const styleAttr = safeColor
+      ? ` style="--section-symbol-color: ${safeColor};"`
+      : '';
+    headingEl.innerHTML =
+      `<span class="section-symbol" aria-hidden="true"${styleAttr}>${sym}</span>` +
+      `<span class="section-title-text"></span>`;
+    const titleEl = headingEl.querySelector('.section-title-text');
+    if (titleEl) titleEl.textContent = safeLabel;
+  }
+  // Expose so the main IIFE / admin previews can reuse it
+  window._renderSectionHeading = renderSectionHeading;
+
   // Funzione helper per aggiornare label e heading
   function updateSectionLabels(sections) {
     if (Array.isArray(sections)) {
@@ -4226,10 +4425,10 @@ document.addEventListener('DOMContentLoaded', enableModernMobileCanvasGallery);
           navLink.textContent = sec.label;
           navLink.setAttribute('aria-label', `Vai alla sezione ${sec.label}`);
         }
-        // Aggiorna il testo dell'heading della sezione
+        // Aggiorna l'heading della sezione (simbolo + label)
         const heading = document.querySelector(`#${sec.key}-heading[data-section-key="${sec.key}"]`);
         if (heading) {
-          heading.textContent = sec.label;
+          renderSectionHeading(heading, sec.label, sec.symbol, sec.symbolColor);
         }
       });
     }
@@ -4251,8 +4450,10 @@ document.addEventListener('DOMContentLoaded', enableModernMobileCanvasGallery);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         siteData = await response.json();
       }
+      window._cachedSiteData = siteData;
       updateSectionLabels(siteData.sections);
       console.log('✅ Sezioni navbar caricate immediatamente');
+      return siteData;
     } catch (err) {
       console.warn('⚠️ Fallback sezioni navbar:', err);
       // Fallback con sezioni predefinite
@@ -4261,12 +4462,15 @@ document.addEventListener('DOMContentLoaded', enableModernMobileCanvasGallery);
         { key: 'art3d', label: '3D artworks' },
         { key: 'interactive', label: 'Interactive' }
       ];
+      const fallbackData = { sections: fallbackSections };
+      window._cachedSiteData = fallbackData;
       updateSectionLabels(fallbackSections);
+      return fallbackData;
     }
   };
 
-  // Avvia il caricamento immediatamente
-  loadSiteData();
+  // Avvia il caricamento immediatamente e mantiene la promise per il caricamento gallerie
+  window.siteDataLoadPromise = loadSiteData();
 })();
 
 document.addEventListener('DOMContentLoaded', () => {

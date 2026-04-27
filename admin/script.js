@@ -42,8 +42,17 @@ function updateAuthUI() {
 window.updateAuthUI = updateAuthUI;
 
 document.addEventListener('DOMContentLoaded', ()=>{
-  const container = document.getElementById('galleries');
-  if(!container) return;
+  const galleriesSection = document.getElementById('galleries');
+  if(!galleriesSection) return;
+  // The new HTML layout has a dedicated #galleries-list child where panels are appended
+  const container = document.getElementById('galleries-list') || galleriesSection;
+
+  // ------- Gallery rename / delete tracking (used at save time) -------
+  // Maps oldKey -> newKey when a gallery is renamed. Required to clean up
+  // legacy Firestore documents and to keep site.sections in sync.
+  window._pendingGalleryRenames = window._pendingGalleryRenames || {};
+  // Keys that were present in _origGalleries but have been deleted in admin.
+  window._pendingGalleryDeletes = window._pendingGalleryDeletes || new Set();
 
   // Determine environment once
   const host = window.location.hostname;
@@ -165,7 +174,24 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const loadGalleries = async () => {
     // Wait a bit for dataProvider to initialize
     await new Promise(resolve => setTimeout(resolve, 100));
-    
+
+    // Pre-load site.json so renderGalleries() can reflect the section order/labels.
+    // (Not blocking on errors – the renderer falls back to data-key order.)
+    if (!window._origSite) {
+      try {
+        let site;
+        if (window.fetchJson) {
+          site = await window.fetchJson('/api/site', '../data/site.json');
+        } else {
+          const r = await fetch('../data/site.json');
+          site = r.ok ? await r.json() : {};
+        }
+        window._origSite = site || {};
+      } catch (e) {
+        window._origSite = window._origSite || {};
+      }
+    }
+
     if (!window.fetchJson) {
       console.error('dataProvider not loaded, using fallback');
       try {
@@ -200,126 +226,645 @@ document.addEventListener('DOMContentLoaded', ()=>{
   
   loadGalleries();
 
-  function renderGalleries(data){
-    const gTpl = document.getElementById('gallery-template');
-    const sTpl = document.getElementById('slide-row-template');
-    Object.entries(data).forEach(([galleryKey,slides])=>{
-      const gNode = gTpl.content.cloneNode(true);
-      const panel = gNode.querySelector('.gallery-panel');
-      const title = gNode.querySelector('.gallery-title');
-      const tbody = gNode.querySelector('tbody');
-
-      title.textContent = galleryKey;
-
-      slides.forEach((slide,i)=>{
-        const row   = sTpl.content.cloneNode(true);
-        row.querySelector('.slide-index').textContent = i+1;
-        row.querySelector('.slide-title').textContent = slide.title || '-';
-        const type = slide.canvasVideo && slide.modalGallery ? 'gallery-canvas-video' : slide.canvasVideo ? 'canvas-video' : slide.video ? 'video' : slide.modalGallery ? 'gallery' : slide.modalImage ? 'image' : slide.canvas ? 'canvas' : 'unknown';
-        row.querySelector('.slide-type').textContent = type;
-        tbody.appendChild(row);
-      });
-
-      // attach add slide & save handlers
-      const addBtn = gNode.querySelector('.add-slide-btn');
-      const saveBtn= gNode.querySelector('.save-gallery-btn');
-
-      addBtn.addEventListener('click',()=>{
-        openSlideEditor(null,(slideObj)=>{
-          addSlideRow(slideObj);
-          refreshIndexes(tbody);
-        });
-      });
-
-      saveBtn.addEventListener('click',()=>{
-        saveAllGalleries();
-      });
-
-      container.appendChild(gNode);
-
-      // helper to add row
-      function addSlideRow(slide){
-          const frag   = sTpl.content.cloneNode(true);
-          const tr     = frag.querySelector('tr');
-          const index  = tbody.querySelectorAll('tr').length;
-
-          tr.querySelector('.slide-index').textContent = index+1;
-          tr.querySelector('.slide-title').textContent = slide.title || '-';
-          const type = slide.canvasVideo && slide.modalGallery ? 'gallery-canvas-video' : slide.canvasVideo ? 'canvas-video' : slide.video ? 'video' : slide.modalGallery ? 'gallery' : slide.modalImage ? 'image' : slide.canvas ? 'canvas' : 'unknown';
-          tr.querySelector('.slide-type').textContent = type;
-          tr.dataset.slide = JSON.stringify(slide);
-
-          // edit
-          tr.querySelector('.edit-btn').addEventListener('click',()=>{
-            const current = JSON.parse(tr.dataset.slide);
-            openSlideEditor(current, (updated)=> {
-              tr.dataset.slide = JSON.stringify(updated);
-              tr.querySelector('.slide-title').textContent = updated.title || '-';
-              const newType = updated.canvasVideo && updated.modalGallery ? 'gallery-canvas-video' : updated.canvasVideo ? 'canvas-video' : updated.video ? 'video' : updated.modalGallery ? 'gallery' : updated.modalImage ? 'image' : updated.canvas ? 'canvas' : 'unknown';
-              tr.querySelector('.slide-type').textContent = newType;
-            });
-          });
-          // delete
-          tr.querySelector('.delete-btn').addEventListener('click',()=>{
-            if(confirm('Eliminare questa slide?')){ 
-              tr.remove(); 
-              refreshIndexes(tbody);
-              // Mark gallery as unsaved when slide is deleted
-              const galleryKey = tbody.closest('.gallery-panel').querySelector('.gallery-title').textContent.trim();
-              markGalleryUnsaved(galleryKey);
-            }
-          });
-          // move up/down
-          tr.querySelector('.up-btn').addEventListener('click',()=>{ 
-            const prev=tr.previousElementSibling; 
-            if(prev){ 
-              tbody.insertBefore(tr,prev); 
-              refreshIndexes(tbody);
-              // Mark gallery as unsaved when order changes
-              const galleryKey = tbody.closest('.gallery-panel').querySelector('.gallery-title').textContent.trim();
-              markGalleryUnsaved(galleryKey);
-            }
-          });
-          tr.querySelector('.down-btn').addEventListener('click',()=>{ 
-            const next=tr.nextElementSibling?.nextElementSibling; 
-            if(next){
-              tbody.insertBefore(tr,next); 
-              refreshIndexes(tbody);
-              // Mark gallery as unsaved when order changes
-              const galleryKey = tbody.closest('.gallery-panel').querySelector('.gallery-title').textContent.trim();
-              markGalleryUnsaved(galleryKey);
-            }
-          });
-          tbody.appendChild(frag);
-      }
-
-      // initialize existing
-      tbody.innerHTML = '';
-      slides.forEach(addSlideRow);
-      // enable drag reorder slides
-      if(window.Sortable){ 
-        new Sortable(tbody, {
-          animation: 120,
-          handle: '.drag-handle',
-          onEnd: () => {
-            refreshIndexes(tbody);
-            // Mark gallery as unsaved when order changes
-            const galleryKey = panel.querySelector('.gallery-title').textContent.trim();
-            markGalleryUnsaved(galleryKey);
-          }
-        }); 
-      }
+  // ----- Toolbar buttons in the Galleries view -----
+  const addGalleryBtn = document.getElementById('add-gallery-btn');
+  const saveAllBtn    = document.getElementById('save-all-galleries-btn');
+  if(addGalleryBtn){
+    addGalleryBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      addNewGallery();
+    });
+  }
+  if(saveAllBtn){
+    saveAllBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      saveAllGalleries();
     });
   }
 
+  // Compute slide "type" label for the table column
+  function slideTypeLabel(slide){
+    if(!slide) return 'unknown';
+    if(slide.canvasVideo && slide.modalGallery) return 'gallery-canvas-video';
+    if(slide.canvasVideo) return 'canvas-video';
+    if(slide.video) return 'video';
+    if(slide.modalGallery) return 'gallery';
+    if(slide.modalImage) return 'image';
+    if(slide.canvas) return 'canvas';
+    return 'unknown';
+  }
+
+  // Build the list of currently active gallery keys (in DOM order)
+  function getCurrentGalleryKeys(){
+    return Array.from(container.querySelectorAll('.gallery-panel'))
+      .map(p => (p.dataset.key || '').trim())
+      .filter(Boolean);
+  }
+
+  // Refresh the "Sposta in..." dropdown in every slide row so it lists all
+  // other galleries currently rendered.
+  function refreshMoveSelects(){
+    const keys = getCurrentGalleryKeys();
+    container.querySelectorAll('.gallery-panel').forEach(panel => {
+      const currentKey = (panel.dataset.key || '').trim();
+      panel.querySelectorAll('tbody .slide-move-select').forEach(sel => {
+        const previous = sel.value;
+        sel.innerHTML = '<option value="">— sposta in… —</option>';
+        keys.forEach(k => {
+          if(k === currentKey) return;
+          const opt = document.createElement('option');
+          opt.value = k;
+          const targetPanel = container.querySelector(`.gallery-panel[data-key="${CSS.escape(k)}"]`);
+          const lbl = targetPanel?.querySelector('.gallery-label-input')?.value?.trim() || k;
+          opt.textContent = lbl === k ? `→ ${k}` : `→ ${lbl} (${k})`;
+          sel.appendChild(opt);
+        });
+        // Reset to placeholder; previous target may have been renamed/removed
+        sel.value = keys.includes(previous) && previous !== currentKey ? previous : '';
+      });
+    });
+    refreshPendingPill();
+  }
+
+  // Refresh the small pill at the top-right of the toolbar to surface the
+  // number of galleries with pending changes.
+  function refreshPendingPill(){
+    const pill = document.getElementById('galleries-pending-pill');
+    if(!pill) return;
+    const count = (window.unsavedChanges?.galleries?.size) || 0;
+    if(count){
+      pill.hidden = false;
+      pill.textContent = count === 1 ? '1 modifica da salvare' : `${count} modifiche da salvare`;
+    } else {
+      pill.hidden = true;
+    }
+  }
+  window._adminRefreshPendingPill = refreshPendingPill;
+
+  // Validate slug: lowercase letters, digits, dashes/underscores
+  function isValidSlug(s){ return /^[a-z][a-z0-9_-]*$/.test(s); }
+
+  // ─────────────────────────────────────────────────────────────────
+  // Symbol picker: a single shared modal (markup in admin/index.html)
+  // that opens for a given gallery panel and writes the chosen glyph
+  // into panel.dataset.symbol. The save flow reads this in saveAllGalleries.
+  // ─────────────────────────────────────────────────────────────────
+  let _symbolPickerInited = false;
+  let _symbolPickerTarget = null;
+
+  function isValidCssColor(c){
+    return !!c && /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(String(c).trim());
+  }
+
+  function setPanelSymbol(panel, symbol){
+    if(!panel) return;
+    const newVal = (symbol || '').trim();
+    const oldVal = (panel.dataset.symbol || '').trim();
+    if(newVal === oldVal) return;
+    panel.dataset.symbol = newVal;
+    if(typeof panel._updateSymbolBtn === 'function') panel._updateSymbolBtn();
+    markGalleryUnsaved((panel.dataset.key || '').trim());
+  }
+
+  function setPanelSymbolColor(panel, color){
+    if(!panel) return;
+    const newVal = (color || '').trim();
+    const oldVal = (panel.dataset.symbolColor || '').trim();
+    if(newVal && !isValidCssColor(newVal)){
+      alert('Colore non valido. Usa un valore #rrggbb (es. #40e0d0).');
+      return;
+    }
+    if(newVal === oldVal) return;
+    panel.dataset.symbolColor = newVal;
+    if(typeof panel._updateSymbolBtn === 'function') panel._updateSymbolBtn();
+    markGalleryUnsaved((panel.dataset.key || '').trim());
+  }
+
+  function buildSymbolPickerBody(){
+    const body = document.getElementById('symbol-picker-body');
+    if(!body || !window.SectionSymbols) return;
+    body.innerHTML = '';
+    window.SectionSymbols.CATEGORIES.forEach(cat => {
+      const section = document.createElement('section');
+      section.className = 'symbol-picker-cat';
+      const h = document.createElement('h4');
+      h.textContent = cat.label;
+      section.appendChild(h);
+      const grid = document.createElement('div');
+      grid.className = 'symbol-picker-grid';
+      cat.symbols.forEach(sym => {
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className = 'symbol-picker-cell';
+        cell.dataset.symbol = sym;
+        cell.title = sym;
+        cell.textContent = sym;
+        cell.addEventListener('click', () => {
+          if(_symbolPickerTarget){
+            setPanelSymbol(_symbolPickerTarget, sym);
+            refreshSymbolPickerCurrent();
+          }
+        });
+        grid.appendChild(cell);
+      });
+      section.appendChild(grid);
+      body.appendChild(section);
+    });
+  }
+
+  function refreshSymbolPickerCurrent(){
+    const cur = document.getElementById('symbol-picker-current-glyph');
+    if(!cur) return;
+    const fallback = (window.SectionSymbols && window.SectionSymbols.DEFAULT_SYMBOL) || '—';
+    const sym = (_symbolPickerTarget && _symbolPickerTarget.dataset.symbol) || '';
+    const col = (_symbolPickerTarget && _symbolPickerTarget.dataset.symbolColor) || '';
+    cur.textContent = sym || fallback;
+    cur.classList.toggle('is-default', !sym);
+    cur.style.color = isValidCssColor(col) ? col : '';
+    // Sync the colour controls with the current panel
+    const colorInput = document.getElementById('symbol-picker-color');
+    const hexInput = document.getElementById('symbol-picker-color-hex');
+    if(colorInput) colorInput.value = isValidCssColor(col) ? col : '#40e0d0';
+    if(hexInput) hexInput.value = col || '';
+    document.querySelectorAll('#symbol-picker-body .symbol-picker-cell.is-active')
+      .forEach(c => c.classList.remove('is-active'));
+    if(sym){
+      const match = document.querySelector(`#symbol-picker-body .symbol-picker-cell[data-symbol="${CSS.escape(sym)}"]`);
+      if(match) match.classList.add('is-active');
+    }
+    // Tint preview cells with the chosen colour for a live feel
+    document.querySelectorAll('#symbol-picker-body .symbol-picker-cell')
+      .forEach(c => { c.style.color = isValidCssColor(col) ? col : ''; });
+  }
+
+  // Colour suggestions matching the existing section accent palette + neutrals
+  const SYMBOL_COLOR_PRESETS = [
+    '#40e0d0', '#ff0080', '#ff4500', '#2e8b57', '#8a2be2',
+    '#ffd700', '#ff66cc', '#00bfff', '#ffffff', '#9aa0a6'
+  ];
+
+  function buildColorPresets(){
+    const wrap = document.getElementById('symbol-picker-color-presets');
+    if(!wrap || wrap.childElementCount) return;
+    SYMBOL_COLOR_PRESETS.forEach(hex => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'symbol-picker-color-swatch';
+      btn.style.background = hex;
+      btn.title = hex;
+      btn.dataset.color = hex;
+      btn.addEventListener('click', () => {
+        if(_symbolPickerTarget){
+          setPanelSymbolColor(_symbolPickerTarget, hex);
+          refreshSymbolPickerCurrent();
+        }
+      });
+      wrap.appendChild(btn);
+    });
+  }
+
+  function initSymbolPicker(){
+    if(_symbolPickerInited) return;
+    _symbolPickerInited = true;
+    buildSymbolPickerBody();
+    buildColorPresets();
+
+    const overlay = document.getElementById('symbol-picker-overlay');
+    if(!overlay) return;
+    const closeBtn = overlay.querySelector('.symbol-picker-close');
+    const clearBtn = document.getElementById('symbol-picker-clear');
+    const customInput = document.getElementById('symbol-picker-custom');
+    const customApply = document.getElementById('symbol-picker-custom-apply');
+    const colorInput = document.getElementById('symbol-picker-color');
+    const hexInput = document.getElementById('symbol-picker-color-hex');
+    const colorReset = document.getElementById('symbol-picker-color-reset');
+
+    const close = () => overlay.classList.add('hidden');
+    closeBtn?.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if(e.target === overlay) close(); });
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape' && !overlay.classList.contains('hidden')) close();
+    });
+    clearBtn?.addEventListener('click', () => {
+      if(_symbolPickerTarget){
+        setPanelSymbol(_symbolPickerTarget, '');
+        refreshSymbolPickerCurrent();
+      }
+    });
+    const applyCustom = () => {
+      const v = (customInput?.value || '').trim();
+      if(!v || !window.SectionSymbols?.isValidSymbol(v)){
+        alert('Inserisci un simbolo valido (max 8 caratteri).');
+        return;
+      }
+      if(_symbolPickerTarget){
+        setPanelSymbol(_symbolPickerTarget, v);
+        refreshSymbolPickerCurrent();
+        if(customInput) customInput.value = '';
+      }
+    };
+    customApply?.addEventListener('click', applyCustom);
+    customInput?.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter'){ e.preventDefault(); applyCustom(); }
+    });
+
+    // Colour controls
+    colorInput?.addEventListener('input', () => {
+      if(!_symbolPickerTarget) return;
+      setPanelSymbolColor(_symbolPickerTarget, colorInput.value);
+      if(hexInput) hexInput.value = colorInput.value;
+      refreshSymbolPickerCurrent();
+    });
+    const applyHex = () => {
+      if(!_symbolPickerTarget || !hexInput) return;
+      let v = (hexInput.value || '').trim();
+      if(!v){
+        setPanelSymbolColor(_symbolPickerTarget, '');
+        refreshSymbolPickerCurrent();
+        return;
+      }
+      if(v && v[0] !== '#') v = '#' + v;
+      if(!isValidCssColor(v)){
+        alert('Colore non valido. Usa un valore #rrggbb (es. #40e0d0).');
+        return;
+      }
+      setPanelSymbolColor(_symbolPickerTarget, v);
+      refreshSymbolPickerCurrent();
+    };
+    hexInput?.addEventListener('change', applyHex);
+    hexInput?.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter'){ e.preventDefault(); applyHex(); }
+    });
+    colorReset?.addEventListener('click', () => {
+      if(!_symbolPickerTarget) return;
+      setPanelSymbolColor(_symbolPickerTarget, '');
+      refreshSymbolPickerCurrent();
+    });
+  }
+
+  function openSymbolPicker(panel){
+    initSymbolPicker();
+    _symbolPickerTarget = panel;
+    refreshSymbolPickerCurrent();
+    const overlay = document.getElementById('symbol-picker-overlay');
+    if(overlay) overlay.classList.remove('hidden');
+  }
+
+  // Refresh per-panel counter (slide count)
+  function refreshGalleryCounter(panel){
+    const tbody = panel.querySelector('tbody');
+    const count = tbody ? tbody.querySelectorAll('tr').length : 0;
+    const counter = panel.querySelector('.gallery-counter');
+    if(counter){
+      counter.textContent = String(count);
+      counter.title = count === 1 ? '1 slide' : `${count} slide`;
+    }
+  }
+
+  // Build a single slide <tr> with all handlers wired
+  function buildSlideRow(slide, panel){
+    const sTpl = document.getElementById('slide-row-template');
+    const frag = sTpl.content.cloneNode(true);
+    const tr = frag.querySelector('tr');
+    tr.dataset.slide = JSON.stringify(slide || {});
+    tr.querySelector('.slide-title').textContent = slide?.title || '-';
+    tr.querySelector('.slide-type').textContent = slideTypeLabel(slide);
+
+    const tbody = panel.querySelector('tbody');
+    const markUnsaved = () => markGalleryUnsaved((panel.dataset.key || '').trim());
+
+    tr.querySelector('.edit-btn').addEventListener('click', () => {
+      const current = JSON.parse(tr.dataset.slide);
+      openSlideEditor(current, (updated) => {
+        tr.dataset.slide = JSON.stringify(updated);
+        tr.querySelector('.slide-title').textContent = updated.title || '-';
+        tr.querySelector('.slide-type').textContent = slideTypeLabel(updated);
+        markUnsaved();
+      });
+    });
+    tr.querySelector('.delete-btn').addEventListener('click', () => {
+      if(confirm('Eliminare questa slide?')){
+        tr.remove();
+        refreshIndexes(tbody);
+        refreshGalleryCounter(panel);
+        markUnsaved();
+      }
+    });
+    // Move slide to a different gallery
+    const moveSel = tr.querySelector('.slide-move-select');
+    moveSel.addEventListener('change', () => {
+      const targetKey = moveSel.value;
+      if(!targetKey) return;
+      const targetPanel = container.querySelector(`.gallery-panel[data-key="${CSS.escape(targetKey)}"]`);
+      if(!targetPanel){
+        alert('Galleria di destinazione non trovata');
+        moveSel.value = '';
+        return;
+      }
+      const slideData = JSON.parse(tr.dataset.slide);
+      const sourceKey = (panel.dataset.key || '').trim();
+      const targetKeyLive = (targetPanel.dataset.key || '').trim();
+      const newRow = buildSlideRow(slideData, targetPanel);
+      targetPanel.querySelector('tbody').appendChild(newRow);
+      refreshIndexes(targetPanel.querySelector('tbody'));
+      refreshGalleryCounter(targetPanel);
+      tr.remove();
+      refreshIndexes(tbody);
+      refreshGalleryCounter(panel);
+      markGalleryUnsaved(sourceKey);
+      markGalleryUnsaved(targetKeyLive);
+      // Auto-expand the target panel so the user sees the moved slide
+      if(targetPanel.dataset.collapsed === 'true'){
+        setPanelCollapsed(targetPanel, false);
+      }
+      refreshMoveSelects();
+      window.adminLog?.(`🔁 Slide "${slideData.title || ''}" spostata da "${sourceKey}" a "${targetKeyLive}"`);
+    });
+
+    return tr;
+  }
+
+  // Toggle collapsed state on a gallery panel
+  function setPanelCollapsed(panel, collapsed){
+    panel.dataset.collapsed = collapsed ? 'true' : 'false';
+    const toggle = panel.querySelector('.gallery-toggle-btn');
+    if(toggle) toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  }
+
+  // Build a complete gallery panel (header + slides) from data and append to container
+  function buildGalleryPanel(galleryKey, slides, options = {}){
+    const gTpl = document.getElementById('gallery-template');
+    const gNode = gTpl.content.cloneNode(true);
+    const panel = gNode.querySelector('.gallery-panel');
+    const tbody = panel.querySelector('tbody');
+    const keyInput = panel.querySelector('.gallery-key-input');
+    const labelInput = panel.querySelector('.gallery-label-input');
+    const statusSel = panel.querySelector('.gallery-status-select');
+    const toggleBtn = panel.querySelector('.gallery-toggle-btn');
+
+    // Backing keys: liveKey is the user-facing one, originalKey the one
+    // already persisted (used to detect renames at save time).
+    panel.dataset.key = galleryKey;
+    panel.dataset.originalKey = options.originalKey === undefined ? galleryKey : options.originalKey;
+    panel.dataset.status = options.status || 'show';
+    panel.dataset.symbol = options.symbol || '';
+    panel.dataset.symbolColor = options.symbolColor || '';
+    keyInput.value = galleryKey;
+    labelInput.value = options.label || galleryKey;
+    statusSel.value = options.status || 'show';
+    setPanelCollapsed(panel, !!options.collapsed);
+
+    // Symbol button: shows current glyph + tinted with the chosen colour.
+    // Click opens the picker (symbol + colour controls in one modal).
+    const symbolBtn = panel.querySelector('.gallery-symbol-btn');
+    if (symbolBtn) {
+      const updateSymbolBtn = () => {
+        const glyphEl = symbolBtn.querySelector('.gallery-symbol-glyph');
+        if (!glyphEl) return;
+        const sym = panel.dataset.symbol ||
+          (window.SectionSymbols && window.SectionSymbols.DEFAULT_SYMBOL) || '✶';
+        glyphEl.textContent = sym;
+        const col = panel.dataset.symbolColor;
+        glyphEl.style.color = isValidCssColor(col) ? col : '';
+        symbolBtn.classList.toggle('is-default', !panel.dataset.symbol);
+        const titleParts = [
+          panel.dataset.symbol ? `Simbolo: ${panel.dataset.symbol}` : `Predefinito (${sym})`
+        ];
+        if (col) titleParts.push(`Colore: ${col}`);
+        symbolBtn.title = titleParts.join(' · ');
+      };
+      panel._updateSymbolBtn = updateSymbolBtn;
+      updateSymbolBtn();
+      symbolBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openSymbolPicker(panel);
+      });
+    }
+
+    // Populate slides
+    (slides || []).forEach(slide => tbody.appendChild(buildSlideRow(slide, panel)));
+    refreshIndexes(tbody);
+    refreshGalleryCounter(panel);
+
+    // Wire add slide button
+    panel.querySelector('.add-slide-btn').addEventListener('click', () => {
+      openSlideEditor(null, (slideObj) => {
+        const newRow = buildSlideRow(slideObj, panel);
+        tbody.appendChild(newRow);
+        refreshIndexes(tbody);
+        refreshGalleryCounter(panel);
+        refreshMoveSelects();
+        markGalleryUnsaved((panel.dataset.key || '').trim());
+      });
+    });
+
+    // Toggle expand/collapse
+    toggleBtn.addEventListener('click', () => {
+      setPanelCollapsed(panel, panel.dataset.collapsed !== 'true');
+    });
+
+    // Live rename: keep panel.dataset.key in sync, refresh selects
+    keyInput.addEventListener('input', () => {
+      const newKey = keyInput.value.trim().toLowerCase().replace(/\s+/g, '-');
+      if(newKey !== keyInput.value){
+        const cursor = keyInput.selectionStart;
+        keyInput.value = newKey;
+        try { keyInput.setSelectionRange(cursor, cursor); } catch(_){}
+      }
+      if(!newKey){
+        keyInput.classList.add('input-error');
+        return;
+      }
+      const oldLiveKey = (panel.dataset.key || '').trim();
+      if(newKey === oldLiveKey){
+        keyInput.classList.remove('input-error');
+        return;
+      }
+      const collision = Array.from(container.querySelectorAll('.gallery-panel'))
+        .some(p => p !== panel && (p.dataset.key || '').trim() === newKey);
+      if(collision){
+        keyInput.classList.add('input-error');
+        return;
+      }
+      keyInput.classList.remove('input-error');
+      panel.dataset.key = newKey;
+      refreshMoveSelects();
+      markGalleryUnsaved(newKey);
+    });
+    labelInput.addEventListener('input', () => {
+      refreshMoveSelects();
+      markGalleryUnsaved((panel.dataset.key || '').trim());
+    });
+    statusSel.addEventListener('change', () => {
+      panel.dataset.status = statusSel.value;
+      markGalleryUnsaved((panel.dataset.key || '').trim());
+    });
+
+    panel.querySelector('.gallery-delete-btn').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const slideCount = tbody.querySelectorAll('tr').length;
+      const liveKey = (panel.dataset.key || '').trim();
+      const msg = slideCount
+        ? `Eliminare la galleria "${liveKey}" e le sue ${slideCount} slide?\nLa modifica diventerà definitiva al prossimo salvataggio.`
+        : `Eliminare la galleria "${liveKey}"?`;
+      if(!confirm(msg)) return;
+      const originalKey = (panel.dataset.originalKey || '').trim();
+      if(originalKey){
+        window._pendingGalleryDeletes.add(originalKey);
+      }
+      panel.remove();
+      refreshMoveSelects();
+      // Force pending pill to recompute (panel removed → unsavedChanges may shrink only after save)
+      window._pendingHasDeletes = window._pendingGalleryDeletes.size > 0;
+      // Always mark there is something to save when a gallery has been removed
+      if(window._pendingHasDeletes){
+        window.unsavedChanges.galleries.add('__deletes__');
+      }
+      refreshPendingPill();
+      window.adminLog?.(`🗑 Galleria "${liveKey}" rimossa (clicca "Salva tutto" per applicare)`);
+    });
+
+    container.appendChild(panel);
+
+    // Make slides sortable (drag handle in first cell)
+    if(window.Sortable){
+      new Sortable(tbody, {
+        animation: 120,
+        handle: '.drag-handle',
+        onEnd: () => {
+          refreshIndexes(tbody);
+          markGalleryUnsaved((panel.dataset.key || '').trim());
+        }
+      });
+    }
+
+    return panel;
+  }
+
+  function renderGalleries(data){
+    container.innerHTML = '';
+    window._pendingGalleryRenames = {};
+    window._pendingGalleryDeletes = new Set();
+    if(window.unsavedChanges && window.unsavedChanges.galleries){
+      window.unsavedChanges.galleries.clear();
+    }
+
+    // Use site.sections (if loaded) to determine order/labels/status, else fall back to data keys
+    const sections = (window._origSite && Array.isArray(window._origSite.sections)) ? window._origSite.sections : null;
+    const orderedKeys = sections
+      ? [
+          ...sections.filter(s => s.key in data).map(s => s.key),
+          ...Object.keys(data).filter(k => !sections.some(s => s.key === k))
+        ]
+      : Object.keys(data);
+
+    orderedKeys.forEach(key => {
+      const slides = data[key] || [];
+      const sectionMeta = sections?.find(s => s.key === key);
+      buildGalleryPanel(key, slides, {
+        originalKey: key,
+        label: sectionMeta?.label || key,
+        status: sectionMeta?.status || 'show',
+        symbol: sectionMeta?.symbol || '',
+        symbolColor: sectionMeta?.symbolColor || '',
+        collapsed: false
+      });
+    });
+    // Defer to next frame so all panels are guaranteed in DOM before
+    // the move selects are populated.
+    requestAnimationFrame(() => refreshMoveSelects());
+
+    // Make the gallery panels themselves sortable (drag handle on the left)
+    if(window.Sortable && !container._sortable){
+      container._sortable = new Sortable(container, {
+        animation: 150,
+        handle: '.gallery-drag-handle',
+        draggable: '.gallery-panel',
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        onEnd: () => {
+          window.adminLog?.('🔁 Ordine gallerie aggiornato (ricordati di salvare)');
+          // Mark every visible gallery as unsaved so the global Save All
+          // button captures the new order.
+          getCurrentGalleryKeys().forEach(k => markGalleryUnsaved(k));
+          refreshMoveSelects();
+        }
+      });
+    }
+    refreshPendingPill();
+  }
+
+  // Add a brand-new gallery panel (called from the toolbar button)
+  function addNewGallery(){
+    const existing = new Set(getCurrentGalleryKeys());
+    let suggestion = 'nuova_galleria';
+    let i = 1;
+    while(existing.has(suggestion)){
+      suggestion = `nuova_galleria_${i++}`;
+    }
+    const key = (prompt('Chiave per la nuova galleria (es: vfx, motion, photo):', suggestion) || '').trim().toLowerCase().replace(/\s+/g,'-');
+    if(!key) return;
+    if(!isValidSlug(key)){
+      alert('Chiave non valida. Usa solo lettere minuscole, numeri, "-" e "_".');
+      return;
+    }
+    if(existing.has(key)){
+      alert('Esiste già una galleria con questa chiave.');
+      return;
+    }
+    const label = (prompt('Etichetta visualizzata nel menu (es: VFX):', key) || key).trim();
+    const panel = buildGalleryPanel(key, [], { originalKey: '', label, status: 'show' });
+    refreshMoveSelects();
+    markGalleryUnsaved(key);
+    panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    window.adminLog?.(`➕ Nuova galleria "${key}" creata (salva per pubblicarla)`);
+  }
+  window._adminAddNewGallery = addNewGallery;
+
   function saveAllGalleries(){
     const galleriesData = {};
-    document.querySelectorAll('.gallery-panel').forEach(panel=>{
-      const key = panel.querySelector('.gallery-title').textContent.trim();
+    const sectionsArr = [];
+    const renames = {}; // newKey -> oldKey, for cleanup of old Firestore docs
+    let invalidKey = null;
+    let duplicateKey = null;
+    const seenKeys = new Set();
+
+    document.querySelectorAll('#galleries-list .gallery-panel').forEach(panel => {
+      const liveKey = (panel.dataset.key || '').trim();
+      const originalKey = (panel.dataset.originalKey || '').trim();
+      const label = panel.querySelector('.gallery-label-input')?.value.trim() || liveKey;
+      const status = panel.querySelector('.gallery-status-select')?.value || 'show';
+      const symbol = (panel.dataset.symbol || '').trim();
+      const symbolColorRaw = (panel.dataset.symbolColor || '').trim();
+      const symbolColor = isValidCssColor(symbolColorRaw) ? symbolColorRaw : '';
+      if(!isValidSlug(liveKey)){
+        invalidKey = liveKey;
+        return;
+      }
+      if(seenKeys.has(liveKey)){
+        duplicateKey = liveKey;
+        return;
+      }
+      seenKeys.add(liveKey);
       const rows = panel.querySelectorAll('tbody tr');
-      const slidesArr = Array.from(rows).map(r=>JSON.parse(r.dataset.slide));
-      galleriesData[key] = slidesArr;
+      const slidesArr = Array.from(rows).map(r => JSON.parse(r.dataset.slide));
+      galleriesData[liveKey] = slidesArr;
+      sectionsArr.push({ key: liveKey, label, status, symbol, symbolColor });
+      if(originalKey && originalKey !== liveKey){
+        renames[liveKey] = originalKey;
+      }
     });
+
+    if(invalidKey !== null){
+      alert(`Chiave galleria non valida: "${invalidKey}". Usa solo lettere minuscole, numeri, "-" e "_".`);
+      return;
+    }
+    if(duplicateKey){
+      alert(`Chiave galleria duplicata: "${duplicateKey}". Le chiavi devono essere uniche.`);
+      return;
+    }
 
     // ------- Diff descriptions vs original --------
     const diffMsgs = [];
@@ -420,34 +965,133 @@ document.addEventListener('DOMContentLoaded', ()=>{
       changeSummary = changes.length > 0 ? `Modifiche: ${changes.join(', ')}` : 'Modifiche minori';
     }
     
+    // Compute the list of legacy gallery keys that must be physically removed:
+    //  - explicit deletions tracked via the per-panel trash button
+    //  - keys that were renamed (the new key has been written, old must go)
+    //  - keys missing from the current panels but present in the original payload
+    //    (defensive – e.g. removed via direct DOM manipulation)
+    const liveKeys = new Set(Object.keys(galleriesData));
+    const origKeys = Object.keys(window._origGalleries || {});
+    const orphanKeys = origKeys.filter(k => !liveKeys.has(k));
+    const deletes = new Set([
+      ...Array.from(window._pendingGalleryDeletes || []),
+      ...Object.values(renames),
+      ...orphanKeys
+    ]);
+    // Avoid trying to delete a key that is still live (rename collision)
+    deletes.forEach(k => { if(liveKeys.has(k)) deletes.delete(k); });
+
+    if(Object.keys(renames).length){
+      Object.entries(renames).forEach(([n,o]) => {
+        diffMsgs.push(`✏️ Galleria rinominata: "${o}" → "${n}"`);
+        window.adminLog?.(`✏️ Rinominata: "${o}" → "${n}"`);
+      });
+    }
+    deletes.forEach(k => window.adminLog?.(`🗑 Galleria "${k}" verrà rimossa`));
+
     const logMsgOk = `✅ Salvataggio completato → ${changeSummary} | Totale: ${galleryCount} gallery, ${slideCount} slide`;
 
+    // Build new site.sections preserving fields from the original (e.g. extra metadata)
+    const origSections = (window._origSite && Array.isArray(window._origSite.sections)) ? window._origSite.sections : [];
+    const sectionsByKey = new Map(origSections.map(s => [s.key, s]));
+    // Also preserve sections from the renamed-from entry when available
+    Object.entries(renames).forEach(([newKey, oldKey]) => {
+      const old = sectionsByKey.get(oldKey);
+      if(old && !sectionsByKey.has(newKey)) sectionsByKey.set(newKey, { ...old, key: newKey });
+    });
+    const newSections = sectionsArr.map(s => ({
+      ...(sectionsByKey.get(s.key) || {}),
+      key: s.key,
+      label: s.label,
+      status: s.status,
+      symbol: s.symbol || '',
+      symbolColor: s.symbolColor || ''
+    }));
+
+    const finalize = () => {
+      window.unsavedChanges.galleries.clear();
+      document.querySelectorAll('#galleries-list .gallery-panel').forEach(p => {
+        p.classList.remove('unsaved-changes');
+        p.dataset.originalKey = (p.dataset.key || '').trim();
+      });
+      const saveAllBtn = document.getElementById('save-all-galleries-btn');
+      if(saveAllBtn) saveAllBtn.classList.remove('save-btn-highlight');
+      window._pendingGalleryDeletes = new Set();
+      window._pendingHasDeletes = false;
+      window._origGalleries = JSON.parse(JSON.stringify(galleriesData));
+      if(window._origSite){
+        window._origSite.sections = JSON.parse(JSON.stringify(newSections));
+      }
+      try { window._rerenderSectionsTable && window._rerenderSectionsTable(newSections); } catch(_) {}
+      if(typeof window._adminRefreshPendingPill === 'function') window._adminRefreshPendingPill();
+    };
+
     if(window.APP_ENV==='prod'){
-      // Check if user is authenticated
       if (!window.isAuthenticated || !window.isAuthenticated()) {
         alert('Please login first');
         return;
       }
-      
-      window.saveGalleriesProd(galleriesData)
-        .then(()=>{ alert('Gallerie salvate su Firestore!'); window.adminLog?.(logMsgOk+' [Firestore]'); window.unsavedChanges.galleries.clear(); document.querySelectorAll('.gallery-panel').forEach(p=>p.classList.remove('unsaved-changes')); document.querySelectorAll('.save-gallery-btn').forEach(b=>b.classList.remove('save-btn-highlight')); })
-        .catch(err=>{ console.error(err); alert('Errore salvataggio'); window.adminLog?.('❌ Errore salvataggio gallerie'); });
+
+      (async () => {
+        try {
+          // 1. Save all current galleries
+          await window.saveGalleriesProd(galleriesData);
+          // 2. Remove old/renamed/deleted gallery docs
+          if(deletes.size && window.db){
+            await Promise.all(Array.from(deletes).map(k =>
+              window.db.collection('galleries').doc(k).delete().catch(err => {
+                console.warn(`Impossibile eliminare gallery "${k}":`, err);
+              })
+            ));
+          }
+          // 3. Persist site.sections (merge into config/site)
+          if(window.saveSiteProd){
+            await window.saveSiteProd({ sections: newSections });
+          }
+          alert('Gallerie e sezioni salvate su Firestore!');
+          window.adminLog?.(logMsgOk + ' [Firestore]');
+          finalize();
+        } catch(err) {
+          console.error(err);
+          alert('Errore salvataggio: ' + (err?.message || err));
+          window.adminLog?.('❌ Errore salvataggio gallerie');
+        }
+      })();
       return;
     }
 
     const token = prompt('Token amministratore per salvare:');
     if(!token) return;
-    fetch(`/api/galleries?token=${encodeURIComponent(token)}`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(galleriesData)
-    }).then(r=>{
-      if(r.ok){ window.adminLog?.(logMsgOk); window.unsavedChanges.galleries.clear(); document.querySelectorAll('.gallery-panel').forEach(p=>p.classList.remove('unsaved-changes')); document.querySelectorAll('.save-gallery-btn').forEach(b=>b.classList.remove('save-btn-highlight')); }
-      else{ alert('Errore nel salvataggio'); window.adminLog?.('❌ Errore salvataggio gallerie'); }
-    }).catch(err=>{
+    Promise.all([
+      fetch(`/api/galleries?token=${encodeURIComponent(token)}`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(galleriesData)
+      }),
+      // Persist site.sections via the existing /api/site endpoint by merging.
+      (async () => {
+        const currentSite = window._origSite || {};
+        const updated = { ...currentSite, sections: newSections };
+        return fetch(`/api/site?token=${encodeURIComponent(token)}`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(updated)
+        });
+      })()
+    ]).then(([r1, r2]) => {
+      if(r1.ok && r2.ok){
+        window.adminLog?.(logMsgOk);
+        finalize();
+      } else {
+        alert('Errore nel salvataggio');
+        window.adminLog?.('❌ Errore salvataggio gallerie');
+      }
+    }).catch(err => {
       alert('Errore di rete'); console.error(err); window.adminLog?.('❌ Errore rete salvataggio gallerie');
     });
   }
+  // Expose for the toolbar button click handler
+  window._adminSaveAllGalleries = saveAllGalleries;
 
   // Additionally load site config (bio, contacts, sections)
   // Load site config - use dataProvider's fetchJson
@@ -476,6 +1120,31 @@ document.addEventListener('DOMContentLoaded', ()=>{
   };
   
   loadSiteConfigAdmin();
+
+  // Rebuild the rows in the "Sezioni" table (Configurazione Sito) so we can
+  // call it both from the initial render and after a gallery save (since both
+  // act on the same data set).
+  function rerenderSectionsTable(sections){
+    const secBody = document.querySelector('#sections-table tbody');
+    if(!secBody) return;
+    secBody.innerHTML = '';
+    (sections || []).forEach(s => {
+      const tr = document.createElement('tr');
+      const status = s.status || (s.visible === false ? 'hide' : 'show');
+      tr.innerHTML = `<td class="drag-handle">☰</td><td><select class="status-select"><option value="show">Mostra</option><option value="soon">Coming Soon</option><option value="hide">Nascondi</option></select></td><td><input type="text" class="sec-key" value="${s.key || ''}" style="width:90px"></td><td><input type="text" class="sec-label" value="${s.label || ''}" style="width:120px"></td><td><button class="delete sec-del">Elimina</button></td>`;
+      tr.querySelector('.status-select').value = status;
+      tr.querySelector('.sec-del').addEventListener('click', () => tr.remove());
+      const up = document.createElement('button'); up.textContent = '↑'; up.className = 'move-btn up-btn';
+      const down = document.createElement('button'); down.textContent = '↓'; down.className = 'move-btn down-btn';
+      const actionCell = tr.querySelector('td:last-child');
+      actionCell.prepend(down); actionCell.prepend(up);
+      up.addEventListener('click', () => { const prev = tr.previousElementSibling; if(prev){ secBody.insertBefore(tr, prev); } });
+      down.addEventListener('click', () => { const next = tr.nextElementSibling?.nextElementSibling; secBody.insertBefore(tr, next); });
+      secBody.appendChild(tr);
+    });
+  }
+  // Expose so saveAllGalleries() can refresh the table after persisting
+  window._rerenderSectionsTable = rerenderSectionsTable;
 
   function renderSiteConfig(site){
     // api base
@@ -726,25 +1395,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       });
     });
 
-    // sections
-    const secBody = document.querySelector('#sections-table tbody');
-    secBody.innerHTML = '';
-    site.sections?.forEach((s,i)=>{
-      const tr=document.createElement('tr');
-      const status = s.status || (s.visible===false? 'hide':'show');
-      tr.innerHTML=`<td class="drag-handle">☰</td><td><select class="status-select"><option value="show">Mostra</option><option value="soon">Coming Soon</option><option value="hide">Nascondi</option></select></td><td><input type="text" class="sec-key" value="${s.key}" style="width:90px"></td><td><input type="text" class="sec-label" value="${s.label}" style="width:120px"></td><td><button class="delete sec-del">Elimina</button></td>`;
-      tr.querySelector('.status-select').value = status;
-      tr.querySelector('.sec-del').addEventListener('click',()=>tr.remove());
-      // move buttons for sections
-      tr.querySelector('.drag-handle'); // already exists
-      const up=document.createElement('button');up.textContent='↑';up.className='move-btn up-btn';
-      const down=document.createElement('button');down.textContent='↓';down.className='move-btn down-btn';
-      const actionCell=tr.querySelector('td:last-child');
-      actionCell.prepend(down); actionCell.prepend(up);
-      up.addEventListener('click',()=>{const prev=tr.previousElementSibling; if(prev){secBody.insertBefore(tr,prev);}});
-      down.addEventListener('click',()=>{const next=tr.nextElementSibling?.nextElementSibling; secBody.insertBefore(tr,next);} );
-      secBody.appendChild(tr);
-    });
+    rerenderSectionsTable(site.sections || []);
     // enable drag reorder of sections
     if(window.Sortable){ new Sortable(document.getElementById('sections-tbody'),{animation:150}); }
 
@@ -861,16 +1512,27 @@ document.addEventListener('DOMContentLoaded', ()=>{
   let selectedCanvasPreview = { src: '', type: '' };
   
   const mediaTypePatterns = {
-    video: /\.(mp4|webm|mov|avi|mkv)$/i,
-    image: /\.(png|jpe?g|gif|webp|bmp|svg)$/i
+    video: /\.(mp4|webm|mov|avi|mkv|m4v|ogv|ogg)$/i,
+    image: /\.(png|jpe?g|gif|webp|bmp|svg|avif)$/i
   };
-  
+
   function detectMediaType(path) {
     if (!path) return null;
-    const clean = path.split('?')[0];
+    const clean = decodeURIComponent(String(path).split('?')[0]);
     if (mediaTypePatterns.video.test(clean)) return 'video';
     if (mediaTypePatterns.image.test(clean)) return 'image';
     return null;
+  }
+
+  // Pretty filename: strip query, decode, take last path segment
+  function prettyFileName(path) {
+    if (!path) return '';
+    try {
+      const clean = decodeURIComponent(String(path).split('?')[0]);
+      return clean.split('/').pop() || clean;
+    } catch (_) {
+      return String(path).split('?')[0].split('/').pop() || path;
+    }
   }
   
   function updateGalleryCanvasPreviewSelection() {
@@ -934,146 +1596,120 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   }
 
+  // Build a single <li> for the gallery editor with a real visual preview.
+  // Used by both modalGallery editors (renderGallery / renderImageGallery)
+  // so the detection logic and look-and-feel stay in sync.
+  function buildMediaListItem(mediaPath, idx, onRemove){
+    const li = document.createElement('li');
+    li.className = 'gallery-item';
+    li.dataset.index = idx;
+
+    const type = detectMediaType(mediaPath) || 'image';
+    const isVideo = type === 'video';
+    li.dataset.type = type;
+    if (isVideo) li.classList.add('is-video');
+
+    // Drag handle (Sortable target)
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'gallery-item-drag-handle';
+    dragHandle.innerHTML = '⠿';
+    dragHandle.title = 'Trascina per riordinare';
+
+    // Visual preview: <video> first frame for videos, <img> for images
+    const preview = document.createElement('div');
+    preview.className = 'gallery-item-preview';
+    if (isVideo) {
+      const vid = document.createElement('video');
+      vid.src = mediaPath;
+      vid.muted = true;
+      vid.playsInline = true;
+      vid.preload = 'metadata';
+      vid.addEventListener('loadedmetadata', () => {
+        try { vid.currentTime = Math.min(0.1, vid.duration || 0.1); } catch(_){}
+      });
+      preview.appendChild(vid);
+      const badge = document.createElement('span');
+      badge.className = 'gallery-item-type-badge type-video';
+      badge.textContent = 'VIDEO';
+      preview.appendChild(badge);
+    } else {
+      const img = document.createElement('img');
+      img.src = mediaPath;
+      img.alt = '';
+      img.loading = 'lazy';
+      img.addEventListener('error', () => {
+        preview.classList.add('preview-fallback');
+        preview.innerHTML = '🖼️';
+      });
+      preview.appendChild(img);
+      const badge = document.createElement('span');
+      badge.className = 'gallery-item-type-badge type-image';
+      badge.textContent = 'IMG';
+      preview.appendChild(badge);
+    }
+
+    // Info section: nice filename + type label
+    const info = document.createElement('div');
+    info.className = 'gallery-item-info';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'gallery-item-name';
+    nameEl.textContent = prettyFileName(mediaPath);
+    nameEl.title = mediaPath;
+    const typeEl = document.createElement('div');
+    typeEl.className = 'gallery-item-type ' + (isVideo ? 'type-video' : 'type-image');
+    typeEl.textContent = isVideo ? '🎬 Video' : '🖼️ Immagine';
+    info.appendChild(nameEl);
+    info.appendChild(typeEl);
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.className = 'gallery-item-actions';
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'gallery-item-remove';
+    removeBtn.textContent = 'Rimuovi';
+    removeBtn.addEventListener('click', () => onRemove(idx));
+    actions.appendChild(removeBtn);
+
+    // Order indicator
+    const orderIndicator = document.createElement('div');
+    orderIndicator.className = 'sort-order-indicator';
+    orderIndicator.textContent = idx + 1;
+
+    li.appendChild(dragHandle);
+    li.appendChild(preview);
+    li.appendChild(info);
+    li.appendChild(actions);
+    li.appendChild(orderIndicator);
+    return li;
+  }
+
   function renderGallery(){
     if(!galleryListEl) return;
-    galleryListEl.innerHTML='';
-    galleryListEl.className = 'gallery-list'; // Add class for styling
-    
-    galleryArr.forEach((p,idx)=>{
-      const li=document.createElement('li');
-      li.className = 'gallery-item';
-      li.dataset.index = idx;
-      
-      // 🎬 NEW: Add media type indicator
-      const isVideo = /\.(mp4|webm|mov|avi|mkv)$/i.test(p);
-      const mediaIcon = isVideo ? '🎬' : '🖼️';
-      const fileName = p.split('/').pop();
-      const fileType = isVideo ? 'VIDEO' : 'IMAGE';
-      
-      // Create preview element
-      const preview = document.createElement('div');
-      preview.className = 'gallery-item-preview';
-      if (isVideo) {
-        preview.innerHTML = '🎬';
-      } else {
-        preview.innerHTML = '🖼️';
-      }
-      
-      // Create drag handle
-      const dragHandle = document.createElement('div');
-      dragHandle.className = 'gallery-item-drag-handle';
-      dragHandle.innerHTML = '☰';
-      
-      // Create info section
-      const info = document.createElement('div');
-      info.className = 'gallery-item-info';
-      info.innerHTML = `
-        <div class="gallery-item-name">${fileName}</div>
-        <div class="gallery-item-type">${fileType}</div>
-      `;
-      
-      // Create actions section
-      const actions = document.createElement('div');
-      actions.className = 'gallery-item-actions';
-      const removeBtn = document.createElement('button');
-      removeBtn.className = 'gallery-item-remove';
-      removeBtn.textContent = 'Rimuovi';
-      removeBtn.addEventListener('click',()=>{
-        galleryArr.splice(idx,1);
+    galleryListEl.innerHTML = '';
+    galleryListEl.className = 'gallery-list';
+    galleryArr.forEach((p, idx) => {
+      const li = buildMediaListItem(p, idx, (i) => {
+        galleryArr.splice(i, 1);
         renderGallery();
-        initGallerySorting(); // Re-initialize sorting after removal
       });
-      actions.appendChild(removeBtn);
-      
-      // Create order indicator
-      const orderIndicator = document.createElement('div');
-      orderIndicator.className = 'sort-order-indicator';
-      orderIndicator.textContent = idx + 1;
-      
-      // Assemble the item
-      li.appendChild(dragHandle);
-      li.appendChild(preview);
-      li.appendChild(info);
-      li.appendChild(actions);
-      li.appendChild(orderIndicator);
-      
       galleryListEl.appendChild(li);
     });
-    
-    // 🎬 NEW: Update canvas video selection dropdown
     updateGalleryCanvasPreviewSelection();
-    
-    // Initialize sorting
     initGallerySorting();
   }
-  
+
   function renderImageGallery(){
     if(!imageGalleryListEl) return;
-    imageGalleryListEl.innerHTML='';
-    imageGalleryListEl.className = 'gallery-list'; // Add class for styling
-    
-    imageGalleryArr.forEach((p,idx)=>{
-      const li=document.createElement('li');
-      li.className = 'gallery-item';
-      li.dataset.index = idx;
-      
-      // 🎬 NEW: Add media type indicator
-      const isVideo = /\.(mp4|webm|mov|avi|mkv)$/i.test(p);
-      const mediaIcon = isVideo ? '🎬' : '🖼️';
-      const fileName = p.split('/').pop();
-      const fileType = isVideo ? 'VIDEO' : 'IMAGE';
-      
-      // Create preview element
-      const preview = document.createElement('div');
-      preview.className = 'gallery-item-preview';
-      if (isVideo) {
-        preview.innerHTML = '🎬';
-      } else {
-        preview.innerHTML = '🖼️';
-      }
-      
-      // Create drag handle
-      const dragHandle = document.createElement('div');
-      dragHandle.className = 'gallery-item-drag-handle';
-      dragHandle.innerHTML = '☰';
-      
-      // Create info section
-      const info = document.createElement('div');
-      info.className = 'gallery-item-info';
-      info.innerHTML = `
-        <div class="gallery-item-name">${fileName}</div>
-        <div class="gallery-item-type">${fileType}</div>
-      `;
-      
-      // Create actions section
-      const actions = document.createElement('div');
-      actions.className = 'gallery-item-actions';
-      const removeBtn = document.createElement('button');
-      removeBtn.className = 'gallery-item-remove';
-      removeBtn.textContent = 'Rimuovi';
-      removeBtn.addEventListener('click',()=>{
-        imageGalleryArr.splice(idx,1);
+    imageGalleryListEl.innerHTML = '';
+    imageGalleryListEl.className = 'gallery-list';
+    imageGalleryArr.forEach((p, idx) => {
+      const li = buildMediaListItem(p, idx, (i) => {
+        imageGalleryArr.splice(i, 1);
         renderImageGallery();
-        initImageGallerySorting(); // Re-initialize sorting after removal
       });
-      actions.appendChild(removeBtn);
-      
-      // Create order indicator
-      const orderIndicator = document.createElement('div');
-      orderIndicator.className = 'sort-order-indicator';
-      orderIndicator.textContent = idx + 1;
-      
-      // Assemble the item
-      li.appendChild(dragHandle);
-      li.appendChild(preview);
-      li.appendChild(info);
-      li.appendChild(actions);
-      li.appendChild(orderIndicator);
-      
       imageGalleryListEl.appendChild(li);
     });
-    
-    // Initialize sorting
     initImageGallerySorting();
   }
 
@@ -1259,14 +1895,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       slideData.canvas = true;
     }
     editorCb(slideData);
-    
-    // Mark gallery as unsaved when slide is modified
-    const activeGallery = document.querySelector('.gallery-panel[open]');
-    if(activeGallery) {
-      const galleryKey = activeGallery.querySelector('.gallery-title').textContent.trim();
-      markGalleryUnsaved(galleryKey);
-    }
-    
+    // Note: the gallery panel that owns this slide is already marked unsaved
+    // by the slide-row edit-btn handler that called openSlideEditor(...).
     overlay.classList.add('hidden');
   });
 
@@ -1799,25 +2429,18 @@ function markGalleryUnsaved(galleryKey) {
     console.warn('⚠️ markGalleryUnsaved called with empty galleryKey');
     return;
   }
-  
+
   window.unsavedChanges.galleries.add(galleryKey);
-  
-  const panel = Array.from(document.querySelectorAll('.gallery-panel')).find(p => {
-    const titleEl = p.querySelector('.gallery-title');
-    if (!titleEl) return false;
-    const title = titleEl.textContent.trim();
-    return title === galleryKey;
-  });
-  
-  if(panel) {
-    panel.classList.add('unsaved-changes');
-    const saveBtn = panel.querySelector('.save-gallery-btn');
-    if(saveBtn) {
-      saveBtn.classList.add('save-btn-highlight');
-    }
+
+  if(galleryKey !== '__deletes__'){
+    const panel = document.querySelector(`#galleries-list .gallery-panel[data-key="${CSS.escape(galleryKey)}"]`);
+    if(panel) panel.classList.add('unsaved-changes');
   }
-  
-  window.adminLog?.(`⚠️ Gallery "${galleryKey}" ha modifiche non salvate`);
+
+  const saveAllBtn = document.getElementById('save-all-galleries-btn');
+  if(saveAllBtn) saveAllBtn.classList.add('save-btn-highlight');
+
+  if(typeof window._adminRefreshPendingPill === 'function') window._adminRefreshPendingPill();
 }
 
 function markSiteConfigUnsaved() {

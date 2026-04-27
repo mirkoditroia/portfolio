@@ -3,19 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MÊIRKS | Creative Coder 3D, VFX & Interactive Art</title>
-  <meta name="description" content="Portfolio di arte digitale, VFX, 3D e programmazione creativa. Esplora opere interattive e innovazioni tecnologiche.">
+
+  <!-- Primary SEO -->
+  <title>Mirko Ditroia (Meirks) — Creative Coder, VFX, 3D &amp; Interactive Art</title>
+  <meta name="description" content="Portfolio ufficiale di Mirko Ditroia, in arte Meirks: creative coder italiano specializzato in VFX, 3D, motion graphics e arte interattiva. Esplora progetti, esperimenti generativi e collaborazioni.">
+  <meta name="keywords" content="Mirko Ditroia, Meirks, mêirks, creative coder, creative coding, portfolio, VFX, motion graphics, 3D artist, arte digitale, interactive art, generative art, TouchDesigner, Houdini, Cinema 4D, Italia">
+  <meta name="author" content="Mirko Ditroia (Meirks)">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+  <meta name="googlebot" content="index, follow">
+  <link rel="canonical" href="https://meirks.xyz/">
+  <link rel="alternate" hreflang="it" href="https://meirks.xyz/">
+  <link rel="alternate" hreflang="x-default" href="https://meirks.xyz/">
+
+  <!-- Theme & color -->
   <meta name="theme-color" content="#0f2027">
   <meta name="color-scheme" content="dark">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="MÊIRKS · Creative Tech Portfolio">
-  <meta property="og:description" content="Arte digitale, VFX, 3D e interattività. Portfolio aggiornato.">
-  <meta property="og:image" content="images/og-cover.jpg">
-  <meta property="og:url" content="/">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="profile">
+  <meta property="og:locale" content="it_IT">
+  <meta property="og:site_name" content="Meirks — Mirko Ditroia">
+  <meta property="og:title" content="Mirko Ditroia (Meirks) — Creative Coder, VFX &amp; Interactive Art">
+  <meta property="og:description" content="Portfolio ufficiale di Mirko Ditroia, in arte Meirks: creative coder italiano specializzato in VFX, 3D, motion graphics e arte interattiva.">
+  <meta property="og:image" content="https://meirks.xyz/images/og-cover.jpg">
+  <meta property="og:image:alt" content="Meirks — Mirko Ditroia · creative coder portfolio">
+  <meta property="og:url" content="https://meirks.xyz/">
+  <meta property="profile:first_name" content="Mirko">
+  <meta property="profile:last_name" content="Ditroia">
+  <meta property="profile:username" content="meirks">
+
+  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="MÊIRKS · Creative Tech Portfolio">
-  <meta name="twitter:description" content="Arte digitale, VFX, 3D e interattività. Portfolio aggiornato.">
-  <meta name="twitter:image" content="images/og-cover.jpg">
+  <meta name="twitter:title" content="Mirko Ditroia (Meirks) — Creative Coder Portfolio">
+  <meta name="twitter:description" content="Creative coder italiano: VFX, 3D, motion graphics, arte interattiva. Portfolio ufficiale.">
+  <meta name="twitter:image" content="https://meirks.xyz/images/og-cover.jpg">
+
+  <!-- JSON-LD: Person + WebSite (rich snippets / Knowledge Panel) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Person",
+        "@id": "https://meirks.xyz/#person",
+        "name": "Mirko Ditroia",
+        "alternateName": ["Meirks", "MÊIRKS", "mêirks"],
+        "givenName": "Mirko",
+        "familyName": "Ditroia",
+        "jobTitle": "Creative Coder & Digital Artist",
+        "description": "Creative coder italiano specializzato in VFX, 3D, motion graphics e arte interattiva.",
+        "url": "https://meirks.xyz/",
+        "image": "https://meirks.xyz/images/og-cover.jpg",
+        "nationality": "IT",
+        "knowsAbout": ["Creative coding", "VFX", "3D", "Generative art", "Interactive art", "Motion graphics", "TouchDesigner", "Houdini", "Cinema 4D", "GLSL", "Shader programming"],
+        "sameAs": [
+          "https://www.instagram.com/meirks/",
+          "https://github.com/meirks",
+          "https://www.linkedin.com/in/mirko-ditroia/",
+          "https://www.youtube.com/@meirks",
+          "https://www.tiktok.com/@meirks",
+          "https://meirks.xyz/"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://meirks.xyz/#website",
+        "name": "Meirks — Mirko Ditroia",
+        "alternateName": "Mirko Ditroia Portfolio",
+        "url": "https://meirks.xyz/",
+        "inLanguage": "it-IT",
+        "description": "Portfolio ufficiale di Mirko Ditroia (Meirks): creative coding, VFX, 3D, arte interattiva.",
+        "author": { "@id": "https://meirks.xyz/#person" },
+        "publisher": { "@id": "https://meirks.xyz/#person" }
+      }
+    ]
+  }
+  </script>
+
   <!-- Preload risorse critiche -->
   <link rel="preload" href="/data/site.json" as="fetch" crossorigin>
   <link rel="preload" href="/data/galleries.json" as="fetch" crossorigin>
@@ -120,19 +184,26 @@
     </section>
     
     <!-- Combined About & Contact Section -->
-    <section id="about" class="section about-contact-section" role="region" aria-labelledby="about-heading">
+    <section id="about" class="section about-contact-section" role="region" aria-labelledby="about-heading" itemscope itemtype="https://schema.org/Person">
       <div class="about-contact-wrapper">
         <!-- Artist Image -->
         <div class="artist-image-container">
           <div class="artist-image" id="artist-image">
-            <img src="" alt="MÊIRKS" style="display:none;">
+            <img src="" alt="Mirko Ditroia (Meirks) — creative coder" itemprop="image" style="display:none;">
           </div>
         </div>
         
         <!-- Content -->
         <div class="about-contact-content">
           <h2 id="about-heading" class="about-title">About Me</h2>
-          <p class="about-bio" id="about-bio">Passionate about music, art and technology, I explore the intersection of creativity and innovation — blending visual design, sound, and narrative across both physical and digital spaces.</p>
+          <p class="about-bio" id="about-bio">
+            Sono <strong itemprop="name">Mirko Ditroia</strong>, in arte
+            <strong itemprop="alternateName">Meirks</strong>, <span itemprop="jobTitle">creative coder</span>
+            italiano specializzato in VFX, 3D, motion graphics e arte interattiva. Esploro l'intersezione
+            tra creatività, codice e tecnologia per creare esperienze visive e installazioni che
+            mescolano design, suono e narrazione, sia nel digitale sia negli spazi fisici.
+          </p>
+          <link itemprop="url" href="https://meirks.xyz/">
           
           <!-- Contact Links -->
           <div class="contact-links" id="contact-links">
@@ -187,6 +258,7 @@
   <!-- Firebase + Data provider (must load before main script) -->
   <script src="js/firebase.js"></script>
   <script src="js/dataProvider.js"></script>
+  <script src="js/sectionSymbols.js"></script>
   <script src="js/analytics.js"></script>
   <!-- Image optimization and lazy loading -->
   <script type="module" src="js/imageOptimizer-wrapper.js"></script>
