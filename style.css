@@ -116,19 +116,18 @@ ESEMPI POSIZIONI:
 
 /* Pixel-art navbar pets canvas (turtle + sun-conure parrot).
    Absolutely positioned overlay inside .banner; never participates in flex
-   layout so it cannot resize the navbar. The selector is intentionally more
-   specific than `.banner > *:not(.shader-banner)` to keep the absolute
-   positioning. JS sizes canvas.width/height internally; CSS upscales it. */
+   layout so it cannot resize the navbar. The `!important` on `position`
+   defends against the global rule `.banner > *:not(.shader-banner)` which
+   would otherwise force `position: relative` and turn this canvas into a
+   regular flex child (re-flowing the navbar). JS sizes canvas.width/height
+   internally; CSS upscales it via image-rendering: pixelated. */
 .banner > canvas.navbar-pets {
   position: absolute !important;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
   pointer-events: none;
-  z-index: 1;
+  z-index: 1 !important;
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
@@ -2426,7 +2425,7 @@ main {
 .shader-banner{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;overflow:hidden;pointer-events:none;} 
 .shader-banner iframe{position:absolute;top:-30px;left:0;width:100%;height:calc(100% + 60px);border:0;display:block;pointer-events:none;} 
 .shader-vignette{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;background:radial-gradient(circle at center, rgba(0,0,0,0) 60%, rgba(0,0,0,0.6) 100%);} 
-.banner > *:not(.shader-banner):not(.navbar-pets){position:relative;z-index:2;}
+.banner > *:not(.shader-banner){position:relative;z-index:2;}
 
 @media(max-width:600px){
   .banner{flex-direction:column;align-items:center;justify-content:center;height:auto;padding:12px 16px;}
