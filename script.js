@@ -3342,13 +3342,18 @@ const applySiteData = (site) => {
         const linkItem = document.createElement('a');
         linkItem.className = 'contact-link-item';
         
-        let href = c.value;
-        
+        const rawValue = (c.value || '').trim();
+        let href = rawValue;
+        const isEmail = rawValue.includes('@') && !rawValue.includes('http');
+
         // Set href based on type
-        if (c.value.includes('@') && !c.value.includes('http')) {
-          href = `mailto:${c.value}`;
-        } else if (!c.value.includes('http') && !c.value.includes('@')) {
-          href = `https://${c.value}`;
+        if (isEmail) {
+          // mailto: with a sensible default subject so the user lands on a
+          // pre-composed email instead of an empty draft
+          const subject = encodeURIComponent('Contatto da meirks.xyz');
+          href = `mailto:${rawValue}?subject=${subject}`;
+        } else if (!rawValue.includes('http') && !rawValue.includes('@')) {
+          href = `https://${rawValue}`;
         }
         
         linkItem.href = href;
@@ -3356,9 +3361,12 @@ const applySiteData = (site) => {
           linkItem.target = '_blank';
           linkItem.rel = 'noopener noreferrer';
         }
-        
+        if (isEmail) {
+          linkItem.classList.add('contact-link-email');
+        }
+
         // Display value - clean up for display
-        let displayValue = c.value;
+        let displayValue = rawValue;
         if (displayValue.includes('http')) {
           displayValue = displayValue.replace(/^https?:\/\/(www\.)?/, '');
         }
@@ -3372,6 +3380,28 @@ const applySiteData = (site) => {
         
         contactLinks.appendChild(linkItem);
       });
+
+      // Optional "Scarica CV" button — appended at the end of the contacts list
+      // when an admin uploaded a PDF (site.cvUrl).
+      const cvUrl = (site.cvUrl || '').trim();
+      if (cvUrl) {
+        const cvBtn = document.createElement('a');
+        cvBtn.className = 'contact-link-item contact-link-cv';
+        cvBtn.href = cvUrl;
+        // download attribute hints to the browser to trigger a save dialog,
+        // and gives the saved file a tidy default name
+        cvBtn.setAttribute('download', 'Mirko-Ditroia-Meirks-CV.pdf');
+        cvBtn.target = '_blank';
+        cvBtn.rel = 'noopener noreferrer';
+        cvBtn.innerHTML = `
+          <span class="contact-cv-icon" aria-hidden="true">📄</span>
+          <div class="contact-details">
+            <span class="contact-type">CV</span>
+            <span class="contact-value">Download CV (PDF)</span>
+          </div>
+        `;
+        contactLinks.appendChild(cvBtn);
+      }
     }
 
     // --- SEO: refresh JSON-LD Person.sameAs with the configured social links ---
@@ -4146,16 +4176,21 @@ function showModernModalGallery(slides, startIndex = 0, detailInput = '') {
 
       if (fullDetailText && fullDetailText.trim().length) {
         const textBlock = document.createElement('div');
-        textBlock.className = 'description-panel-text';
+        textBlock.className = 'description-panel-text description-rich';
 
-        const paragraphs = fullDetailText.split(/\n{2,}/g).map(p => p.trim()).filter(Boolean);
-        const lines = paragraphs.length ? paragraphs : [fullDetailText.trim()];
-
-        lines.forEach(paragraphText => {
-          const paragraph = document.createElement('p');
-          paragraph.textContent = paragraphText;
-          textBlock.appendChild(paragraph);
-        });
+        // Render markdown (with safe fallback to plain paragraphs if the
+        // renderer is unavailable for any reason).
+        if (window.MarkdownLite && typeof window.MarkdownLite.render === 'function') {
+          textBlock.innerHTML = window.MarkdownLite.render(fullDetailText);
+        } else {
+          const paragraphs = fullDetailText.split(/\n{2,}/g).map(p => p.trim()).filter(Boolean);
+          const lines = paragraphs.length ? paragraphs : [fullDetailText.trim()];
+          lines.forEach(paragraphText => {
+            const paragraph = document.createElement('p');
+            paragraph.textContent = paragraphText;
+            textBlock.appendChild(paragraph);
+          });
+        }
 
         panelContent.appendChild(textBlock);
       }

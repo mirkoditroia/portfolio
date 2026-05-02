@@ -202,6 +202,131 @@ button.edit-btn{background:#ffc107;color:#212529;border:none;padding:0.3rem 0.6r
 button.delete{background:#dc3545;color:#fff;}
 button:hover{opacity:0.9;} 
 .block-label{display:block;margin:0.6rem 0;font-weight:600;}
+
+/* Slide editor needs more breathing room for the markdown editor */
+#slide-editor-overlay .editor{max-width:880px;width:94%;}
+
+/* ─────────────────────────────────────────────────────────────────
+   Markdown editor (toolbar + textarea + live preview)
+   used for the slide detail description.
+   ───────────────────────────────────────────────────────────────── */
+.md-editor-label{display:block;font-weight:600;margin-bottom:6px;}
+
+.md-editor{
+  border:1px solid #d3d6da;border-radius:8px;background:#fff;overflow:hidden;
+  box-shadow:0 1px 0 rgba(0,0,0,0.02);
+}
+
+.md-editor-toolbar{
+  display:flex;align-items:center;flex-wrap:wrap;gap:4px;
+  padding:6px 8px;background:#f7f8fa;border-bottom:1px solid #e5e7eb;
+}
+.md-tool{
+  background:#fff;border:1px solid transparent;border-radius:5px;
+  padding:5px 9px;font-size:0.78rem;line-height:1;color:#333;cursor:pointer;
+  font-family:inherit;
+  transition:background .12s, border-color .12s, color .12s;
+}
+.md-tool strong, .md-tool em, .md-tool s { font-weight:700; }
+.md-tool:hover{background:#eef0f2;border-color:#d3d6da;color:#111;}
+.md-tool:active{background:#e1e4e8;}
+.md-tool:focus{outline:none;border-color:#007acc;box-shadow:0 0 0 3px rgba(0,122,204,0.15);}
+.md-tool-toggle[aria-pressed="false"]{background:#eef0f2;color:#6c757d;}
+.md-tool-divider{
+  width:1px;height:18px;background:#d3d6da;margin:0 4px;display:inline-block;
+}
+
+.md-editor-panes{
+  display:grid;grid-template-columns:1fr 1fr;gap:0;
+}
+.md-editor-panes[data-preview="off"]{grid-template-columns:1fr;}
+.md-editor-panes[data-preview="off"] .md-editor-preview{display:none;}
+
+.md-editor-source{
+  border:none !important;border-right:1px solid #e5e7eb !important;border-radius:0 !important;
+  font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  font-size:0.88rem;line-height:1.6;color:#222;
+  padding:14px 16px;resize:vertical;min-height:240px;width:100%;
+  background:#fcfcfd;
+  outline:none;
+}
+.md-editor-source:focus{background:#fff;}
+.md-editor-panes[data-preview="off"] .md-editor-source{border-right:none !important;}
+
+.md-editor-preview{
+  padding:16px 18px;background:#0f1216;color:#e2efff;
+  overflow-y:auto;max-height:520px;min-height:240px;
+  font-size:0.92rem;line-height:1.7;
+}
+.md-editor-preview .md-preview-empty{
+  color:rgba(226,239,255,0.45);font-style:italic;margin:0;
+}
+
+/* Rich-text typography used by the editor preview. Mirrors the public
+   site's `.description-rich` rules so what you see is what gets shipped. */
+.md-editor-preview.description-rich,
+.md-editor-preview .description-rich{color:rgba(226,239,255,0.92);line-height:1.75;}
+.md-editor-preview > *:first-child{margin-top:0;}
+.md-editor-preview > *:last-child{margin-bottom:0;}
+.md-editor-preview h2,
+.md-editor-preview h3,
+.md-editor-preview h4,
+.md-editor-preview h5{
+  margin:22px 0 8px 0;color:#fff;font-weight:700;line-height:1.25;letter-spacing:0.01em;
+}
+.md-editor-preview h2{font-size:1.35em;}
+.md-editor-preview h3{font-size:1.15em;}
+.md-editor-preview h4{
+  font-size:0.92em;text-transform:uppercase;letter-spacing:0.14em;
+  color:rgba(159,244,255,0.95);font-weight:600;
+}
+.md-editor-preview h5{font-size:0.82em;color:rgba(159,244,255,0.85);font-weight:600;}
+.md-editor-preview p{margin:0 0 12px 0;}
+.md-editor-preview strong{color:#fff;font-weight:700;}
+.md-editor-preview em{color:rgba(255,255,255,0.92);}
+.md-editor-preview del{opacity:0.55;}
+.md-editor-preview a{color:#40e0d0;text-decoration:underline;text-underline-offset:3px;}
+.md-editor-preview a:hover{color:#9ff4ff;}
+.md-editor-preview code{
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.88em;
+  padding:2px 6px;border-radius:4px;
+  background:rgba(64,224,208,0.10);border:1px solid rgba(64,224,208,0.22);color:#c8fbf3;
+}
+.md-editor-preview blockquote{
+  margin:14px 0;padding:6px 14px;
+  border-left:3px solid rgba(64,224,208,0.55);
+  background:rgba(64,224,208,0.06);
+  border-radius:0 8px 8px 0;
+  color:rgba(226,239,255,0.85);font-style:italic;
+}
+.md-editor-preview blockquote p{margin:0;}
+.md-editor-preview ul,.md-editor-preview ol{margin:0 0 14px 0;padding-left:1.4em;}
+.md-editor-preview ul li,.md-editor-preview ol li{margin:5px 0;padding-left:4px;}
+.md-editor-preview ul li::marker{color:rgba(64,224,208,0.85);}
+.md-editor-preview ol li::marker{color:rgba(64,224,208,0.95);font-weight:700;}
+.md-editor-preview hr{
+  border:none;margin:18px auto;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(64,224,208,0.45),transparent);
+}
+
+.md-editor-help{
+  padding:8px 12px;background:#f7f8fa;border-top:1px solid #e5e7eb;
+  display:flex;flex-wrap:wrap;gap:6px;font-size:0.78rem;color:#555;
+}
+.md-editor-help.hidden{display:none;}
+.md-editor-help strong{margin-right:4px;color:#222;}
+.md-editor-help code{
+  background:#fff;border:1px solid #e5e7eb;border-radius:4px;padding:1px 6px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78rem;color:#0a4f8a;
+}
+
+@media (max-width:760px){
+  #slide-editor-overlay .editor{max-width:96vw;width:96vw;}
+  .md-editor-panes{grid-template-columns:1fr;}
+  .md-editor-source{border-right:none !important;border-bottom:1px solid #e5e7eb !important;}
+  .md-editor-preview{max-height:300px;}
+  .md-tool{padding:4px 7px;font-size:0.74rem;}
+}
 .secondary{background:#6c757d;color:#fff;} 
 .slides-table tr:hover{background:#fafafa;} 
 .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;}
@@ -209,7 +334,62 @@ button:hover{opacity:0.9;}
 .overlay .editor{background:#fff;padding:1.5rem;border-radius:8px;max-width:500px;width:90%;max-height:90%;overflow:auto;}
 .type-field{display:none;} 
 .upload-btn{margin-left:4px;padding:0.2rem 0.5rem;font-size:0.75rem;border:none;border-radius:4px;cursor:pointer;background:#17a2b8;color:#fff;}
-.upload-btn:hover{background:#138496;} 
+.upload-btn:hover{background:#138496;}
+
+/* CV (Curriculum) upload row inside the Contatti form */
+.cv-upload-row {
+  margin-top: 1.25rem;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+.cv-upload-row .cv-upload-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.cv-upload-row .cv-upload-controls input {
+  flex: 1;
+  min-width: 220px;
+}
+.cv-upload-row .cv-upload-controls .upload-btn {
+  margin-left: 0;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.cv-clear-btn {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.85rem;
+  background: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.cv-clear-btn:hover { background: #b02a37; }
+.cv-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px dashed #c9d2d8;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+.cv-preview[hidden] { display: none; }
+.cv-preview-icon { font-size: 1.1rem; line-height: 1; }
+.cv-preview-link {
+  color: #0d7d8a;
+  text-decoration: none;
+  word-break: break-all;
+}
+.cv-preview-link:hover { text-decoration: underline; }
+
 .gallery-list{list-style:none;padding:0;margin:0;}
 .gallery-list li{display:flex;align-items:center;margin-bottom:4px;font-size:0.85rem;}
 .gallery-list li span{flex:1;word-break:break-all;}

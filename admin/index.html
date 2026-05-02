@@ -324,6 +324,26 @@
               <button class="social-btn" data-type="TikTok">🎵 TikTok</button>
             </div>
           </div>
+
+          <!-- CV / Curriculum upload -->
+          <div class="cv-upload-row">
+            <label class="block-label" style="margin-bottom:8px;">
+              <strong>📄 Curriculum (PDF)</strong>
+              <small style="display:block;color:#666;margin-top:4px;">
+                Carica un PDF: comparirà come pulsante "Download CV" accanto ai tuoi contatti.
+              </small>
+            </label>
+            <div class="cv-upload-controls">
+              <input id="cv-url-input" type="text" placeholder="URL del CV (PDF)" />
+              <button class="upload-btn secondary" data-target="cv-url-input" data-accept="application/pdf" type="button">📤 Upload PDF</button>
+              <button id="cv-clear-btn" class="secondary cv-clear-btn" type="button" title="Rimuovi CV">✕</button>
+            </div>
+            <div id="cv-preview" class="cv-preview" hidden>
+              <span class="cv-preview-icon" aria-hidden="true">📄</span>
+              <a id="cv-preview-link" href="#" target="_blank" rel="noopener" class="cv-preview-link">CV caricato</a>
+            </div>
+          </div>
+
           <div style="margin-top:1rem">
             <button id="save-contacts-btn" class="add-slide-btn">Salva Contatti</button>
           </div>
@@ -495,6 +515,7 @@
   <script src="/js/auth.js"></script>
   <script src="/js/dataProvider.js"></script>
   <script src="/js/sectionSymbols.js"></script>
+  <script src="/js/markdownLite.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="script.js" defer></script>
 
@@ -597,9 +618,48 @@
         <textarea id="se-description" rows="3" style="width:100%"></textarea>
         <small style="color:#666;font-size:0.75rem;display:block;margin-top:4px;">Comparirà sotto il canvas e verrà troncata automaticamente se troppo lunga.</small>
       </label>
-      <label class="block-label">Descrizione dettagli (scheda)
-        <textarea id="se-detail-description" rows="5" style="width:100%"></textarea>
-      </label>
+      <div class="block-label">
+        <span class="md-editor-label">Descrizione dettagli (scheda)</span>
+        <div class="md-editor" id="se-detail-md-editor">
+          <div class="md-editor-toolbar" role="toolbar" aria-label="Strumenti di formattazione">
+            <button type="button" class="md-tool" data-md="h2" title="Titolo grande (H2)">H2</button>
+            <button type="button" class="md-tool" data-md="h3" title="Titolo (H3)">H3</button>
+            <button type="button" class="md-tool" data-md="h4" title="Sottotitolo (H4)">H4</button>
+            <span class="md-tool-divider" aria-hidden="true"></span>
+            <button type="button" class="md-tool" data-md="bold" title="Grassetto (Ctrl+B)"><strong>B</strong></button>
+            <button type="button" class="md-tool" data-md="italic" title="Corsivo (Ctrl+I)"><em>I</em></button>
+            <button type="button" class="md-tool" data-md="strike" title="Barrato"><s>S</s></button>
+            <button type="button" class="md-tool" data-md="code" title="Codice inline">&lt;/&gt;</button>
+            <span class="md-tool-divider" aria-hidden="true"></span>
+            <button type="button" class="md-tool" data-md="ul" title="Elenco puntato">• Lista</button>
+            <button type="button" class="md-tool" data-md="ol" title="Elenco numerato">1. Lista</button>
+            <button type="button" class="md-tool" data-md="quote" title="Citazione">&ldquo; Quote</button>
+            <span class="md-tool-divider" aria-hidden="true"></span>
+            <button type="button" class="md-tool" data-md="link" title="Inserisci link">🔗 Link</button>
+            <button type="button" class="md-tool" data-md="hr" title="Separatore">—</button>
+            <span class="md-tool-divider" aria-hidden="true"></span>
+            <button type="button" class="md-tool md-tool-toggle" data-md="preview" title="Mostra/nascondi anteprima" aria-pressed="true">👁 Preview</button>
+            <button type="button" class="md-tool" data-md="help" title="Riferimento markdown">?</button>
+          </div>
+          <div class="md-editor-panes" data-preview="on">
+            <textarea id="se-detail-description" class="md-editor-source" rows="12" spellcheck="false" placeholder="Scrivi qui in **markdown**…&#10;&#10;## Titolo sezione&#10;&#10;Paragrafo con *enfasi* e **grassetto**.&#10;&#10;- Punto 1&#10;- Punto 2&#10;&#10;---"></textarea>
+            <div class="md-editor-preview description-rich" id="se-detail-preview" aria-live="polite"></div>
+          </div>
+          <div class="md-editor-help hidden" id="se-detail-md-help">
+            <strong>Sintassi rapida:</strong>
+            <code># Titolo</code>
+            <code>## Sotto-titolo</code>
+            <code>**grassetto**</code>
+            <code>*corsivo*</code>
+            <code>`codice`</code>
+            <code>[link](https://…)</code>
+            <code>- elenco</code>
+            <code>1. numerato</code>
+            <code>&gt; citazione</code>
+            <code>---</code>
+          </div>
+        </div>
+      </div>
       <label class="block-label">Software utilizzati
         <input id="se-software" type="text" style="width:100%" placeholder="Cinema 4D, Houdini, After Effects" />
         <small style="color:#666;font-size:0.75rem;display:block;margin-top:4px;">Separa con virgole: verranno mostrati come tag dedicati.</small>

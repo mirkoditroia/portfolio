@@ -1176,6 +1176,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }
     }
 
+    // CV / Curriculum (PDF) — loaded as part of the Contacts form
+    const cvUrlInput = document.getElementById('cv-url-input');
+    if (cvUrlInput) {
+      cvUrlInput.value = site.cvUrl || '';
+    }
+    refreshCvPreview();
+
     // contacts
     const contactsDiv = document.getElementById('contacts-list');
     contactsDiv.innerHTML = '';
@@ -1416,6 +1423,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       { id: 'hero-text-input', form: 'heroBio' },
       { id: 'show-logo-input', form: 'heroBio' },
       { id: 'artist-image-input', form: 'heroBio' },
+      { id: 'cv-url-input', form: 'contacts' },
       { id: 'version-input', form: 'version' },
       { id: 'api-base-input', form: 'api' },
       { id: 'shader-url-input', form: 'api' }
@@ -1460,8 +1468,147 @@ document.addEventListener('DOMContentLoaded', ()=>{
     imageVideo: document.getElementById('se-image-video'),
     desc: document.getElementById('se-description'),
     detailDesc: document.getElementById('se-detail-description'),
+    detailPreview: document.getElementById('se-detail-preview'),
     software: document.getElementById('se-software')
   };
+
+  // ─────────────────────────────────────────────────────────────────
+  // Markdown editor: toolbar + live preview powered by MarkdownLite.
+  // The toolbar wraps the current selection in markdown syntax (or
+  // inserts a fresh template at the caret if there's no selection).
+  // ─────────────────────────────────────────────────────────────────
+  function refreshDetailPreview(){
+    if(!F.detailDesc || !F.detailPreview) return;
+    const md = F.detailDesc.value || '';
+    if(window.MarkdownLite && typeof window.MarkdownLite.render === 'function'){
+      F.detailPreview.innerHTML = md.trim()
+        ? window.MarkdownLite.render(md)
+        : '<p class="md-preview-empty">L\u2019anteprima compare qui mentre scrivi.</p>';
+    } else {
+      F.detailPreview.textContent = md;
+    }
+  }
+
+  // Insert / wrap markdown around the current selection in F.detailDesc
+  function applyMarkdownAction(action){
+    const ta = F.detailDesc;
+    if(!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const value = ta.value;
+    const sel = value.slice(start, end);
+
+    // Helper: replace a [start,end] range, then re-focus & set cursor/selection
+    const replace = (newText, selStart, selEnd) => {
+      ta.focus();
+      ta.setRangeText(newText, start, end, 'preserve');
+      const baseOffset = start;
+      if(selStart != null){
+        ta.setSelectionRange(baseOffset + selStart, baseOffset + (selEnd ?? selStart));
+      } else {
+        ta.setSelectionRange(baseOffset + newText.length, baseOffset + newText.length);
+      }
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+
+    // Wrap inline markers (bold/italic/code/strike). Adds the markers
+    // around the selection or inserts a placeholder if nothing selected.
+    const wrap = (marker, placeholder) => {
+      const inner = sel || placeholder;
+      const out = `${marker}${inner}${marker}`;
+      const innerStart = marker.length;
+      const innerEnd = innerStart + inner.length;
+      replace(out, innerStart, innerEnd);
+    };
+
+    // Prefix every selected line with `prefix` (turns selection into a list/quote).
+    // If nothing is selected, inserts a single placeholder line.
+    const prefixLines = (prefix, placeholder) => {
+      if(!sel){
+        const out = `${prefix}${placeholder}`;
+        replace(out, prefix.length, prefix.length + placeholder.length);
+        return;
+      }
+      const lines = sel.split('\n');
+      const out = lines.map((line, i) => {
+        if(prefix.endsWith('. ')) return `${i + 1}. ${line}`;
+        return `${prefix}${line}`;
+      }).join('\n');
+      replace(out, 0, out.length);
+    };
+
+    switch(action){
+      case 'h2':     prefixLines('## ', 'Titolo sezione'); break;
+      case 'h3':     prefixLines('### ', 'Sotto-titolo'); break;
+      case 'h4':     prefixLines('#### ', 'Etichetta'); break;
+      case 'bold':   wrap('**', 'testo'); break;
+      case 'italic': wrap('*', 'testo'); break;
+      case 'strike': wrap('~~', 'testo'); break;
+      case 'code':   wrap('`', 'codice'); break;
+      case 'ul':     prefixLines('- ', 'voce'); break;
+      case 'ol':     prefixLines('1. ', 'voce'); break;
+      case 'quote':  prefixLines('> ', 'citazione'); break;
+      case 'hr': {
+        const before = (start > 0 && value[start - 1] !== '\n') ? '\n\n' : '\n';
+        const out = `${before}---\n\n`;
+        replace(out);
+        break;
+      }
+      case 'link': {
+        const text = sel || 'testo del link';
+        const url = prompt('URL del link:', 'https://') || '';
+        if(!url) { return; }
+        const out = `[${text}](${url.trim()})`;
+        const ts = 1, te = 1 + text.length;
+        replace(out, ts, te);
+        break;
+      }
+    }
+  }
+
+  function initMarkdownEditor(){
+    const wrap = document.getElementById('se-detail-md-editor');
+    if(!wrap || wrap.dataset.inited === '1') return;
+    wrap.dataset.inited = '1';
+
+    // Toolbar buttons
+    wrap.querySelectorAll('.md-tool').forEach(btn => {
+      const action = btn.dataset.md;
+      btn.addEventListener('mousedown', (e) => e.preventDefault()); // keep selection
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if(action === 'preview'){
+          const panes = wrap.querySelector('.md-editor-panes');
+          const on = panes.dataset.preview !== 'off';
+          panes.dataset.preview = on ? 'off' : 'on';
+          btn.setAttribute('aria-pressed', on ? 'false' : 'true');
+          return;
+        }
+        if(action === 'help'){
+          const help = document.getElementById('se-detail-md-help');
+          if(help) help.classList.toggle('hidden');
+          return;
+        }
+        applyMarkdownAction(action);
+      });
+    });
+
+    // Live preview + keyboard shortcuts
+    if(F.detailDesc){
+      F.detailDesc.addEventListener('input', refreshDetailPreview);
+      F.detailDesc.addEventListener('keydown', (e) => {
+        const cmd = e.ctrlKey || e.metaKey;
+        if(!cmd) return;
+        const k = e.key.toLowerCase();
+        if(k === 'b'){ e.preventDefault(); applyMarkdownAction('bold'); }
+        else if(k === 'i'){ e.preventDefault(); applyMarkdownAction('italic'); }
+        else if(k === 'k'){ e.preventDefault(); applyMarkdownAction('link'); }
+      });
+    }
+    refreshDetailPreview();
+  }
+  // Defer init until the DOM is fully parsed (script tag has `defer`)
+  initMarkdownEditor();
   const typeFields = {
     video: document.getElementById('field-video'),
     image: document.getElementById('field-image'),
@@ -1904,6 +2051,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     editorCb = cb;
     document.getElementById('se-heading').textContent = slide ? 'Modifica Slide' : 'Nuova Slide';
     F.title.value='';F.canvas.checked=false;F.type.value='video';F.src.value='';F.video.value='';F.image.value='';F.imageVideo.value='';F.desc.value='';F.detailDesc.value='';F.software.value='';
+    refreshDetailPreview();
     
     // Reset arrays
     galleryArr = [];
@@ -1924,6 +2072,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       F.canvas.checked = !!slide.canvas;
       F.src.value = slide.src || '';
       F.detailDesc.value = slide.detailDescription || (slide.detail && slide.detail.description) || '';
+      refreshDetailPreview();
       const existingSoftware = Array.isArray(slide.softwareUsed)
         ? slide.softwareUsed
         : Array.isArray(slide.software)
@@ -2182,6 +2331,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
           renderImageGallery();
         } else {
           targetEl.value = paths[0];
+          // Notify any input-listeners (preview refresh, unsaved tracking, etc.)
+          targetEl.dispatchEvent(new Event('input', { bubbles: true }));
         }
         hiddenInput.value = '';
         alert('Upload completato!');
@@ -2228,6 +2379,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         renderImageGallery();
       }else{
         targetEl.value = paths[0];
+        targetEl.dispatchEvent(new Event('input', { bubbles: true }));
       }
       hiddenInput.value='';
       window.adminLog?.(`✅ Upload completato (${paths.length} file): ${paths.join(', ')}`);
@@ -2485,6 +2637,29 @@ function clearSiteConfigUnsaved() {
   ['heroBio', 'version', 'contacts', 'api', 'sections', 'shader'].forEach(clearFormUnsaved);
 }
 
+// Refresh the CV preview row (link + filename) based on the cv-url-input value
+function refreshCvPreview() {
+  const input = document.getElementById('cv-url-input');
+  const preview = document.getElementById('cv-preview');
+  const link = document.getElementById('cv-preview-link');
+  if (!input || !preview || !link) return;
+  const url = (input.value || '').trim();
+  if (!url) {
+    preview.hidden = true;
+    return;
+  }
+  preview.hidden = false;
+  link.href = url;
+  // Try to show a friendly filename (decoded, last segment, no query)
+  let label = 'CV caricato';
+  try {
+    const clean = decodeURIComponent(String(url).split('?')[0]);
+    const last = clean.split('/').pop();
+    if (last) label = last;
+  } catch (_) { /* keep default */ }
+  link.textContent = label;
+}
+
 function setupIndividualSaveFunctions() {
   // Hero & Bio save
   document.getElementById('save-hero-bio-btn')?.addEventListener('click', () => {
@@ -2519,15 +2694,29 @@ function setupIndividualSaveFunctions() {
     savePartialSiteConfig('Versione', payload, 'version');
   });
 
-  // Contacts save
+  // Contacts save (also persists the optional CV URL)
   document.getElementById('save-contacts-btn')?.addEventListener('click', () => {
     const contacts = Array.from(document.querySelectorAll('.contact-row')).map(r=>({
       label: r.querySelector('.contact-label').value,
       value: r.querySelector('.contact-value').value,
       visible: r.querySelector('.contact-visible').checked
     })).filter(c=>c.label||c.value);
-    const payload = { contacts };
+    const cvUrl = (document.getElementById('cv-url-input')?.value || '').trim();
+    const payload = { contacts, cvUrl };
     savePartialSiteConfig('Contatti', payload, 'contacts');
+  });
+
+  // CV preview / clear handlers
+  const cvInput = document.getElementById('cv-url-input');
+  if (cvInput) {
+    cvInput.addEventListener('input', refreshCvPreview);
+  }
+  document.getElementById('cv-clear-btn')?.addEventListener('click', () => {
+    if (!cvInput) return;
+    if (cvInput.value && !confirm('Rimuovere il CV caricato?')) return;
+    cvInput.value = '';
+    refreshCvPreview();
+    markFormUnsaved('contacts');
   });
 
   // API Settings save

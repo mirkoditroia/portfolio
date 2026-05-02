@@ -114,6 +114,34 @@ ESEMPI POSIZIONI:
   color: #fff;
 }
 
+/* Pixel-art navbar pets canvas (turtle + sun-conure parrot).
+   Absolutely positioned overlay inside .banner; never participates in flex
+   layout so it cannot resize the navbar. The selector is intentionally more
+   specific than `.banner > *:not(.shader-banner)` to keep the absolute
+   positioning. JS sizes canvas.width/height internally; CSS upscales it. */
+.banner > canvas.navbar-pets {
+  position: absolute !important;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* The banner is shorter on mobile (~56px) and the hamburger sits on the right.
+   The JS keeps pets between the logo and the toggle button so they don't
+   visually clip into either. We only hide the canvas on truly tiny screens
+   where there isn't enough horizontal room for the animals to breathe. */
+@media (max-width: 360px) {
+  .banner > canvas.navbar-pets { display: none; }
+}
+
 .logo img {
   height: 36px;
   width: 36px;
@@ -443,13 +471,22 @@ main {
   font-size: 2.2rem;
   font-weight: 900;
   letter-spacing: 2px;
+  line-height: 1.05;
   margin-bottom: 24px;
   color: #fff;
   text-transform: uppercase;
   position: relative;
-  display: inline-flex;
+  display: inline-grid;
+  grid-template-columns: 1.6em minmax(0, max-content) 1.6em;
   align-items: center;
   gap: 16px;
+  max-width: calc(100% - 32px);
+  text-align: center;
+}
+
+.section h2:has(.section-symbol)::after {
+  content: "";
+  width: 1.6em;
 }
 
 /* Migliora respiro titolo nelle sezioni galleria */
@@ -464,8 +501,9 @@ main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.6em;
-  height: 1.6em;
+  flex: 0 0 1.6em;
+  width: 1.6em;
+  height: 1.05em;
   font-size: 1.4em;
   line-height: 1;
   color: var(--section-symbol-color, var(--accent-color, #40e0d0));
@@ -493,7 +531,12 @@ main {
   animation: pulse 2s infinite;
 }
 
-.section h2 .section-title-text { display: inline-block; }
+.section h2 .section-title-text {
+  display: inline-block;
+  line-height: inherit;
+  min-width: 0;
+  text-align: center;
+}
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -651,6 +694,23 @@ main {
 
 .contact-link-item:hover .contact-value {
   color: #40e0d0;
+}
+
+/* "Scarica CV" download button — same visual weight as the social links,
+   only a small leading icon hints at the PDF action. */
+.contact-link-item.contact-link-cv {
+  gap: 10px;
+}
+
+.contact-link-item.contact-link-cv .contact-cv-icon {
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.contact-link-item.contact-link-cv:hover .contact-cv-icon {
+  opacity: 0.95;
 }
 
 /* ===== MOBILE & TABLET ===== */
@@ -2366,7 +2426,7 @@ main {
 .shader-banner{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;overflow:hidden;pointer-events:none;} 
 .shader-banner iframe{position:absolute;top:-30px;left:0;width:100%;height:calc(100% + 60px);border:0;display:block;pointer-events:none;} 
 .shader-vignette{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;background:radial-gradient(circle at center, rgba(0,0,0,0) 60%, rgba(0,0,0,0.6) 100%);} 
-.banner > *:not(.shader-banner){position:relative;z-index:2;}
+.banner > *:not(.shader-banner):not(.navbar-pets){position:relative;z-index:2;}
 
 @media(max-width:600px){
   .banner{flex-direction:column;align-items:center;justify-content:center;height:auto;padding:12px 16px;}
@@ -3471,6 +3531,125 @@ Modifica queste variabili per cambiare la posizione del pulsante X e dei puntini
 
 .description-panel-text p:last-child {
   margin-bottom: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Rich-text content rendered from markdown (slide detail panel).
+   The .description-rich variant adds editorial typography:
+   headings, lists, blockquotes, hr separators, etc.
+   ───────────────────────────────────────────────────────────────── */
+.description-rich {
+  color: rgba(226, 239, 255, 0.92);
+  font-size: clamp(0.95rem, 1.05vw, 1.05rem);
+  line-height: 1.75;
+}
+.description-rich > *:first-child { margin-top: 0; }
+.description-rich > *:last-child  { margin-bottom: 0; }
+
+.description-rich h2,
+.description-rich h3,
+.description-rich h4,
+.description-rich h5 {
+  margin: 28px 0 10px 0;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.description-rich h2 { font-size: 1.45em; }
+.description-rich h3 { font-size: 1.20em; }
+.description-rich h4 {
+  font-size: 0.95em;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(159, 244, 255, 0.95);
+  font-weight: 600;
+}
+.description-rich h5 {
+  font-size: 0.85em;
+  font-weight: 600;
+  color: rgba(159, 244, 255, 0.85);
+}
+.description-rich h2:first-child,
+.description-rich h3:first-child,
+.description-rich h4:first-child,
+.description-rich h5:first-child { margin-top: 0; }
+
+.description-rich p { margin: 0 0 14px 0; }
+
+.description-rich strong { color: #ffffff; font-weight: 700; }
+.description-rich em     { color: rgba(255, 255, 255, 0.92); }
+.description-rich del    { opacity: 0.55; }
+
+.description-rich a {
+  color: #40e0d0;
+  text-decoration: underline;
+  text-decoration-color: rgba(64, 224, 208, 0.45);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s ease, color 0.15s ease;
+}
+.description-rich a:hover {
+  color: #9ff4ff;
+  text-decoration-color: rgba(159, 244, 255, 0.9);
+}
+
+.description-rich code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(64, 224, 208, 0.10);
+  border: 1px solid rgba(64, 224, 208, 0.22);
+  color: #c8fbf3;
+}
+
+.description-rich blockquote {
+  margin: 16px 0;
+  padding: 8px 14px;
+  border-left: 3px solid rgba(64, 224, 208, 0.55);
+  background: rgba(64, 224, 208, 0.06);
+  border-radius: 0 8px 8px 0;
+  color: rgba(226, 239, 255, 0.85);
+  font-style: italic;
+}
+.description-rich blockquote p { margin: 0; }
+
+.description-rich ul,
+.description-rich ol {
+  margin: 0 0 16px 0;
+  padding-left: 1.4em;
+}
+.description-rich ul li,
+.description-rich ol li {
+  margin: 6px 0;
+  padding-left: 4px;
+}
+.description-rich ul li::marker { color: rgba(64, 224, 208, 0.85); }
+.description-rich ol li::marker {
+  color: rgba(64, 224, 208, 0.95);
+  font-weight: 700;
+}
+/* Bold lead-in inside list items (e.g. "**Il Contatto:** …") */
+.description-rich li > strong:first-child {
+  color: #ffffff;
+}
+
+.description-rich hr {
+  border: none;
+  margin: 22px auto;
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(64, 224, 208, 0.45) 50%,
+    transparent 100%);
+}
+
+@media (max-width: 600px) {
+  .description-rich h2 { font-size: 1.25em; }
+  .description-rich h3 { font-size: 1.10em; }
+  .description-rich ul,
+  .description-rich ol { padding-left: 1.2em; }
 }
 
 .description-panel-software {
