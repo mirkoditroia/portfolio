@@ -8,6 +8,7 @@ import * as fsSync from 'fs';
 import admin from 'firebase-admin';
 import multer from 'multer';
 import sharp from 'sharp';
+import { buildFaviconSvg, buildSearchFaviconSvg } from './lib/faviconSvg.js';
 
 dotenv.config();
 
@@ -44,6 +45,10 @@ const PUBLIC_DIR = __dirname; // serve existing project root
 const ADMIN_DIR  = path.join(__dirname,'admin');
 const DATA_FILE      = path.join(__dirname,'data','galleries.json');
 const SITE_FILE      = path.join(__dirname,'data','site.json');
+const FAVICON_FILE   = path.join(__dirname,'favicon.svg');
+const FAVICON_PNG    = path.join(__dirname,'favicon-48.png');
+const FAVICON_ICO    = path.join(__dirname,'favicon.ico');
+const APPLE_ICON     = path.join(__dirname,'apple-touch-icon.png');
 const DOWNLOADS_FILE = path.join(__dirname,'data','downloads.json');
 const SHADER_FILE    = path.join(__dirname,'data','mobile_shader.glsl');
 
@@ -63,6 +68,74 @@ app.use(cors({
 }));
 app.use(express.json({limit:'2mb'}));
 app.use(express.text({type:'text/plain',limit:'200kb'}));
+
+async function readSitePayload() {
+  if (db) {
+    try {
+      const doc = await db.collection('config').doc('site').get();
+      if (doc.exists) return doc.data();
+    } catch (fsErr) {
+      console.warn('Firestore READ site failed, falling back to JSON', fsErr);
+    }
+  }
+  const raw = await fs.readFile(SITE_FILE, 'utf8');
+  return JSON.parse(raw);
+}
+
+async function writeFaviconFile(site) {
+  const svg = buildFaviconSvg(site?.favicon);
+  const searchSvg = buildSearchFaviconSvg(site?.favicon);
+  const appleSvg = buildFaviconSvg(site?.favicon, 180);
+  await fs.writeFile(FAVICON_FILE, svg, 'utf8');
+  await sharp(Buffer.from(searchSvg)).resize(48, 48).png().toFile(FAVICON_PNG);
+  await sharp(Buffer.from(appleSvg)).resize(180, 180).png().toFile(APPLE_ICON);
+  await fs.copyFile(FAVICON_PNG, FAVICON_ICO);
+}
+
+async function sendSearchPng(res, site) {
+  const searchSvg = buildSearchFaviconSvg(site?.favicon);
+  const png = await sharp(Buffer.from(searchSvg)).resize(48, 48).png().toBuffer();
+  res.set('Cache-Control', 'public, max-age=300, must-revalidate');
+  res.type('image/png');
+  res.send(png);
+}
+
+app.get('/favicon.svg', async (_req, res) => {
+  try {
+    const site = await readSitePayload();
+    const svg = buildFaviconSvg(site?.favicon);
+    res.set('Cache-Control', 'public, max-age=300, must-revalidate');
+    res.type('image/svg+xml');
+    res.send(svg);
+  } catch (err) {
+    console.error('READ favicon.svg', err);
+    res.status(500).type('text/plain').send('favicon-unavailable');
+  }
+});
+
+app.get(['/favicon-48.png', '/favicon.ico'], async (_req, res) => {
+  try {
+    const site = await readSitePayload();
+    await sendSearchPng(res, site);
+  } catch (err) {
+    console.error('READ favicon png', err);
+    res.status(500).type('text/plain').send('favicon-unavailable');
+  }
+});
+
+app.get('/apple-touch-icon.png', async (_req, res) => {
+  try {
+    const site = await readSitePayload();
+    const appleSvg = buildFaviconSvg(site?.favicon, 180);
+    const png = await sharp(Buffer.from(appleSvg)).resize(180, 180).png().toBuffer();
+    res.set('Cache-Control', 'public, max-age=300, must-revalidate');
+    res.type('image/png');
+    res.send(png);
+  } catch (err) {
+    console.error('READ apple-touch-icon.png', err);
+    res.status(500).type('text/plain').send('favicon-unavailable');
+  }
+});
 
 // static
 app.use('/',         express.static(PUBLIC_DIR));
@@ -221,6 +294,11 @@ app.post('/api/site', async (req,res)=>{
     }
     if(!saved){
       await fs.writeFile(SITE_FILE, JSON.stringify(req.body,null,2));
+    }
+    try {
+      await writeFaviconFile(req.body);
+    } catch (favErr) {
+      console.warn('Failed to write favicon.svg', favErr);
     }
     res.sendStatus(200);
   }catch(err){

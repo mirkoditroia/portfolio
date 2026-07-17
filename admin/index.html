@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no" />
+  <!-- FAVICON:AUTO:START -->
+  <script src="/js/favicon-boot.js"></script>
+  <script src="/js/favicon.js"></script>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%227%22%20ry%3D%227%22%20fill%3D%22%230f2027%22%2F%3E%3Ctext%20x%3D%2216%22%20y%3D%2217%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20font-size%3D%2222%22%20fill%3D%22%2340e0d0%22%20font-family%3D%22system-ui%2CSegoe%20UI%2Csans-serif%22%3E%E2%A5%80%3C%2Ftext%3E%3C%2Fsvg%3E" id="site-favicon-link" data-site-favicon="live">
+  <script>Favicon.bootSync();</script>
+  <!-- FAVICON:AUTO:END -->
   <title>Admin Dashboard – MÊIRKS</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -300,6 +306,111 @@
           <button id="save-hero-bio-btn" class="add-slide-btn" style="margin-top:16px;">Salva Impostazioni</button>
         </div>
 
+        <!-- Favicon Form -->
+        <div class="config-form" id="favicon-form">
+          <h2>Favicon</h2>
+          <p style="color:#666;font-size:0.85rem;margin:0 0 12px;">Simbolo ⥀ usato come icona del sito. Personalizza colori, angoli smussati, trasparenze e dimensione.</p>
+          <div class="favicon-admin-preview" id="favicon-preview-wrap">
+            <div class="favicon-admin-preview-canvas" id="favicon-preview-canvas">
+              <img id="favicon-preview-img" alt="Anteprima favicon" width="64" height="64">
+            </div>
+            <div class="favicon-admin-preview-meta">
+              <strong>Anteprima</strong>
+              <span id="favicon-preview-size">32×32 px</span>
+              <span id="favicon-preview-style">Angoli 22% · Sfondo 100% · Simbolo 100%</span>
+            </div>
+          </div>
+          <label class="block-label">Simbolo
+            <input id="favicon-symbol-input" type="text" style="width:100%;font-size:1.4rem;text-align:center;" maxlength="4" placeholder="⥀">
+            <small style="color:#666;display:block;margin-top:4px;">Un carattere Unicode (default ⥀)</small>
+          </label>
+          <label class="block-label">Larghezza (px)
+            <input id="favicon-size-input" type="range" min="16" max="128" step="1" value="32" style="width:100%;">
+            <output id="favicon-size-value" for="favicon-size-input" style="font-weight:600;color:#007acc;">32 px</output>
+          </label>
+          <div class="favicon-color-grid">
+            <label class="block-label">Colore simbolo
+              <div class="favicon-color-row">
+                <input id="favicon-color-input" type="color" value="#40e0d0">
+                <input id="favicon-color-hex" type="text" placeholder="#40e0d0" style="flex:1;">
+              </div>
+            </label>
+            <label class="block-label">Sfondo
+              <div class="favicon-color-row">
+                <input id="favicon-bg-input" type="color" value="#0f2027">
+                <input id="favicon-bg-hex" type="text" placeholder="#0f2027" style="flex:1;">
+              </div>
+            </label>
+          </div>
+          <div class="favicon-modern-grid">
+            <label class="block-label">Smussamento angoli
+              <input id="favicon-radius-input" type="range" min="0" max="50" step="1" value="22" style="width:100%;">
+              <output id="favicon-radius-value" for="favicon-radius-input">22% · arrotondato</output>
+            </label>
+            <label class="block-label">Opacità sfondo
+              <input id="favicon-bg-opacity-input" type="range" min="0" max="100" step="1" value="100" style="width:100%;">
+              <output id="favicon-bg-opacity-value" for="favicon-bg-opacity-input">100% · opaco</output>
+            </label>
+            <label class="block-label">Opacità simbolo
+              <input id="favicon-symbol-opacity-input" type="range" min="0" max="100" step="1" value="100" style="width:100%;">
+              <output id="favicon-symbol-opacity-value" for="favicon-symbol-opacity-input">100% · opaco</output>
+            </label>
+          </div>
+          <button id="save-favicon-btn" class="add-slide-btn" style="margin-top:16px;">Salva Favicon</button>
+        </div>
+
+        <!-- SEO & Cache Form -->
+        <div class="config-form" id="seo-form">
+          <h2>SEO & Meta Tag</h2>
+          <p style="color:#666;font-size:0.85rem;margin:0 0 12px;">Titoli e descrizioni per motori di ricerca, Open Graph e Twitter Card.</p>
+          <label class="block-label">Titolo pagina (meta title)
+            <input id="seo-title-input" type="text" style="width:100%" placeholder="Mirko Ditroia (Meirks) — Creative Coder...">
+          </label>
+          <label class="block-label">Meta description
+            <textarea id="seo-description-input" rows="3" style="width:100%" placeholder="Portfolio ufficiale di Mirko Ditroia..."></textarea>
+          </label>
+          <label class="block-label">Keywords
+            <input id="seo-keywords-input" type="text" style="width:100%" placeholder="Mirko Ditroia, Meirks, creative coder...">
+          </label>
+          <div class="favicon-color-grid">
+            <label class="block-label">Open Graph — titolo
+              <input id="seo-og-title-input" type="text" style="width:100%" placeholder="Lascia vuoto per usare il titolo pagina">
+            </label>
+            <label class="block-label">Open Graph — descrizione
+              <textarea id="seo-og-description-input" rows="2" style="width:100%" placeholder="Lascia vuoto per usare la meta description"></textarea>
+            </label>
+          </div>
+          <label class="block-label">Open Graph — immagine (URL)
+            <input id="seo-og-image-input" type="text" style="width:100%" placeholder="https://meirks.xyz/images/og-cover.jpg">
+          </label>
+          <label class="block-label">Open Graph — site name
+            <input id="seo-og-site-name-input" type="text" style="width:100%" placeholder="Meirks — Mirko Ditroia">
+          </label>
+          <div class="favicon-color-grid">
+            <label class="block-label">Twitter — titolo
+              <input id="seo-twitter-title-input" type="text" style="width:100%" placeholder="Lascia vuoto per usare OG/titolo pagina">
+            </label>
+            <label class="block-label">Twitter — descrizione
+              <textarea id="seo-twitter-description-input" rows="2" style="width:100%" placeholder="Lascia vuoto per usare OG/meta description"></textarea>
+            </label>
+          </div>
+          <label class="block-label">URL canonico
+            <input id="seo-canonical-input" type="text" style="width:100%" placeholder="https://meirks.xyz/">
+          </label>
+          <button id="save-seo-btn" class="add-slide-btn" style="margin-top:16px;">Salva SEO</button>
+
+          <div class="cache-cleaner-box">
+            <h3>Cache cleaner</h3>
+            <p>Forza l'aggiornamento di favicon e meta tag su browser e motori di ricerca incrementando la versione cache.</p>
+            <p class="cache-version-line">Versione cache attuale: <strong id="cache-version-display">—</strong></p>
+            <div class="cache-cleaner-actions">
+              <button id="bump-cache-btn" class="secondary">Pulisci cache SEO &amp; Favicon</button>
+              <a id="cache-gsc-link" class="cache-gsc-link" href="https://search.google.com/search-console" target="_blank" rel="noopener noreferrer">Apri Google Search Console</a>
+            </div>
+            <small style="color:#666;display:block;margin-top:8px;">Dopo il bump, richiedi la re-indicizzazione della homepage in Search Console per accelerare l'aggiornamento del favicon su Google.</small>
+          </div>
+        </div>
+
         <!-- Version Form -->
         <div class="config-form" id="version-form">
           <h2>Versione Sito</h2>
@@ -514,6 +625,7 @@
   <script src="/js/firebase.js"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/dataProvider.js"></script>
+  <script src="/js/siteMeta.js"></script>
   <script src="/js/sectionSymbols.js"></script>
   <script src="/js/markdownLite.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>

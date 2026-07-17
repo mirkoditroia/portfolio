@@ -3257,6 +3257,12 @@ const applySiteData = (site) => {
   try {
     // Store current site config globally for shader access
     window.currentSiteConfig = site;
+
+    if (window.SiteMeta) {
+      SiteMeta.apply(site);
+    } else if (window.Favicon) {
+      Favicon.apply(site.favicon, site.cacheVersion);
+    }
     
     // Hero text
     if (site.heroText) {
@@ -3502,7 +3508,10 @@ const checkForUpdates = async () => {
         currentSiteData.heroText !== newSiteData.heroText ||
         currentSiteData.bio !== newSiteData.bio ||
         currentSiteData.version !== newSiteData.version ||
-        JSON.stringify(currentSiteData.contacts) !== JSON.stringify(newSiteData.contacts)
+        JSON.stringify(currentSiteData.contacts) !== JSON.stringify(newSiteData.contacts) ||
+        JSON.stringify(currentSiteData.favicon) !== JSON.stringify(newSiteData.favicon) ||
+        JSON.stringify(currentSiteData.seo) !== JSON.stringify(newSiteData.seo) ||
+        currentSiteData.cacheVersion !== newSiteData.cacheVersion
       );
 
       if (hasChanges) {

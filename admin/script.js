@@ -1183,6 +1183,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
     refreshCvPreview();
 
+    renderFaviconConfig(site.favicon);
+    if (window.Favicon && site.favicon) {
+      Favicon.persistCache(site.favicon, site.cacheVersion);
+    }
+    renderSeoConfig(site);
+
     // contacts
     const contactsDiv = document.getElementById('contacts-list');
     contactsDiv.innerHTML = '';
@@ -1415,6 +1421,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     // Individual save functions
     setupIndividualSaveFunctions();
+    setupFaviconControls();
+    setupSeoControls();
     
     // Add change detection to all site config inputs
     const siteInputs = [
@@ -1423,6 +1431,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
       { id: 'hero-text-input', form: 'heroBio' },
       { id: 'show-logo-input', form: 'heroBio' },
       { id: 'artist-image-input', form: 'heroBio' },
+      { id: 'favicon-symbol-input', form: 'favicon' },
+      { id: 'favicon-size-input', form: 'favicon' },
+      { id: 'favicon-color-hex', form: 'favicon' },
+      { id: 'favicon-bg-hex', form: 'favicon' },
+      { id: 'favicon-radius-input', form: 'favicon' },
+      { id: 'favicon-bg-opacity-input', form: 'favicon' },
+      { id: 'favicon-symbol-opacity-input', form: 'favicon' },
+      { id: 'seo-title-input', form: 'seo' },
+      { id: 'seo-description-input', form: 'seo' },
+      { id: 'seo-keywords-input', form: 'seo' },
+      { id: 'seo-og-title-input', form: 'seo' },
+      { id: 'seo-og-description-input', form: 'seo' },
+      { id: 'seo-og-image-input', form: 'seo' },
+      { id: 'seo-og-site-name-input', form: 'seo' },
+      { id: 'seo-twitter-title-input', form: 'seo' },
+      { id: 'seo-twitter-description-input', form: 'seo' },
+      { id: 'seo-canonical-input', form: 'seo' },
       { id: 'cv-url-input', form: 'contacts' },
       { id: 'version-input', form: 'version' },
       { id: 'api-base-input', form: 'api' },
@@ -2623,6 +2648,9 @@ function clearFormUnsaved(formType) {
 function getFormDisplayName(formType) {
   const names = {
     heroBio: 'Hero & Bio',
+    favicon: 'Favicon',
+    seo: 'SEO & Meta',
+    cache: 'Cache',
     version: 'Versione',
     contacts: 'Contatti',
     api: 'API Settings',
@@ -2634,7 +2662,223 @@ function getFormDisplayName(formType) {
 
 function clearSiteConfigUnsaved() {
   // Clear all form unsaved states
-  ['heroBio', 'version', 'contacts', 'api', 'sections', 'shader'].forEach(clearFormUnsaved);
+  ['heroBio', 'favicon', 'seo', 'cache', 'version', 'contacts', 'api', 'sections', 'shader'].forEach(clearFormUnsaved);
+}
+
+function getFaviconFromForm() {
+  const symbol = (document.getElementById('favicon-symbol-input')?.value || '').trim();
+  const size = parseInt(document.getElementById('favicon-size-input')?.value, 10);
+  const colorHex = (document.getElementById('favicon-color-hex')?.value || '').trim();
+  const bgHex = (document.getElementById('favicon-bg-hex')?.value || '').trim();
+  const radius = parseInt(document.getElementById('favicon-radius-input')?.value, 10);
+  const bgOpacity = parseInt(document.getElementById('favicon-bg-opacity-input')?.value, 10);
+  const symbolOpacity = parseInt(document.getElementById('favicon-symbol-opacity-input')?.value, 10);
+  return {
+    symbol: symbol || window.Favicon?.DEFAULTS?.symbol || '⥀',
+    size: Number.isFinite(size) ? size : 32,
+    color: colorHex,
+    bg: bgHex,
+    radius: Number.isFinite(radius) ? radius : 22,
+    bgOpacity: Number.isFinite(bgOpacity) ? bgOpacity : 100,
+    symbolOpacity: Number.isFinite(symbolOpacity) ? symbolOpacity : 100
+  };
+}
+
+function formatRadiusLabel(radius) {
+  if (radius <= 0) return '0% · quadrato';
+  if (radius >= 50) return '50% · cerchio';
+  return `${radius}% · arrotondato`;
+}
+
+function formatOpacityLabel(value) {
+  if (value <= 0) return '0% · trasparente';
+  if (value >= 100) return '100% · opaco';
+  return `${value}% · semi-trasparente`;
+}
+
+function refreshFaviconPreview() {
+  if (!window.Favicon) return;
+  const cfg = Favicon.normalizeFavicon(getFaviconFromForm());
+  const previewImg = document.getElementById('favicon-preview-img');
+  const previewSize = document.getElementById('favicon-preview-size');
+  const previewStyle = document.getElementById('favicon-preview-style');
+  const sizeValue = document.getElementById('favicon-size-value');
+  const radiusValue = document.getElementById('favicon-radius-value');
+  const bgOpacityValue = document.getElementById('favicon-bg-opacity-value');
+  const symbolOpacityValue = document.getElementById('favicon-symbol-opacity-value');
+  if (previewImg) previewImg.src = Favicon.buildSvgDataUrl(cfg);
+  if (previewSize) previewSize.textContent = `${cfg.size}×${cfg.size} px`;
+  if (previewStyle) {
+    previewStyle.textContent = `Angoli ${cfg.radius}% · Sfondo ${cfg.bgOpacity}% · Simbolo ${cfg.symbolOpacity}%`;
+  }
+  if (sizeValue) sizeValue.textContent = `${cfg.size} px`;
+  if (radiusValue) radiusValue.textContent = formatRadiusLabel(cfg.radius);
+  if (bgOpacityValue) bgOpacityValue.textContent = formatOpacityLabel(cfg.bgOpacity);
+  if (symbolOpacityValue) symbolOpacityValue.textContent = formatOpacityLabel(cfg.symbolOpacity);
+  const cacheVersion = window._origSite?.cacheVersion;
+  if (window.SiteMeta) {
+    SiteMeta.apply({ ...(window._origSite || {}), favicon: cfg, cacheVersion });
+  } else {
+    Favicon.apply(cfg, cacheVersion);
+  }
+}
+
+function bindFaviconColorPair(colorInputId, hexInputId, onChange) {
+  const colorInput = document.getElementById(colorInputId);
+  const hexInput = document.getElementById(hexInputId);
+  if (!colorInput || !hexInput) return;
+
+  colorInput.addEventListener('input', () => {
+    hexInput.value = colorInput.value;
+    onChange();
+  });
+
+  const applyHex = () => {
+    let v = hexInput.value.trim();
+    if (v && v[0] !== '#') v = `#${v}`;
+    if (!window.Favicon?.isValidHex(v)) {
+      alert('Colore non valido. Usa un valore #rrggbb (es. #40e0d0).');
+      return;
+    }
+    hexInput.value = v;
+    colorInput.value = v.length === 4
+      ? `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`
+      : v;
+    onChange();
+  };
+
+  hexInput.addEventListener('change', applyHex);
+  hexInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') applyHex();
+  });
+}
+
+function renderFaviconConfig(favicon) {
+  const cfg = window.Favicon
+    ? Favicon.normalizeFavicon(favicon)
+    : { symbol: '⥀', color: '#40e0d0', bg: '#0f2027', size: 32, radius: 22, bgOpacity: 100, symbolOpacity: 100 };
+  const symbolInput = document.getElementById('favicon-symbol-input');
+  const sizeInput = document.getElementById('favicon-size-input');
+  const colorInput = document.getElementById('favicon-color-input');
+  const colorHex = document.getElementById('favicon-color-hex');
+  const bgInput = document.getElementById('favicon-bg-input');
+  const bgHex = document.getElementById('favicon-bg-hex');
+  const radiusInput = document.getElementById('favicon-radius-input');
+  const bgOpacityInput = document.getElementById('favicon-bg-opacity-input');
+  const symbolOpacityInput = document.getElementById('favicon-symbol-opacity-input');
+
+  if (symbolInput) symbolInput.value = cfg.symbol;
+  if (sizeInput) sizeInput.value = String(cfg.size);
+  if (colorInput) colorInput.value = cfg.color;
+  if (colorHex) colorHex.value = cfg.color;
+  if (bgInput) bgInput.value = cfg.bg;
+  if (bgHex) bgHex.value = cfg.bg;
+  if (radiusInput) radiusInput.value = String(cfg.radius);
+  if (bgOpacityInput) bgOpacityInput.value = String(cfg.bgOpacity);
+  if (symbolOpacityInput) symbolOpacityInput.value = String(cfg.symbolOpacity);
+  refreshFaviconPreview();
+}
+
+function setupFaviconControls() {
+  const sizeInput = document.getElementById('favicon-size-input');
+  const symbolInput = document.getElementById('favicon-symbol-input');
+  const radiusInput = document.getElementById('favicon-radius-input');
+  const bgOpacityInput = document.getElementById('favicon-bg-opacity-input');
+  const symbolOpacityInput = document.getElementById('favicon-symbol-opacity-input');
+  const markUnsaved = () => {
+    markFormUnsaved('favicon');
+    refreshFaviconPreview();
+  };
+
+  sizeInput?.addEventListener('input', markUnsaved);
+  symbolInput?.addEventListener('input', markUnsaved);
+  radiusInput?.addEventListener('input', markUnsaved);
+  bgOpacityInput?.addEventListener('input', markUnsaved);
+  symbolOpacityInput?.addEventListener('input', markUnsaved);
+  bindFaviconColorPair('favicon-color-input', 'favicon-color-hex', markUnsaved);
+  bindFaviconColorPair('favicon-bg-input', 'favicon-bg-hex', markUnsaved);
+}
+
+function getSeoFromForm() {
+  return {
+    title: (document.getElementById('seo-title-input')?.value || '').trim(),
+    description: (document.getElementById('seo-description-input')?.value || '').trim(),
+    keywords: (document.getElementById('seo-keywords-input')?.value || '').trim(),
+    ogTitle: (document.getElementById('seo-og-title-input')?.value || '').trim(),
+    ogDescription: (document.getElementById('seo-og-description-input')?.value || '').trim(),
+    ogImage: (document.getElementById('seo-og-image-input')?.value || '').trim(),
+    ogSiteName: (document.getElementById('seo-og-site-name-input')?.value || '').trim(),
+    twitterTitle: (document.getElementById('seo-twitter-title-input')?.value || '').trim(),
+    twitterDescription: (document.getElementById('seo-twitter-description-input')?.value || '').trim(),
+    canonicalUrl: (document.getElementById('seo-canonical-input')?.value || '').trim()
+  };
+}
+
+function refreshCacheVersionDisplay(cacheVersion) {
+  const el = document.getElementById('cache-version-display');
+  if (!el) return;
+  el.textContent = cacheVersion ? String(cacheVersion) : '—';
+}
+
+function renderSeoConfig(site) {
+  const seo = window.SiteMeta ? SiteMeta.normalizeSeo(site?.seo) : (site?.seo || {});
+  const setVal = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.value = value || '';
+  };
+
+  setVal('seo-title-input', seo.title);
+  setVal('seo-description-input', seo.description);
+  setVal('seo-keywords-input', seo.keywords);
+  setVal('seo-og-title-input', site?.seo?.ogTitle || '');
+  setVal('seo-og-description-input', site?.seo?.ogDescription || '');
+  setVal('seo-og-image-input', seo.ogImage);
+  setVal('seo-og-site-name-input', seo.ogSiteName);
+  setVal('seo-twitter-title-input', site?.seo?.twitterTitle || '');
+  setVal('seo-twitter-description-input', site?.seo?.twitterDescription || '');
+  setVal('seo-canonical-input', seo.canonicalUrl);
+  refreshCacheVersionDisplay(site?.cacheVersion);
+
+  if (window.SiteMeta) {
+    SiteMeta.apply(site || {});
+  }
+}
+
+function setupSeoControls() {
+  const previewSeo = () => {
+    if (!window.SiteMeta) return;
+    const site = {
+      ...(window._origSite || {}),
+      seo: getSeoFromForm(),
+      favicon: getFaviconFromForm(),
+      cacheVersion: window._origSite?.cacheVersion
+    };
+    SiteMeta.apply(site);
+  };
+
+  [
+    'seo-title-input',
+    'seo-description-input',
+    'seo-keywords-input',
+    'seo-og-title-input',
+    'seo-og-description-input',
+    'seo-og-image-input',
+    'seo-og-site-name-input',
+    'seo-twitter-title-input',
+    'seo-twitter-description-input',
+    'seo-canonical-input'
+  ].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      markFormUnsaved('seo');
+      previewSeo();
+    });
+  });
+}
+
+function shouldBumpCache(formType) {
+  return formType === 'favicon' || formType === 'seo' || formType === 'cache';
 }
 
 // Refresh the CV preview row (link + filename) based on the cv-url-input value
@@ -2737,13 +2981,53 @@ function setupIndividualSaveFunctions() {
     const payload = { sections };
     savePartialSiteConfig('Sezioni', payload, 'sections');
   });
+
+  document.getElementById('save-favicon-btn')?.addEventListener('click', () => {
+    if (!window.Favicon) return;
+    const raw = getFaviconFromForm();
+    let color = (raw.color || '').trim();
+    let bg = (raw.bg || '').trim();
+    if (color && color[0] !== '#') color = `#${color}`;
+    if (bg && bg[0] !== '#') bg = `#${bg}`;
+    if (raw.color && !Favicon.isValidHex(color)) {
+      alert('Colore simbolo non valido. Usa un valore #rrggbb.');
+      return;
+    }
+    if (raw.bg && !Favicon.isValidHex(bg)) {
+      alert('Colore sfondo non valido. Usa un valore #rrggbb.');
+      return;
+    }
+    const cfg = Favicon.normalizeFavicon({ ...raw, color, bg });
+    savePartialSiteConfig('Favicon', { favicon: cfg }, 'favicon');
+  });
+
+  document.getElementById('save-seo-btn')?.addEventListener('click', () => {
+    const seo = getSeoFromForm();
+    if (!seo.title || !seo.description) {
+      alert('Titolo pagina e meta description sono obbligatori.');
+      return;
+    }
+    savePartialSiteConfig('SEO & Meta', { seo }, 'seo');
+  });
+
+  document.getElementById('bump-cache-btn')?.addEventListener('click', async () => {
+    const nextVersion = window.SiteMeta?.bumpCacheVersion() || Date.now();
+    await savePartialSiteConfig('Cache SEO & Favicon', { cacheVersion: nextVersion }, 'cache');
+    refreshCacheVersionDisplay(nextVersion);
+  });
 }
 
 async function savePartialSiteConfig(displayName, partialPayload, formType) {
   try {
     // Merge with existing site config
     const currentSite = window._origSite || {};
-    const fullPayload = { ...currentSite, ...partialPayload };
+    const payload = { ...partialPayload };
+
+    if (shouldBumpCache(formType) && payload.cacheVersion == null) {
+      payload.cacheVersion = window.SiteMeta?.bumpCacheVersion() || Date.now();
+    }
+
+    const fullPayload = { ...currentSite, ...payload };
     
     const logMsg = `✅ ${displayName} salvato`;
     
@@ -2773,7 +3057,14 @@ async function savePartialSiteConfig(displayName, partialPayload, formType) {
     }
     
     // Update original site config and clear unsaved state
-    Object.assign(window._origSite, partialPayload);
+    Object.assign(window._origSite, payload);
+    refreshCacheVersionDisplay(window._origSite.cacheVersion);
+    if (window.SiteMeta) SiteMeta.apply(window._origSite);
+    if (window.Favicon) {
+      Favicon.persistCache(window._origSite.favicon, window._origSite.cacheVersion);
+      Favicon.apply(window._origSite.favicon, window._origSite.cacheVersion, { force: true });
+    }
+    triggerCacheInvalidation(displayName, payload);
     clearFormUnsaved(formType);
     
   } catch(err) {

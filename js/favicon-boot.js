@@ -1,0 +1,1 @@
+window.__FAVICON_BOOT__={"favicon":{"symbol":"⥀","color":"#40e0d0","bg":"#0f2027","size":32,"radius":22,"bgOpacity":100,"symbolOpacity":100},"cacheVersion":1751500800000,"urls":{"svg":"/favicon.svg?v=1751500800000","png48":"/favicon-48.png?v=1751500800000","apple":"/apple-touch-icon.png?v=1751500800000","ico":"/favicon.ico?v=1751500800000"}};

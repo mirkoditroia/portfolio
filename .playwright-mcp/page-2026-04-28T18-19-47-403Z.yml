@@ -1,0 +1,86 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e5]: MÊIRKS
+    - generic [ref=e6]: Loading hallucinations...
+  - banner [ref=e7]:
+    - generic [ref=e9] [cursor=pointer]: MÊIRKS
+    - navigation "Menu principale" [ref=e10]:
+      - link "Vai alla sezione VFX" [ref=e11] [cursor=pointer]:
+        - /url: "#vfx"
+        - text: VFX
+      - link "Vai alla sezione 3D artworks" [ref=e12] [cursor=pointer]:
+        - /url: "#art3d"
+        - text: 3D artworks
+      - link "Vai alla sezione Interactive" [ref=e13] [cursor=pointer]:
+        - /url: "#interactive"
+        - text: Interactive
+      - link "Vai alla sezione Chi Sono" [ref=e14] [cursor=pointer]:
+        - /url: "#about"
+        - text: About
+      - link "Download free assets" [ref=e15] [cursor=pointer]:
+        - /url: /download
+        - text: Downloads
+  - main [ref=e16]:
+    - banner [ref=e17]:
+      - generic [ref=e19]: skibidpopissw
+    - region "VFX" [ref=e20]:
+      - heading "VFX" [level=2] [ref=e21]:
+        - generic [ref=e22]: ✶
+        - generic [ref=e23]: VFX
+      - region "Gallery VFX":
+        - list
+        - text: next prev
+    - region "3D artworks" [ref=e24]:
+      - heading "3D artworks" [level=2] [ref=e25]:
+        - generic [ref=e26]: ✶
+        - generic [ref=e27]: 3D artworks
+      - region "Gallery Arte 3D":
+        - list
+        - text: next prev
+    - region "Interactive" [ref=e28]:
+      - heading "Interactive" [level=2] [ref=e29]:
+        - generic [ref=e30]: ✶
+        - generic [ref=e31]: Interactive
+      - region "Gallery Arte Interattiva":
+        - list
+        - text: next prev
+    - text: next prev next prev
+    - region "About Me" [ref=e32]:
+      - generic [ref=e33]:
+        - generic [ref=e35]: MÊIRKS
+        - generic [ref=e36]:
+          - heading "About Me" [level=2] [ref=e37]
+          - paragraph [ref=e38]: ola ola meirkssssassxdsascds skibididu trallalero 😊😊
+          - generic [ref=e39]:
+            - link "Email mierkos@gmail.com" [ref=e40] [cursor=pointer]:
+              - /url: mailto:mierkos@gmail.com
+              - generic [ref=e41]:
+                - generic [ref=e42]: Email
+                - generic [ref=e43]: mierkos@gmail.com
+            - link "LinkedIn linkedin.com/in/username" [ref=e44] [cursor=pointer]:
+              - /url: https://linkedin.com/in/username
+              - generic [ref=e45]:
+                - generic [ref=e46]: LinkedIn
+                - generic [ref=e47]: linkedin.com/in/username
+            - link "Instagram instagram.com/meirks" [ref=e48] [cursor=pointer]:
+              - /url: https://instagram.com/meirks
+              - generic [ref=e49]:
+                - generic [ref=e50]: Instagram
+                - generic [ref=e51]: instagram.com/meirks
+            - link "GitHub github.com/meirks" [ref=e52] [cursor=pointer]:
+              - /url: https://github.com/meirks
+              - generic [ref=e53]:
+                - generic [ref=e54]: GitHub
+                - generic [ref=e55]: github.com/meirks
+  - contentinfo [ref=e56]:
+    - generic [ref=e57]:
+      - generic [ref=e58]: "ENV: LOCAL"
+      - text: • v1.4-alpha
+    - generic [ref=e59]:
+      - text: Realizzato al 100% da
+      - strong [ref=e60]: mêirks
+  - dialog "Cookie & Privacy" [ref=e61]:
+    - generic [ref=e62]: We use anonymous analytics (visits, interactions, approximate location) to improve this site. No third-party profiling cookies.
+    - generic [ref=e63]:
+      - button "Decline" [ref=e64] [cursor=pointer]
+      - button "Accept" [ref=e65] [cursor=pointer]

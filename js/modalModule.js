@@ -197,6 +197,11 @@ function updateMetaTags(item) {
  * Reset meta tags to default
  */
 function resetMetaTags() {
+  if (window.SiteMeta && window.currentSiteConfig) {
+    SiteMeta.apply(window.currentSiteConfig);
+    return;
+  }
+
   document.title = 'MÊIRKS - Visual Effects, 3D Art & Creative Coding';
   
   const updateMeta = (property, content, isName = false) => {

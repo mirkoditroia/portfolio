@@ -1,0 +1,41 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]: MÊIRKS Admin
+    - navigation
+  - generic [ref=e4]:
+    - complementary [ref=e5]:
+      - heading "Dashboard" [level=2] [ref=e6]
+      - navigation [ref=e7]:
+        - button "Gallerie" [ref=e8] [cursor=pointer]
+        - button "Downloads" [ref=e9] [cursor=pointer]
+        - button "Analytics" [ref=e10] [cursor=pointer]
+        - button "Configurazione Sito" [ref=e11] [cursor=pointer]
+        - button "Log" [ref=e12] [cursor=pointer]
+    - main [ref=e13]:
+      - generic [ref=e16]:
+        - heading "Admin Access" [level=3] [ref=e17]
+        - paragraph [ref=e18]: Development mode - no authentication required
+      - generic [ref=e19]:
+        - generic [ref=e21]: Caricamento in corso...
+        - generic [ref=e22]:
+          - generic [ref=e23]:
+            - heading "Gallerie" [level=2] [ref=e24]
+            - button "+ Nuova galleria" [ref=e25] [cursor=pointer]
+            - button "💾 Salva tutto" [ref=e26] [cursor=pointer]
+          - paragraph [ref=e27]:
+            - text: Trascina
+            - code [ref=e28]: ⠿
+            - text: per riordinare le gallerie sulla navbar pubblica. Modifica nome, slug e visibilità direttamente nell'intestazione di ogni galleria. Usa il menu
+            - emphasis [ref=e29]: Sposta in…
+            - text: di una slide per trasferirla in un'altra galleria. Tutte le modifiche diventano definitive solo dopo
+            - strong [ref=e30]: Salva tutto
+            - text: .
+  - contentinfo [ref=e31]:
+    - generic [ref=e32]:
+      - generic [ref=e33]:
+        - generic [ref=e34]: "ENV: LOCAL"
+        - text: • Admin Panel v1.1.0-alpha
+      - generic [ref=e35]:
+        - text: Realizzato al 100% da
+        - strong [ref=e36]: mêirks
+        - text: con l'indispensabile aiuto di Cursor e i suoi agenti galattici 🚀

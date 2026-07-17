@@ -1,4 +1,26 @@
 {
+  "cacheVersion": 1751500800000,
+  "favicon": {
+    "symbol": "⥀",
+    "color": "#40e0d0",
+    "bg": "#0f2027",
+    "size": 32,
+    "radius": 22,
+    "bgOpacity": 100,
+    "symbolOpacity": 100
+  },
+  "seo": {
+    "title": "Mirko Ditroia (Meirks) — Creative Coder, VFX, 3D & Interactive Art",
+    "description": "Portfolio ufficiale di Mirko Ditroia, in arte Meirks: creative coder italiano specializzato in VFX, 3D, motion graphics e arte interattiva. Esplora progetti, esperimenti generativi e collaborazioni.",
+    "keywords": "Mirko Ditroia, Meirks, mêirks, creative coder, creative coding, portfolio, VFX, motion graphics, 3D artist, arte digitale, interactive art, generative art, TouchDesigner, Houdini, Cinema 4D, Italia",
+    "ogTitle": "Mirko Ditroia (Meirks) — Creative Coder, VFX & Interactive Art",
+    "ogDescription": "Portfolio ufficiale di Mirko Ditroia, in arte Meirks: creative coder italiano specializzato in VFX, 3D, motion graphics e arte interattiva.",
+    "ogImage": "https://meirks.xyz/images/og-cover.jpg",
+    "ogSiteName": "Meirks — Mirko Ditroia",
+    "twitterTitle": "Mirko Ditroia (Meirks) — Creative Coder Portfolio",
+    "twitterDescription": "Creative coder italiano: VFX, 3D, motion graphics, arte interattiva. Portfolio ufficiale.",
+    "canonicalUrl": "https://meirks.xyz/"
+  },
   "bio": "ola ola meirkssssassxdsascds skibididu trallalero 😊😊",
   "heroText": "skibidpopissw",
   "contacts": [
